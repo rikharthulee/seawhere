@@ -53,9 +53,9 @@ export async function POST(req) {
   const record = payload.record || payload?.new || payload?.old || {};
   const slug = record.slug;
 
-  if (table === "locations") {
-    tags.add("locations");
-    if (slug) tags.add(`locations:${slug}`);
+  if (table === "locations" || table === "destinations") {
+    tags.add("destinations");
+    if (slug) tags.add(`destinations:${slug}`);
   }
   if (["accommodations", "accommodation", "accomodation"].includes(table)) {
     tags.add("accommodation");

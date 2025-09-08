@@ -9,7 +9,7 @@ export async function PUT(req, { params }) {
     const cookieStore = await cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     const { data, error } = await supabase
-      .from("locations")
+      .from("destinations")
       .update(body)
       .eq("id", id)
       .select("id, slug")
@@ -26,11 +26,11 @@ export async function DELETE(_req, { params }) {
     const { id } = params;
     const cookieStore = await cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-    const { error } = await supabase.from("locations").delete().eq("id", id);
+    const { error } = await supabase.from("destinations").delete().eq("id", id);
     if (error) {
       const status = error.code === "23503" ? 409 : 400; // 23503: foreign_key_violation
       const friendly = error.code === "23503"
-        ? "Cannot delete this location because other records reference it (e.g., sub-destinations, POIs, accommodations, itineraries, or articles). Remove those first or detach their destination."
+        ? "Cannot delete this destination because other records reference it (e.g., POIs, accommodations, itineraries, or articles). Remove those first or detach their destination."
         : error.message;
       return NextResponse.json({ error: friendly }, { status });
     }

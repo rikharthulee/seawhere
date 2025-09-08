@@ -25,6 +25,12 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
   const [status, setStatus] = useState(initial?.status || "draft");
   const [credit, setCredit] = useState(initial?.credit || "");
   const [saving, setSaving] = useState(false);
+  const [assignTo, setAssignTo] = useState(initial?.division_id ? "division" : "prefecture");
+  const [prefectureId, setPrefectureId] = useState(initial?.prefecture_id || "");
+  const [divisionId, setDivisionId] = useState(initial?.division_id || "");
+  const [prefectures, setPrefectures] = useState([]);
+  const [divisions, setDivisions] = useState([]);
+  const [formError, setFormError] = useState("");
   const isEditing = !!initial?.id;
 
   // Sync state when switching between rows or opening the editor
@@ -38,7 +44,35 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
     setThumb(initial?.thumbnail_image || "");
     setStatus(initial?.status || "draft");
     setCredit(initial?.credit || "");
+    setAssignTo(initial?.division_id ? "division" : "prefecture");
+    setPrefectureId(initial?.prefecture_id || "");
+    setDivisionId(initial?.division_id || "");
   }, [initial]);
+
+  // Load selection lists
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const { data: prefs } = await supabase
+          .from("prefectures")
+          .select("id,name,slug,region_id,order_index")
+          .order("order_index", { ascending: true });
+        if (!cancelled) setPrefectures(prefs || []);
+      } catch {}
+      try {
+        const { data: divs } = await supabase
+          .from("divisions")
+          .select("id,name,slug,prefecture_id,order_index")
+          .order("order_index", { ascending: true });
+        if (!cancelled) setDivisions(divs || []);
+      } catch {}
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
 
   useEffect(() => {
     if (!slugTouched) {
@@ -57,15 +91,32 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
   async function save() {
     setSaving(true);
     try {
+      setFormError("");
+      // Basic validation
+      const baseSlug = slug || slugify(name);
+      if (!name.trim()) throw new Error("Name is required");
+      if (!baseSlug) throw new Error("Slug is required");
+      if (assignTo === "prefecture" && !prefectureId) throw new Error("Select a prefecture");
+      if (assignTo === "division" && !divisionId) throw new Error("Select a division");
+
+      // Auto-sync prefecture from division when division chosen
+      let finalPrefectureId = prefectureId;
+      if (assignTo === "division") {
+        const div = divisions.find((d) => d.id === divisionId);
+        if (div?.prefecture_id) finalPrefectureId = div.prefecture_id;
+      }
+
       const payload = {
         name,
-        slug: slug || slugify(name),
+        slug: baseSlug,
         summary,
         body_richtext: body,
         hero_image: hero || null,
         thumbnail_image: thumb || null,
         status,
         credit: credit || null,
+        prefecture_id: assignTo === "prefecture" ? prefectureId : finalPrefectureId || null,
+        division_id: assignTo === "division" ? divisionId : null,
       };
       let savedSlug = payload.slug;
       let res, json;
@@ -93,13 +144,14 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
         await fetch(`/api/revalidate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tags: ["locations", `locations:${savedSlug}`] }),
+          body: JSON.stringify({ tags: ["destinations", `destinations:${savedSlug}`] }),
         });
       } catch {}
       onSaved?.();
     } catch (e) {
       console.error(e);
-      alert(e.message || "Save failed");
+      const msg = e?.message || "Save failed";
+      setFormError(msg);
     } finally {
       setSaving(false);
     }
@@ -107,7 +159,7 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
 
   async function handleDelete() {
     if (!isEditing) return;
-    if (!confirm("Delete this location? This cannot be undone.")) return;
+    if (!confirm("Delete this destination? This cannot be undone.")) return;
     const res = await fetch(`/api/admin/locations/${initial.id}`, { method: "DELETE" });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
@@ -118,7 +170,7 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
       await fetch(`/api/revalidate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tags: ["locations", `locations:${slug || initial.slug}`] }),
+        body: JSON.stringify({ tags: ["destinations", `destinations:${slug || initial.slug}`] }),
       });
     } catch {}
     onSaved?.();
@@ -126,6 +178,9 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
 
   return (
     <div className="space-y-4 border rounded-lg p-4">
+      {formError ? (
+        <div className="rounded border border-red-200 bg-red-50 text-red-800 px-3 py-2 text-sm">{formError}</div>
+      ) : null}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">Name</label>
@@ -133,7 +188,7 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
             className="w-full rounded border p-2"
             value={name}
             onChange={(e) => setName(e.target.value)}
-          />
+            />
         </div>
         <div>
           <label className="block text-sm font-medium">Slug</label>
@@ -151,6 +206,85 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
           />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium">Assign to</label>
+          <div className="flex items-center gap-4 mt-1">
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                className="h-4 w-4"
+                name="assign"
+                checked={assignTo === "prefecture"}
+                onChange={() => setAssignTo("prefecture")}
+              />
+              Prefecture
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                className="h-4 w-4"
+                name="assign"
+                checked={assignTo === "division"}
+                onChange={() => setAssignTo("division")}
+              />
+              Division
+            </label>
+          </div>
+          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+            {assignTo === "prefecture" ? (
+              <div>
+                <label className="block text-sm text-black/70">Prefecture</label>
+                <select
+                  className="w-full rounded border p-2"
+                  value={prefectureId}
+                  onChange={(e) => setPrefectureId(e.target.value)}
+                >
+                  <option value="">Select a prefecture…</option>
+                  {prefectures.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm text-black/70">Prefecture (for filtering)</label>
+                  <select
+                    className="w-full rounded border p-2"
+                    value={prefectureId}
+                    onChange={(e) => setPrefectureId(e.target.value)}
+                  >
+                    <option value="">All prefectures…</option>
+                    {prefectures.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-black/70">Division</label>
+                  <select
+                    className="w-full rounded border p-2"
+                    value={divisionId}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDivisionId(v);
+                      const div = divisions.find((d) => d.id === v);
+                      if (div?.prefecture_id) setPrefectureId(div.prefecture_id);
+                    }}
+                  >
+                    <option value="">Select a division…</option>
+                    {(prefectureId
+                      ? divisions.filter((d) => d.prefecture_id === prefectureId)
+                      : divisions
+                    ).map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
         </div>
         <div>
           <ImageUpload label="Hero image" value={hero} onChange={setHero} />

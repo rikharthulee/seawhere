@@ -30,7 +30,7 @@ export default function LocationsManager() {
     const t = setTimeout(() => {
       if (loading) {
         setError(
-          "Request timed out. Check RLS policies on public.locations and your Supabase URL/key."
+          "Request timed out. Check RLS policies on public.destinations and your Supabase URL/key."
         );
         setLoading(false);
       }
@@ -43,12 +43,12 @@ export default function LocationsManager() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Locations</h2>
+        <h2 className="text-xl font-semibold">Destinations</h2>
         <button
           className="rounded bg-black text-white px-3 py-2"
           onClick={() => setEditing({})}
         >
-          + New Location
+          + New Destination
         </button>
       </div>
 
@@ -96,7 +96,7 @@ export default function LocationsManager() {
             ) : items.length === 0 ? (
               <tr>
                 <td className="px-3 py-3" colSpan={5}>
-                  No locations. Click “New Location” to create your first one.
+                  No destinations. Click “New Destination” to create your first one.
                 </td>
               </tr>
             ) : (
@@ -104,7 +104,13 @@ export default function LocationsManager() {
                 <tr key={it.id} className="border-t">
                   <td className="px-3 py-2">{it.name}</td>
                   <td className="px-3 py-2">{it.slug}</td>
-                  <td className="px-3 py-2">{it.status}</td>
+                  <td className="px-3 py-2">
+                    {it.status === "draft" ? (
+                      <span className="inline-block text-xs rounded-full bg-yellow-100 text-yellow-800 px-2 py-0.5">Draft</span>
+                    ) : (
+                      <span className="inline-block text-xs rounded-full bg-green-100 text-green-800 px-2 py-0.5">Published</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 truncate max-w-[32rem]">{it.summary}</td>
                   <td className="px-3 py-2 text-right">
                     <button
@@ -116,7 +122,7 @@ export default function LocationsManager() {
                     <button
                       className="rounded border px-2 py-1"
                       onClick={async () => {
-                        if (!confirm("Delete this location?")) return;
+                        if (!confirm("Delete this destination?")) return;
                         try {
                           const res = await fetch(`/api/admin/locations/${it.id}`, { method: "DELETE" });
                           if (!res.ok) {
@@ -128,7 +134,7 @@ export default function LocationsManager() {
                             await fetch(`/api/revalidate`, {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ tags: ["locations", `locations:${it.slug}`] }),
+                              body: JSON.stringify({ tags: ["destinations", `destinations:${it.slug}`] }),
                             });
                           } catch {}
                           load();
