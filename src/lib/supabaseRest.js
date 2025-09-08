@@ -1,5 +1,7 @@
+import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function getHeaders() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -76,11 +78,7 @@ export async function fetchRegionBySlug(slug) {
   return rows?.[0] || null;
 }
 
-export async function fetchRegionById(id) {
-  const query = `regions?id=eq.${encodeURIComponent(id)}&select=id,slug,name&limit=1`;
-  const rows = await supaFetch(query, { revalidate: 600, tags: ["regions", `regions:${id}`] });
-  return rows?.[0] || null;
-}
+// (moved below) fetchRegionById
 
 export async function fetchPrefectures() {
   const query = "prefectures?select=id,slug,name,region_id,order_index&order=order_index.asc";
@@ -95,11 +93,7 @@ export async function fetchPrefectureBySlug(slug, regionId) {
   return rows?.[0] || null;
 }
 
-export async function fetchPrefectureById(id) {
-  const query = `prefectures?id=eq.${encodeURIComponent(id)}&select=id,slug,name,region_id&limit=1`;
-  const rows = await supaFetch(query, { revalidate: 600, tags: ["prefectures", `prefectures:${id}`] });
-  return rows?.[0] || null;
-}
+// (moved below) fetchPrefectureById
 
 export async function fetchDivisionsByPrefecture(prefId) {
   const query = `divisions?prefecture_id=eq.${encodeURIComponent(prefId)}&select=id,slug,name,order_index&order=order_index.asc`;
@@ -114,10 +108,11 @@ export async function fetchDivisionBySlug(slug, prefId) {
   return rows?.[0] || null;
 }
 
-export async function fetchDivisionById(id) {
-  const query = `divisions?id=eq.${encodeURIComponent(id)}&select=id,slug,name,prefecture_id&limit=1`;
-  const rows = await supaFetch(query, { revalidate: 600, tags: ["divisions", `divisions:${id}`] });
-  return rows?.[0] || null;
+// (moved below) fetchDivisionById
+
+export async function fetchAllDivisions() {
+  const query = `divisions?select=id,slug,name,prefecture_id,order_index&order=order_index.asc`;
+  return supaFetch(query, { revalidate: 600, tags: ["divisions"] });
 }
 
 export async function fetchDestinationsByPrefecture(prefId) {
@@ -137,45 +132,104 @@ export async function fetchDestinationsByDivision(divId) {
 }
 
 export async function fetchDestinationBySlug(slug) {
-  const sel =
-    "id,slug,name,summary,body_richtext,hero_image,thumbnail_image,images,status,credit,prefecture_id,division_id";
-  const query = `destinations?slug=eq.${encodeURIComponent(slug)}&status=in.(published,draft)&select=${sel}&limit=1`;
-  const rows = await supaFetch(query, { revalidate: 300, tags: ["destinations", `destinations:${slug}`] });
-  return rows?.[0] || null;
+  const s = String(slug || "").trim();
+  const { data, error } = await db
+    .from("destinations")
+    .select(
+      "id, slug, name, status, prefecture_id, division_id, hero_image, thumbnail_image, summary, body_richtext, credit, images"
+    )
+    .eq("slug", s)
+    .eq("status", "published")
+    .single();
+  if (error) return null;
+  return data;
 }
 
 // Destination related content
 export async function fetchPOIsByDestination(destId) {
-  const sel = "id,title,type,status";
-  const query = `poi?destination_id=eq.${encodeURIComponent(destId)}&status=eq.published&select=${sel}&order=title.asc`;
-  return supaFetch(query, { revalidate: 300, tags: ["poi", `poi:dest:${destId}`] });
+  const { data, error } = await db
+    .from("poi")
+    .select("id, type, title, summary, image, status")
+    .eq("destination_id", destId)
+    .eq("status", "published")
+    .order("title", { ascending: true });
+  if (error) return [];
+  return data ?? [];
 }
 
 export async function fetchAccommodationByDestination(destId) {
-  const sel = "id,name,summary,status";
-  const query = `accommodation?destination_id=eq.${encodeURIComponent(destId)}&status=eq.published&select=${sel}&order=name.asc`;
-  return supaFetch(query, { revalidate: 300, tags: ["accommodation", `accommodation:dest:${destId}`] });
+  const { data, error } = await db
+    .from("accommodation")
+    .select("id, name, summary, thumbnail_image, status")
+    .eq("destination_id", destId)
+    .eq("status", "published")
+    .order("name", { ascending: true });
+  if (error) return [];
+  return data ?? [];
 }
 
 export async function fetchArticlesByDestination(destId) {
-  const sel = "id,title,excerpt,status";
-  const query = `articles?destination_id=eq.${encodeURIComponent(destId)}&status=eq.published&select=${sel}&order=published_at.desc.nullslast`;
-  return supaFetch(query, { revalidate: 300, tags: ["articles", `articles:dest:${destId}`] });
+  const { data, error } = await db
+    .from("articles")
+    .select("id, title, excerpt, slug, status, published_at")
+    .eq("destination_id", destId)
+    .eq("status", "published")
+    .order("published_at", { ascending: false, nullsFirst: false });
+  if (error) return [];
+  return data ?? [];
 }
 
 export async function fetchDestinationLinksFrom(destId) {
-  // We assume a view or RPC that joins to destination name/slug; if not, adjust client-side
-  const sel = "from_location_id,to_location_id:to_destination_id,relation,weight";
-  // Fallback: assume a materialized view exists; if not, this will no-op gracefully
-  const query = `destination_links?from_location_id=eq.${encodeURIComponent(destId)}&select=from_location_id,to_location_id,relation,weight`;
-  const rows = await supaFetch(query, { revalidate: 300, tags: ["destination_links", `destination_links:${destId}`] }).catch(() => []);
-  return rows;
+  const { data, error } = await db
+    .from("destination_links")
+    .select("to_destination_id, relation, weight")
+    .eq("from_destination_id", destId)
+    .order("weight", { ascending: false });
+  if (error) return [];
+  return data ?? [];
 }
 
 export async function fetchDestinationsByIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const sel = "id,slug,name";
-  const list = ids.map((x) => encodeURIComponent(x)).join(",");
-  const query = `destinations?id=in.(${list})&select=${sel}`;
-  return supaFetch(query, { revalidate: 300, tags: ["destinations"] });
+  const { data, error } = await db
+    .from("destinations")
+    .select("id, name, slug, status")
+    .in("id", ids)
+    .eq("status", "published");
+  if (error) return [];
+  return data ?? [];
+}
+
+// Convenience fetchers for single IDs
+export async function fetchPrefectureById(id) {
+  if (!id) return null;
+  const { data, error } = await db
+    .from("prefectures")
+    .select("id, name, slug, region_id")
+    .eq("id", id)
+    .single();
+  if (error) return null;
+  return data;
+}
+
+export async function fetchDivisionById(id) {
+  if (!id) return null;
+  const { data, error } = await db
+    .from("divisions")
+    .select("id, name, slug, prefecture_id")
+    .eq("id", id)
+    .single();
+  if (error) return null;
+  return data;
+}
+
+export async function fetchRegionById(id) {
+  if (!id) return null;
+  const { data, error } = await db
+    .from("regions")
+    .select("id, name, slug")
+    .eq("id", id)
+    .single();
+  if (error) return null;
+  return data;
 }

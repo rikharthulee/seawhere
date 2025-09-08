@@ -17,7 +17,7 @@ export async function generateStaticParams() {
 }
 
 export default async function LocationsPage({ params }) {
-  const { slug } = await params;
+  const { slug } = params;
   let destination = null;
   try {
     const row = await fetchLocationsBySlug(slug);

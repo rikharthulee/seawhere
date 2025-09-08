@@ -119,6 +119,14 @@ export default function LocationsManager() {
                     >
                       Edit
                     </button>
+                    <a
+                      className="rounded border px-2 py-1 mr-2 inline-block"
+                      href={`/destinations/${encodeURIComponent(it.slug)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View
+                    </a>
                     <button
                       className="rounded border px-2 py-1"
                       onClick={async () => {

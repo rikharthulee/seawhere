@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import ImageUpload from "./ImageUpload";
+import { fetchPrefectures, fetchAllDivisions } from "@/lib/supabaseRest";
 import ParagraphEditor from "./ParagraphEditor";
 
 function slugify(s) {
@@ -33,6 +34,13 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
   const [formError, setFormError] = useState("");
   const isEditing = !!initial?.id;
 
+  // Derived: divisions for the selected prefecture
+  const divisionsForPref = useMemo(
+    () => (prefectureId ? divisions.filter((d) => d.prefecture_id === prefectureId) : []),
+    [divisions, prefectureId]
+  );
+  const hasDivisionsForPref = divisionsForPref.length > 0;
+
   // Sync state when switching between rows or opening the editor
   useEffect(() => {
     setName(initial?.name || "");
@@ -53,26 +61,56 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      // Prefer a server-backed admin endpoint to avoid client-side RLS issues
+      try {
+        const res = await fetch("/api/admin/meta/geo", { cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json();
+          if (!cancelled) {
+            setPrefectures(Array.isArray(json.prefectures) ? json.prefectures : []);
+            setDivisions(Array.isArray(json.divisions) ? json.divisions : []);
+            return; // done
+          }
+        }
+      } catch {}
+      // Fallback chain: Supabase client → REST public
       try {
         const { data: prefs } = await supabase
           .from("prefectures")
           .select("id,name,slug,region_id,order_index")
           .order("order_index", { ascending: true });
-        if (!cancelled) setPrefectures(prefs || []);
+        if (!cancelled) setPrefectures(Array.isArray(prefs) ? prefs : []);
       } catch {}
       try {
         const { data: divs } = await supabase
           .from("divisions")
           .select("id,name,slug,prefecture_id,order_index")
           .order("order_index", { ascending: true });
-        if (!cancelled) setDivisions(divs || []);
+        if (!cancelled) setDivisions(Array.isArray(divs) ? divs : []);
       } catch {}
+      // Last resort: REST
+      if (!cancelled && prefectures.length === 0) {
+        const rows = await fetchPrefectures().catch(() => []);
+        setPrefectures(rows || []);
+      }
+      if (!cancelled && divisions.length === 0) {
+        const rows = await fetchAllDivisions().catch(() => []);
+        setDivisions(rows || []);
+      }
     }
     load();
     return () => {
       cancelled = true;
     };
   }, [supabase]);
+
+  // If user is assigning to division but selected prefecture has no divisions, switch back to prefecture
+  useEffect(() => {
+    if (assignTo === "division" && (!prefectureId || !hasDivisionsForPref)) {
+      setAssignTo("prefecture");
+      setDivisionId("");
+    }
+  }, [assignTo, prefectureId, hasDivisionsForPref]);
 
   useEffect(() => {
     if (!slugTouched) {
@@ -93,11 +131,16 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
     try {
       setFormError("");
       // Basic validation
-      const baseSlug = slug || slugify(name);
+      // Always sanitize slug on save to avoid stray characters like '?' or spaces
+      const baseSlug = slugify(slug || name);
       if (!name.trim()) throw new Error("Name is required");
       if (!baseSlug) throw new Error("Slug is required");
       if (assignTo === "prefecture" && !prefectureId) throw new Error("Select a prefecture");
-      if (assignTo === "division" && !divisionId) throw new Error("Select a division");
+      if (assignTo === "division") {
+        if (!prefectureId) throw new Error("Select a prefecture with divisions");
+        if (!hasDivisionsForPref) throw new Error("Selected prefecture has no divisions");
+        if (!divisionId) throw new Error("Select a division");
+      }
 
       // Auto-sync prefecture from division when division chosen
       let finalPrefectureId = prefectureId;
@@ -226,9 +269,10 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
                 className="h-4 w-4"
                 name="assign"
                 checked={assignTo === "division"}
-                onChange={() => setAssignTo("division")}
+                onChange={() => hasDivisionsForPref && prefectureId ? setAssignTo("division") : null}
+                disabled={!prefectureId || !hasDivisionsForPref}
               />
-              Division
+              Division{!prefectureId ? " (select prefecture)" : !hasDivisionsForPref ? " (none available)" : ""}
             </label>
           </div>
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -249,7 +293,7 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
             ) : (
               <>
                 <div>
-                  <label className="block text-sm text-black/70">Prefecture (for filtering)</label>
+                  <label className="block text-sm text-black/70">Prefecture</label>
                   <select
                     className="w-full rounded border p-2"
                     value={prefectureId}
@@ -261,27 +305,25 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm text-black/70">Division</label>
-                  <select
-                    className="w-full rounded border p-2"
-                    value={divisionId}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setDivisionId(v);
-                      const div = divisions.find((d) => d.id === v);
-                      if (div?.prefecture_id) setPrefectureId(div.prefecture_id);
-                    }}
-                  >
-                    <option value="">Select a division…</option>
-                    {(prefectureId
-                      ? divisions.filter((d) => d.prefecture_id === prefectureId)
-                      : divisions
-                    ).map((d) => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {hasDivisionsForPref ? (
+                  <div>
+                    <label className="block text-sm text-black/70">Division</label>
+                    <select
+                      className="w-full rounded border p-2"
+                      value={divisionId}
+                      onChange={(e) => setDivisionId(e.target.value)}
+                    >
+                      <option value="">Select a division…</option>
+                      {divisionsForPref.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="text-sm text-black/60 self-end">
+                    No divisions available for this prefecture.
+                  </div>
+                )}
               </>
             )}
           </div>

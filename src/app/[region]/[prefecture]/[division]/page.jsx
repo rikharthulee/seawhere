@@ -9,7 +9,7 @@ import {
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default async function DivisionPage({ params }) {
-  const { region, prefecture, division } = await params;
+  const { region, prefecture, division } = params;
 
   const reg = await fetchRegionBySlug(region).catch(() => null);
   if (!reg) notFound();
@@ -51,4 +51,3 @@ export default async function DivisionPage({ params }) {
 }
 
 export const revalidate = 300;
-

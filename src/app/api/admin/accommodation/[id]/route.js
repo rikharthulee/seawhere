@@ -4,7 +4,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
 export async function PUT(req, { params }) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const body = await req.json();
     const cookieStore = await cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
@@ -39,4 +39,3 @@ export async function DELETE(_req, { params }) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
   }
 }
-
