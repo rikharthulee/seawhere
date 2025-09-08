@@ -9,7 +9,7 @@ import {
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default async function PrefecturePage({ params }) {
-  const { region, prefecture } = params;
+  const { region, prefecture } = await params;
 
   const reg = await fetchRegionBySlug(region).catch(() => null);
   if (!reg) notFound();
