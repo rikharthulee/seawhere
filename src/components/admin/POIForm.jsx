@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import ImageUpload from "./ImageUpload";
-import ParagraphEditor from "./ParagraphEditor";
+import RichTextEditor from "./RichTextEditor";
 
 const POI_TYPES = [
   "sight",
@@ -27,8 +27,12 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
   const [lat, setLat] = useState(initial?.lat ?? "");
   const [lng, setLng] = useState(initial?.lng ?? "");
   const [image, setImage] = useState(initial?.image || "");
-  const [provider, setProvider] = useState(initial?.provider || "");
+  const [provider, setProvider] = useState(initial?.provider || "internal");
   const [deeplink, setDeeplink] = useState(initial?.deeplink || "");
+  const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? "");
+  const [priceGBP, setPriceGBP] = useState(initial?.price?.gbp ?? "");
+  const [priceUSD, setPriceUSD] = useState(initial?.price?.usd ?? "");
+  const [priceJPY, setPriceJPY] = useState(initial?.price?.jpy ?? "");
 
   // Opening hours (simple array editor; defaults handled by DB trigger)
   const [rules, setRules] = useState(Array.isArray(initial?.opening_rules) ? initial.opening_rules : []);
@@ -118,6 +122,10 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
             setTitle(json.poi?.title || "");
             setSummary(json.poi?.summary || "");
             setDetails(json.poi?.details || null);
+            setDurationMinutes(json.poi?.duration_minutes ?? "");
+            setPriceGBP(json.poi?.price?.gbp ?? "");
+            setPriceUSD(json.poi?.price?.usd ?? "");
+            setPriceJPY(json.poi?.price?.jpy ?? "");
             setDestinationId(json.poi?.destination_id || "");
             setStatus(json.poi?.status || "draft");
             setLat(json.poi?.lat ?? "");
@@ -134,6 +142,16 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
       cancelled = true;
     };
   }, [id]);
+
+  // Keep price/duration/provider in sync if initial changes (safety for edit flows)
+  useEffect(() => {
+    if (!initial) return;
+    setDurationMinutes(initial.duration_minutes ?? "");
+    setPriceGBP(initial?.price?.gbp ?? "");
+    setPriceUSD(initial?.price?.usd ?? "");
+    setPriceJPY(initial?.price?.jpy ?? "");
+    setProvider(initial?.provider || "internal");
+  }, [initial]);
 
   // If editing with a known destination, preselect region/pref/div
   useEffect(() => {
@@ -203,6 +221,14 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
         title,
         summary,
         details,
+        duration_minutes: durationMinutes === "" ? null : Number(durationMinutes),
+        price: (function () {
+          const p = {};
+          if (priceGBP !== "" && !Number.isNaN(Number(priceGBP))) p.gbp = Number(priceGBP);
+          if (priceUSD !== "" && !Number.isNaN(Number(priceUSD))) p.usd = Number(priceUSD);
+          if (priceJPY !== "" && !Number.isNaN(Number(priceJPY))) p.jpy = Number(priceJPY);
+          return Object.keys(p).length ? p : null;
+        })(),
         destination_id: destinationId,
         status,
         lat: lat === "" ? null : Number(lat),
@@ -320,6 +346,11 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
         </div>
 
         <div>
+          <label className="block text-sm font-medium">Duration (minutes)</label>
+          <input className="w-full rounded border p-2" value={durationMinutes} onChange={(e) => setDurationMinutes(e.target.value)} placeholder="e.g. 90" />
+        </div>
+
+        <div>
           <ImageUpload
             label="Image"
             value={image}
@@ -331,15 +362,34 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
 
         <div>
           <label className="block text-sm font-medium">Provider</label>
-          <input className="w-full rounded border p-2" value={provider} onChange={(e) => setProvider(e.target.value)} />
+          <select className="w-full rounded border p-2" value={provider} onChange={(e) => setProvider(e.target.value)}>
+            <option value="internal">internal</option>
+            <option value="gyg">gyg</option>
+            <option value="dekitabi">dekitabi</option>
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium">Deeplink</label>
           <input className="w-full rounded border p-2" value={deeplink} onChange={(e) => setDeeplink(e.target.value)} placeholder="https://…" />
         </div>
+
+        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium">Price GBP (£)</label>
+            <input className="w-full rounded border p-2" value={priceGBP} onChange={(e) => setPriceGBP(e.target.value)} placeholder="e.g. 25.00" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Price USD ($)</label>
+            <input className="w-full rounded border p-2" value={priceUSD} onChange={(e) => setPriceUSD(e.target.value)} placeholder="e.g. 29.00" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Price JPY (¥)</label>
+            <input className="w-full rounded border p-2" value={priceJPY} onChange={(e) => setPriceJPY(e.target.value)} placeholder="e.g. 3200" />
+          </div>
+        </div>
       </div>
 
-      <ParagraphEditor value={details} onChange={setDetails} label="Details (paragraphs)" />
+      <RichTextEditor value={details} onChange={setDetails} label="Details" warnOnUnsaved={true} />
 
       <div className="space-y-2">
         <div className="text-sm font-medium">Opening rules (optional)</div>

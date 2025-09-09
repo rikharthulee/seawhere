@@ -3,6 +3,7 @@ import { fetchDestinationBySlug, fetchPOIsByDestination } from "@/lib/supabaseRe
 import Image from "next/image";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import GygWidget from "@/components/GygWidget";
 
 export const revalidate = 300;
 
@@ -56,7 +57,12 @@ export default async function SightsByDestinationPage({ params }) {
           <div className="col-span-full text-black/60">No sights yet for this destination.</div>
         )}
       </section>
+
+      {/* Tours widget (GetYourGuide) */}
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold mb-2">Popular tours</h2>
+        <GygWidget />
+      </section>
     </main>
   );
 }
-

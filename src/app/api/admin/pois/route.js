@@ -23,6 +23,8 @@ export async function POST(request) {
       title: body.title,
       summary: body.summary || null,
       details: body.details || null,
+      duration_minutes: body.duration_minutes ?? null,
+      price: body.price || null,
       destination_id: body.destination_id,
       status: body.status || "draft",
       lat: body.lat ?? null,
@@ -74,10 +76,10 @@ export async function GET() {
   try {
     const cookieStore = await cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-    const { data, error } = await supabase
+  const { data, error } = await supabase
       .from("poi")
       .select(
-        "id, type, title, summary, details, destination_id, status, lat, lng, image, provider, deeplink, timezone"
+        "id, type, title, summary, details, duration_minutes, price, destination_id, status, lat, lng, image, provider, deeplink, timezone"
       )
       .order("title", { ascending: true });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });

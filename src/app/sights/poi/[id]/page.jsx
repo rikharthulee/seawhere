@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import RichText from "@/components/RichText";
+import RichTextReadOnly from "@/components/RichTextReadOnly";
+import GygWidget from "@/components/GygWidget";
 import { fetchPOIById, fetchPOIOpeningRules, fetchPOIOpeningExceptions, fetchDestinationById } from "@/lib/supabaseRest";
 
 export const revalidate = 300;
@@ -28,6 +29,33 @@ export default async function POIDetailPage({ params }) {
   ]);
 
   const img = resolveImageUrl(poi.image);
+  const price = poi.price || null;
+  function fmtPrice(p) {
+    if (!p) return null;
+    const parts = [];
+    if (typeof p.gbp === 'number') parts.push(`£${p.gbp.toFixed(2)}`);
+    if (typeof p.usd === 'number') parts.push(`$${p.usd.toFixed(2)}`);
+    if (typeof p.jpy === 'number') parts.push(`¥${Math.round(p.jpy).toLocaleString('en-US')}`);
+    return parts.join(' / ');
+  }
+  function fmtDuration(mins) {
+    if (mins == null) return null;
+    const m = Number(mins);
+    if (!Number.isFinite(m) || m <= 0) return null;
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    if (h && r) return `${h}h ${r}m`;
+    if (h) return `${h}h`;
+    return `${r}m`;
+  }
+  function providerLabel(code) {
+    if (!code) return null;
+    const c = String(code).toLowerCase();
+    if (c === 'gyg') return 'GetYourGuide';
+    if (c === 'dekitabi') return 'Dekitabi';
+    if (c === 'internal') return null;
+    return c.charAt(0).toUpperCase() + c.slice(1);
+  }
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -40,7 +68,7 @@ export default async function POIDetailPage({ params }) {
       </div>
 
       <section className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
-        <div className="order-1 md:order-2">
+        <div className="md:col-span-2">
           {img ? (
             <Image
               src={img}
@@ -52,23 +80,48 @@ export default async function POIDetailPage({ params }) {
           ) : null}
         </div>
 
-        <div className="order-2 md:order-1">
-          {poi.summary ? <p className="text-lg leading-relaxed mb-3">{poi.summary}</p> : null}
-          {poi.details ? <RichText value={poi.details} /> : null}
-          <div className="mt-4 space-y-1 text-sm text-black/70">
-            {dest ? (
-              <div>
-                <span className="font-medium text-black">Destination:</span>{" "}
-                <Link href={`/destinations/${dest.slug}`} className="underline">{dest.name}</Link>
+        <div className="md:col-span-2">
+          {/* Key info + CTA */}
+          <div className="rounded-lg border p-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="text-sm text-black/70 space-x-3">
+                {fmtDuration(poi.duration_minutes) ? (
+                  <span><span className="font-medium text-black">Duration:</span> {fmtDuration(poi.duration_minutes)}</span>
+                ) : null}
+                {fmtPrice(price) ? (
+                  <span><span className="font-medium text-black">Price:</span> {fmtPrice(price)}</span>
+                ) : null}
+                {dest ? (
+                  <span>
+                    <span className="font-medium text-black">Destination:</span>{" "}
+                    <Link href={`/destinations/${dest.slug}`} className="underline">{dest.name}</Link>
+                  </span>
+                ) : null}
               </div>
-            ) : null}
-            {poi.provider ? <div><span className="font-medium text-black">Provider:</span> {poi.provider}</div> : null}
-            {poi.deeplink ? (
-              <div>
-                <a href={poi.deeplink} target="_blank" rel="noreferrer" className="text-blue-700 underline">
-                  Book / Learn more
+              {poi.deeplink ? (
+                <a
+                  href={poi.deeplink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-md bg-blue-600 text-white px-4 py-2 hover:bg-blue-700"
+                >
+                  Book Now{providerLabel(poi.provider) ? ` on ${providerLabel(poi.provider)}` : ''}
                 </a>
-              </div>
+              ) : null}
+            </div>
+          </div>
+
+          {poi.summary ? <p className="text-lg leading-relaxed mb-3">{poi.summary}</p> : null}
+          {poi.details ? <RichTextReadOnly value={poi.details} /> : null}
+
+          {/* Tours widget (GetYourGuide) */}
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-2">Popular tours</h2>
+            <GygWidget />
+          </div>
+          <div className="mt-4 space-y-1 text-sm text-black/70">
+            {poi.provider && providerLabel(poi.provider) ? (
+              <div><span className="font-medium text-black">Provider:</span> {providerLabel(poi.provider)}</div>
             ) : null}
             {(poi.lat ?? poi.lng) ? (
               <div><span className="font-medium text-black">Location:</span> {poi.lat ?? "—"}, {poi.lng ?? "—"}</div>

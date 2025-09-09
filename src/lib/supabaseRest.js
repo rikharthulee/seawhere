@@ -182,7 +182,7 @@ export async function fetchPOIById(id) {
   if (!id) return null;
   const { data, error } = await db
     .from("poi")
-    .select("id, type, title, summary, details, image, provider, deeplink, status, destination_id, lat, lng, timezone")
+    .select("id, type, title, summary, details, duration_minutes, price, image, provider, deeplink, status, destination_id, lat, lng, timezone")
     .eq("id", id)
     .eq("status", "published")
     .maybeSingle();

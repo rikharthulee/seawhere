@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
-import RichText from "@/components/RichText";
+import RichTextReadOnly from "@/components/RichTextReadOnly";
+import GygWidget from "@/components/GygWidget";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 export const revalidate = 0;
@@ -65,11 +66,17 @@ export default async function DestinationPage({ params }) {
         {/* Body rich text (do not show summary) */}
         <div className="order-2 md:order-1">
           {dst.body_richtext ? (
-            <RichText value={dst.body_richtext} />
+            <RichTextReadOnly value={dst.body_richtext} />
           ) : (
             <p className="text-black/60">More details coming soon.</p>
           )}
         </div>
+      </section>
+
+      {/* Tours widget (GetYourGuide) */}
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold mb-2">Popular tours</h2>
+        <GygWidget />
       </section>
 
       {/* Meta details */}

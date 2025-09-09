@@ -55,6 +55,8 @@ export async function PUT(request, { params }) {
       title: body.title,
       summary: body.summary || null,
       details: body.details || null,
+      duration_minutes: body.duration_minutes ?? null,
+      price: body.price || null,
       destination_id: body.destination_id,
       status: body.status || "draft",
       lat: body.lat ?? null,
