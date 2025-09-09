@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import destinationsData from "@/data/locations";
+import { resolveImageUrl } from "@/lib/imageUrl";
 
-export default function Locations({ items }) {
+export default function Locations({ items, basePath = "/destinations" }) {
   const source =
     Array.isArray(items) && items.length > 0 ? items : destinationsData;
   // Sort alphabetically
@@ -14,7 +15,7 @@ export default function Locations({ items }) {
     <section id="locations">
       <div className="border-t-2 border-black/10 pt-4">
         <div className="flex items-end justify-between">
-          <h2 className="text-3xl md:text-4xl font-medium">Locations</h2>
+          <h2 className="text-3xl md:text-4xl font-medium">Destinations</h2>
         </div>
         <div className="border-b-2 border-black/10 mt-3" />
       </div>
@@ -22,16 +23,18 @@ export default function Locations({ items }) {
         {sortedDestinations.map((d) => (
           <div key={d.slug} className="group">
             <Link
-              href={`/locations/${d.slug}`}
+              href={`${basePath}/${d.slug}`}
               className="relative overflow-hidden rounded-xl block"
             >
               <div className="relative h-64 w-full">
                 <Image
                   src={
-                    (Array.isArray(d.images) && d.images.length > 0
-                      ? d.images[0]
-                      : d.image || d.thumbnail_image || d.hero_image) ||
-                    "/images/destinations/tokyo/tokyo1.jpg"
+                    resolveImageUrl(
+                      (Array.isArray(d.images) && d.images.length > 0
+                        ? d.images[0]
+                        : d.image || d.thumbnail_image || d.hero_image) ||
+                        "/images/destinations/tokyo/tokyo1.jpg"
+                    )
                   }
                   alt={`${d.title || d.name}`}
                   fill

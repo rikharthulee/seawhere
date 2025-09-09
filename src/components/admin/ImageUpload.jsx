@@ -7,7 +7,7 @@ export default function ImageUpload({
   label,
   value,
   onChange,
-  prefix = "locations",
+  prefix = "destinations",
 }) {
   const supabase = createClientComponentClient();
   const [uploading, setUploading] = useState(false);

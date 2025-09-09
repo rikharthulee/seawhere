@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Image from "next/image";
+import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default function EmblaCarousel({
   images = [],
@@ -50,7 +51,7 @@ export default function EmblaCarousel({
             <div key={i} className={`flex-[0_0_100%] relative ${slideClass}`}>
               <div className="absolute inset-0">
                 <Image
-                  src={src}
+                  src={resolveImageUrl(src)}
                   alt={`Slide ${i + 1}`}
                   fill
                   sizes="100vw"

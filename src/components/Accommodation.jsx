@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import accommodationData from "@/data/accommodation";
+import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default function Accommodation({ items }) {
   const source =
@@ -27,10 +28,12 @@ export default function Accommodation({ items }) {
               <div className="relative h-64 w-full">
                 <Image
                   src={
-                    (Array.isArray(item.images) && item.images.length > 0
-                      ? item.images[0]
-                      : item.image || item.thumbnail_image || item.hero_image) ||
-                    "/images/destinations/tokyo/tokyo1.jpg"
+                    resolveImageUrl(
+                      (Array.isArray(item.images) && item.images.length > 0
+                        ? item.images[0]
+                        : item.image || item.thumbnail_image || item.hero_image) ||
+                        "/images/destinations/tokyo/tokyo1.jpg"
+                    )
                   }
                   alt={`${item.title || item.name}`}
                   fill

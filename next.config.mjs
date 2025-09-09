@@ -9,6 +9,17 @@ try {
       hostname: host,
       pathname: '/storage/v1/object/public/**',
     });
+    // Also allow signed and render paths if used
+    remotePatterns.push({
+      protocol: 'https',
+      hostname: host,
+      pathname: '/storage/v1/object/sign/**',
+    });
+    remotePatterns.push({
+      protocol: 'https',
+      hostname: host,
+      pathname: '/storage/v1/render/image/**',
+    });
   }
 } catch {}
 
@@ -21,6 +32,20 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'plus.unsplash.com' },
     ],
+  },
+  async redirects() {
+    return [
+      {
+        source: '/locations',
+        destination: '/destinations',
+        permanent: true,
+      },
+      {
+        source: '/locations/:slug',
+        destination: '/destinations/:slug',
+        permanent: true,
+      },
+    ];
   },
 };
 

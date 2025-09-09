@@ -34,3 +34,22 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Project Conventions
+
+- Dynamic route params in this project must be awaited in the App Router. Example:
+
+  ```js
+  // Good
+  export default async function Page({ params }) {
+    const { slug } = await params;
+    // ...
+  }
+
+  // Avoid
+  export default async function Page({ params }) {
+    const { slug } = params; // may throw in this setup
+  }
+  ```
+
+- Public destination pages should read published rows only and avoid caching 404s during content entry. Use `revalidate = 0` and filter `status = 'published'` when appropriate.
