@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default function Sights({ items = [] }) {
@@ -19,7 +20,7 @@ export default function Sights({ items = [] }) {
         {sorted.map((p) => {
           const img = resolveImageUrl(p.image);
           return (
-            <article key={p.id} className="group relative overflow-hidden rounded-xl border">
+            <Link key={p.id} href={`/sights/poi/${p.id}`} className="group block relative overflow-hidden rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/40">
               <div className="relative h-64 w-full bg-black/5">
                 {img ? (
                   <Image
@@ -30,6 +31,12 @@ export default function Sights({ items = [] }) {
                     className="object-cover transition duration-300 group-hover:scale-105"
                   />
                 ) : null}
+                {/* Type badge */}
+                {p.type ? (
+                  <span className="absolute left-2 top-2 rounded-full bg-black/70 text-white text-xs px-2 py-0.5">
+                    {String(p.type).slice(0,1).toUpperCase() + String(p.type).slice(1)}
+                  </span>
+                ) : null}
               </div>
               <div className="p-3">
                 <div className="font-medium">{p.title}</div>
@@ -37,11 +44,10 @@ export default function Sights({ items = [] }) {
                   <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
                 ) : null}
               </div>
-            </article>
+            </Link>
           );
         })}
       </div>
     </section>
   );
 }
-

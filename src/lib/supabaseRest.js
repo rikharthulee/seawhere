@@ -167,6 +167,51 @@ export async function fetchAllPOIs() {
   return data ?? [];
 }
 
+export async function fetchDestinationById(id) {
+  if (!id) return null;
+  const { data, error } = await db
+    .from("destinations")
+    .select("id, name, slug, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) return null;
+  return data;
+}
+
+export async function fetchPOIById(id) {
+  if (!id) return null;
+  const { data, error } = await db
+    .from("poi")
+    .select("id, type, title, summary, details, image, provider, deeplink, status, destination_id, lat, lng, timezone")
+    .eq("id", id)
+    .eq("status", "published")
+    .maybeSingle();
+  if (error) return null;
+  return data;
+}
+
+export async function fetchPOIOpeningRules(id) {
+  if (!id) return [];
+  const { data, error } = await db
+    .from("poi_opening_rules")
+    .select("day_of_week, open_time, close_time")
+    .eq("poi_id", id)
+    .order("day_of_week", { ascending: true });
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function fetchPOIOpeningExceptions(id) {
+  if (!id) return [];
+  const { data, error } = await db
+    .from("poi_opening_exceptions")
+    .select("start_date, end_date, open_time, close_time, closed, note")
+    .eq("poi_id", id)
+    .order("start_date", { ascending: true });
+  if (error) return [];
+  return data ?? [];
+}
+
 export async function fetchAccommodationByDestination(destId) {
   const { data, error } = await db
     .from("accommodation")
