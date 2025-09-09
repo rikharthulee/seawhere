@@ -15,21 +15,13 @@ export async function POST(request) {
       );
     }
 
-    // Require admin/editor
+    // Require authenticated user (role-agnostic; RLS protects DB writes elsewhere)
     const cookieStore = await cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (!prof || !["admin", "editor"].includes(prof.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     const form = await request.formData();
     const file = form.get("file");

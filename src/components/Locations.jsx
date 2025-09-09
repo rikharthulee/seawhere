@@ -3,7 +3,7 @@ import Image from "next/image";
 import destinationsData from "@/data/locations";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
-export default function Locations({ items }) {
+export default function Locations({ items, basePath = "/destinations" }) {
   const source =
     Array.isArray(items) && items.length > 0 ? items : destinationsData;
   // Sort alphabetically
@@ -23,7 +23,7 @@ export default function Locations({ items }) {
         {sortedDestinations.map((d) => (
           <div key={d.slug} className="group">
             <Link
-              href={`/destinations/${d.slug}`}
+              href={`${basePath}/${d.slug}`}
               className="relative overflow-hidden rounded-xl block"
             >
               <div className="relative h-64 w-full">

@@ -7,26 +7,22 @@ export async function GET() {
     const cookieStore = await cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
-    // Optional: check user role to restrict access to admins/editors
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const [regionsRes, prefsRes, divsRes] = await Promise.all([
+      supabase.from("regions").select("id,name,slug,order_index").order("order_index", { ascending: true }),
+      supabase.from("prefectures").select("id,name,slug,region_id,order_index").order("order_index", { ascending: true }),
+      supabase.from("divisions").select("id,name,slug,prefecture_id,order_index").order("order_index", { ascending: true }),
+    ]);
 
-    const { data: prefectures, error: pErr } = await supabase
-      .from("prefectures")
-      .select("id, name, slug, region_id, order_index")
-      .order("order_index", { ascending: true });
-    if (pErr) throw pErr;
+    const err = regionsRes.error || prefsRes.error || divsRes.error;
+    if (err) return NextResponse.json({ error: err.message }, { status: 400 });
 
-    const { data: divisions, error: dErr } = await supabase
-      .from("divisions")
-      .select("id, name, slug, prefecture_id, order_index")
-      .order("order_index", { ascending: true });
-    if (dErr) throw dErr;
-
-    return NextResponse.json({ prefectures: prefectures || [], divisions: divisions || [] });
+    return NextResponse.json({
+      regions: regionsRes.data || [],
+      prefectures: prefsRes.data || [],
+      divisions: divsRes.data || [],
+    });
   } catch (e) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
   }
 }
+

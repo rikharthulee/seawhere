@@ -157,6 +157,16 @@ export async function fetchPOIsByDestination(destId) {
   return data ?? [];
 }
 
+export async function fetchAllPOIs() {
+  const { data, error } = await db
+    .from("poi")
+    .select("id, type, title, summary, image, destination_id, status")
+    .eq("status", "published")
+    .order("title", { ascending: true });
+  if (error) return [];
+  return data ?? [];
+}
+
 export async function fetchAccommodationByDestination(destId) {
   const { data, error } = await db
     .from("accommodation")
