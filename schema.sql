@@ -117,10 +117,10 @@ CREATE TABLE public.itinerary_days (
   accommodation_id uuid,
   date date,
   CONSTRAINT itinerary_days_pkey PRIMARY KEY (id),
-  CONSTRAINT itinerary_days_destination_fk FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT itinerary_days_sub_destination_fk FOREIGN KEY (sub_destination_id) REFERENCES public.destinations(id),
   CONSTRAINT itinerary_days_accommodation_id_fkey FOREIGN KEY (accommodation_id) REFERENCES public.accommodation(id),
   CONSTRAINT itinerary_days_itinerary_id_fkey FOREIGN KEY (itinerary_id) REFERENCES public.itineraries(id),
-  CONSTRAINT itinerary_days_sub_destination_fk FOREIGN KEY (sub_destination_id) REFERENCES public.destinations(id)
+  CONSTRAINT itinerary_days_destination_fk FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
 );
 CREATE TABLE public.itinerary_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -136,9 +136,9 @@ CREATE TABLE public.itinerary_items (
   accommodation_item_id uuid,
   title_override text,
   CONSTRAINT itinerary_items_pkey PRIMARY KEY (id),
-  CONSTRAINT itinerary_items_itinerary_day_id_fkey FOREIGN KEY (itinerary_day_id) REFERENCES public.itinerary_days(id),
+  CONSTRAINT itinerary_items_accommodation_item_id_fkey FOREIGN KEY (accommodation_item_id) REFERENCES public.accommodation(id),
   CONSTRAINT itinerary_items_poi_id_fkey FOREIGN KEY (poi_id) REFERENCES public.poi(id),
-  CONSTRAINT itinerary_items_accommodation_item_id_fkey FOREIGN KEY (accommodation_item_id) REFERENCES public.accommodation(id)
+  CONSTRAINT itinerary_items_itinerary_day_id_fkey FOREIGN KEY (itinerary_day_id) REFERENCES public.itinerary_days(id)
 );
 CREATE TABLE public.poi (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -154,8 +154,32 @@ CREATE TABLE public.poi (
   status text DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'published'::text])),
   created_at timestamp with time zone DEFAULT now(),
   destination_id uuid,
+  timezone text,
   CONSTRAINT poi_pkey PRIMARY KEY (id),
   CONSTRAINT poi_destination_id_new_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
+);
+CREATE TABLE public.poi_opening_exceptions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  poi_id uuid NOT NULL,
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  closed boolean NOT NULL DEFAULT true,
+  open_time time without time zone,
+  close_time time without time zone,
+  note text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT poi_opening_exceptions_pkey PRIMARY KEY (id),
+  CONSTRAINT poi_opening_exceptions_poi_id_fkey FOREIGN KEY (poi_id) REFERENCES public.poi(id)
+);
+CREATE TABLE public.poi_opening_rules (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  poi_id uuid NOT NULL,
+  day_of_week smallint NOT NULL CHECK (day_of_week >= 0 AND day_of_week <= 6),
+  open_time time without time zone NOT NULL,
+  close_time time without time zone NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT poi_opening_rules_pkey PRIMARY KEY (id),
+  CONSTRAINT poi_opening_rules_poi_id_fkey FOREIGN KEY (poi_id) REFERENCES public.poi(id)
 );
 CREATE TABLE public.prefectures (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -184,5 +208,6 @@ CREATE TABLE public.regions (
   slug text NOT NULL UNIQUE,
   order_index integer,
   created_at timestamp with time zone DEFAULT now(),
+  summary text,
   CONSTRAINT regions_pkey PRIMARY KEY (id)
 );

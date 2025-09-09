@@ -329,10 +329,20 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
           </div>
         </div>
         <div>
-          <ImageUpload label="Hero image" value={hero} onChange={setHero} />
+          <ImageUpload
+            label="Hero image"
+            value={hero}
+            onChange={setHero}
+            prefix={`destinations/${slug || slugify(name) || "unsorted"}`}
+          />
         </div>
         <div>
-          <ImageUpload label="Thumbnail image" value={thumb} onChange={setThumb} />
+          <ImageUpload
+            label="Thumbnail image"
+            value={thumb}
+            onChange={setThumb}
+            prefix={`destinations/${slug || slugify(name) || "unsorted"}`}
+          />
         </div>
         <div>
           <label className="block text-sm font-medium">Status</label>

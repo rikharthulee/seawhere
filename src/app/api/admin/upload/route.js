@@ -33,7 +33,7 @@ export async function POST(request) {
 
     const form = await request.formData();
     const file = form.get("file");
-    const prefix = String(form.get("prefix") || "locations");
+    const prefix = String(form.get("prefix") || "destinations");
     if (!file || typeof file === "string") {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }

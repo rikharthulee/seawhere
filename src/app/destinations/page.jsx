@@ -2,7 +2,7 @@ import Locations from "@/components/Locations";
 import { fetchLocations } from "@/lib/supabaseRest";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
-export default async function LocationsPage() {
+export default async function DestinationsPage() {
   let items = [];
   try {
     const rows = await fetchLocations();
@@ -13,7 +13,7 @@ export default async function LocationsPage() {
       credit: r.credit || null,
     }));
   } catch (e) {
-    // ignore; fallback to local data inside component
+    // ignore; component has internal fallback dataset if needed
   }
 
   return (
@@ -22,4 +22,6 @@ export default async function LocationsPage() {
     </main>
   );
 }
+
 export const revalidate = 300;
+

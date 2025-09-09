@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import destinationsData from "@/data/locations";
+import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default function Locations({ items }) {
   const source =
@@ -28,10 +29,12 @@ export default function Locations({ items }) {
               <div className="relative h-64 w-full">
                 <Image
                   src={
-                    (Array.isArray(d.images) && d.images.length > 0
-                      ? d.images[0]
-                      : d.image || d.thumbnail_image || d.hero_image) ||
-                    "/images/destinations/tokyo/tokyo1.jpg"
+                    resolveImageUrl(
+                      (Array.isArray(d.images) && d.images.length > 0
+                        ? d.images[0]
+                        : d.image || d.thumbnail_image || d.hero_image) ||
+                        "/images/destinations/tokyo/tokyo1.jpg"
+                    )
                   }
                   alt={`${d.title || d.name}`}
                   fill
