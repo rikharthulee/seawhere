@@ -1,5 +1,6 @@
 import "./globals.css";
 import Navbar from "../components/Navbar";
+import GygAnalytics from "@/components/GygAnalytics";
 import { Playfair_Display } from "next/font/google";
 import Script from "next/script";
 
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
       <body className={playfair.className}>
         <Navbar />
         <div className="antialiased bg-white text-neutral-900">{children}</div>
+        <GygAnalytics />
       </body>
     </html>
   );
