@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import GygAnalytics from "@/components/GygAnalytics";
 import { Playfair_Display } from "next/font/google";
 import Script from "next/script";
+import { Suspense } from "react";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -32,7 +33,9 @@ export default function RootLayout({ children }) {
       <body className={playfair.className}>
         <Navbar />
         <div className="antialiased bg-white text-neutral-900">{children}</div>
-        <GygAnalytics />
+        <Suspense fallback={null}>
+          <GygAnalytics />
+        </Suspense>
       </body>
     </html>
   );
