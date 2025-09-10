@@ -9,7 +9,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("destinations")
       .select(
-        "id, slug, name, summary, body_richtext, status, hero_image, thumbnail_image, credit, prefecture_id, division_id"
+        "id, slug, name, summary, body_richtext, status, hero_image, thumbnail_image, credit, prefecture_id, division_id, gyg_location_id"
       )
       .order("name", { ascending: true });
     if (error) {

@@ -14,7 +14,7 @@ function slugify(s) {
     .replace(/^-+|-+$/g, "");
 }
 
-export default function LocationForm({ initial, onSaved, onCancel }) {
+export default function DestinationForm({ initial, onSaved, onCancel }) {
   const supabase = createClientComponentClient();
   const [name, setName] = useState(initial?.name || "");
   const [slug, setSlug] = useState(initial?.slug || "");
@@ -25,6 +25,7 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
   const [thumb, setThumb] = useState(initial?.thumbnail_image || "");
   const [status, setStatus] = useState(initial?.status || "draft");
   const [credit, setCredit] = useState(initial?.credit || "");
+  const [gygLocationId, setGygLocationId] = useState(initial?.gyg_location_id || "");
   const [saving, setSaving] = useState(false);
   const [assignTo, setAssignTo] = useState(initial?.division_id ? "division" : "prefecture");
   const [prefectureId, setPrefectureId] = useState(initial?.prefecture_id || "");
@@ -52,6 +53,7 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
     setThumb(initial?.thumbnail_image || "");
     setStatus(initial?.status || "draft");
     setCredit(initial?.credit || "");
+    setGygLocationId(initial?.gyg_location_id || "");
     setAssignTo(initial?.division_id ? "division" : "prefecture");
     setPrefectureId(initial?.prefecture_id || "");
     setDivisionId(initial?.division_id || "");
@@ -158,13 +160,14 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
         thumbnail_image: thumb || null,
         status,
         credit: credit || null,
+        gyg_location_id: gygLocationId === "" ? null : String(gygLocationId),
         prefecture_id: assignTo === "prefecture" ? prefectureId : finalPrefectureId || null,
         division_id: assignTo === "division" ? divisionId : null,
       };
       let savedSlug = payload.slug;
       let res, json;
       if (isEditing) {
-        res = await fetch(`/api/admin/locations/${initial.id}`, {
+        res = await fetch(`/api/admin/destinations/${initial.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -173,7 +176,7 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
         if (!res.ok) throw new Error(json?.error || `Save failed (${res.status})`);
         savedSlug = json.slug || savedSlug;
       } else {
-        res = await fetch(`/api/admin/locations`, {
+        res = await fetch(`/api/admin/destinations`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -203,7 +206,7 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
   async function handleDelete() {
     if (!isEditing) return;
     if (!confirm("Delete this destination? This cannot be undone.")) return;
-    const res = await fetch(`/api/admin/locations/${initial.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/destinations/${initial.id}`, { method: "DELETE" });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
       alert(json?.error || `Delete failed (${res.status})`);
@@ -362,6 +365,16 @@ export default function LocationForm({ initial, onSaved, onCancel }) {
             value={credit}
             onChange={(e) => setCredit(e.target.value)}
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">GYG Location ID</label>
+          <input
+            className="w-full rounded border p-2"
+            value={gygLocationId}
+            onChange={(e) => setGygLocationId(e.target.value)}
+            placeholder="e.g. 193"
+          />
+          <div className="text-xs text-black/60 mt-1">Used to render the GetYourGuide city widget.</div>
         </div>
       </div>
 

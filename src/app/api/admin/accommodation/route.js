@@ -9,7 +9,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("accommodation")
       .select(
-        "id, slug, name, summary, description, status, hero_image, thumbnail_image, images, credit"
+        "id, slug, name, summary, description, status, hero_image, thumbnail_image, images, credit, destination_id, prefecture_id, division_id, price_band, rating, website_url, affiliate_url, lat, lng, address"
       )
       .order("name", { ascending: true });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -35,4 +35,3 @@ export async function POST(req) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
   }
 }
-

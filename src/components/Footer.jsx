@@ -9,7 +9,7 @@ export default function Footer() {
           </p>
         </div>
         <div>
-        <div className="font-medium">Locations</div>
+        <div className="font-medium">Destinations</div>
           <ul className="mt-3 space-y-2 text-sm text-neutral-700">
             <li>
               <a href="#">Tokyo</a>

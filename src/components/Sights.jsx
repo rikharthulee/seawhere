@@ -1,4 +1,4 @@
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
@@ -23,7 +23,7 @@ export default function Sights({ items = [] }) {
             <Link key={p.id} href={`/sights/poi/${p.id}`} className="group block relative overflow-hidden rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/40">
               <div className="relative h-64 w-full bg-black/5">
                 {img ? (
-                  <Image
+                  <SafeImage
                     src={img}
                     alt={p.title}
                     fill

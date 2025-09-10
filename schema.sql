@@ -20,9 +20,13 @@ CREATE TABLE public.accommodation (
   credit text,
   images jsonb,
   thumbnail_image text,
+  prefecture_id uuid,
+  division_id uuid,
   destination_id uuid,
   CONSTRAINT accommodation_pkey PRIMARY KEY (id),
-  CONSTRAINT accommodation_destination_id_new_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
+  CONSTRAINT accommodation_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT accommodation_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id),
+  CONSTRAINT accommodation_prefecture_id_fkey FOREIGN KEY (prefecture_id) REFERENCES public.prefectures(id)
 );
 CREATE TABLE public.articles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -78,9 +82,10 @@ CREATE TABLE public.destinations (
   status text NOT NULL DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'published'::text])),
   published_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
+  gyg_location_id numeric,
   CONSTRAINT destinations_pkey PRIMARY KEY (id),
-  CONSTRAINT destinations_prefecture_id_fkey FOREIGN KEY (prefecture_id) REFERENCES public.prefectures(id),
-  CONSTRAINT destinations_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id)
+  CONSTRAINT destinations_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id),
+  CONSTRAINT destinations_prefecture_id_fkey FOREIGN KEY (prefecture_id) REFERENCES public.prefectures(id)
 );
 CREATE TABLE public.divisions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -136,9 +141,9 @@ CREATE TABLE public.itinerary_items (
   accommodation_item_id uuid,
   title_override text,
   CONSTRAINT itinerary_items_pkey PRIMARY KEY (id),
-  CONSTRAINT itinerary_items_accommodation_item_id_fkey FOREIGN KEY (accommodation_item_id) REFERENCES public.accommodation(id),
   CONSTRAINT itinerary_items_poi_id_fkey FOREIGN KEY (poi_id) REFERENCES public.poi(id),
-  CONSTRAINT itinerary_items_itinerary_day_id_fkey FOREIGN KEY (itinerary_day_id) REFERENCES public.itinerary_days(id)
+  CONSTRAINT itinerary_items_itinerary_day_id_fkey FOREIGN KEY (itinerary_day_id) REFERENCES public.itinerary_days(id),
+  CONSTRAINT itinerary_items_accommodation_item_id_fkey FOREIGN KEY (accommodation_item_id) REFERENCES public.accommodation(id)
 );
 CREATE TABLE public.poi (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -155,6 +160,10 @@ CREATE TABLE public.poi (
   created_at timestamp with time zone DEFAULT now(),
   destination_id uuid,
   timezone text,
+  duration_minutes integer,
+  price jsonb,
+  gyg_tour_id numeric,
+  gyg_location_id numeric,
   CONSTRAINT poi_pkey PRIMARY KEY (id),
   CONSTRAINT poi_destination_id_new_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
 );

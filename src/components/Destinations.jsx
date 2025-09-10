@@ -1,9 +1,9 @@
 import Link from "next/link";
-import Image from "next/image";
-import destinationsData from "@/data/locations";
+import SafeImage from "@/components/SafeImage";
+import destinationsData from "@/data/destinations";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
-export default function Locations({ items, basePath = "/destinations" }) {
+export default function Destinations({ items, basePath = "/destinations" }) {
   const source =
     Array.isArray(items) && items.length > 0 ? items : destinationsData;
   // Sort alphabetically
@@ -12,7 +12,7 @@ export default function Locations({ items, basePath = "/destinations" }) {
   );
 
   return (
-    <section id="locations">
+    <section id="destinations">
       <div className="border-t-2 border-black/10 pt-4">
         <div className="flex items-end justify-between">
           <h2 className="text-3xl md:text-4xl font-medium">Destinations</h2>
@@ -27,7 +27,7 @@ export default function Locations({ items, basePath = "/destinations" }) {
               className="relative overflow-hidden rounded-xl block"
             >
               <div className="relative h-64 w-full">
-                <Image
+                <SafeImage
                   src={
                     resolveImageUrl(
                       (Array.isArray(d.images) && d.images.length > 0

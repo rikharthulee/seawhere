@@ -7,7 +7,6 @@ const destinations = [
       "/images/destinations/tokyo/tokyo2.jpg",
       "/images/destinations/tokyo/tokyo3.jpg",
     ],
-    // image: "/images/destinations/tokyo1.jpg",
     summary: "Japan's bustling capital city",
     details: [
       "Leaving London for Tokyo for two years in my twenties is unlike any other urban experience I’ve had. Superimpose this 40-million strong metropolis on the UK and it would reach from London to Bristol, Brighton to Birmingham! I’ve been back a dozen times since then and there’s always more to explore. There are various viewing platforms and sky bars around the city where you can take it all in by day or Bladerunner night. At JapanMan, we’ve got the city’s sights mapped out to ensure that you don’t end up spending excessive time traipsing about on trains and subways.",
@@ -54,7 +53,6 @@ const destinations = [
     details:
       "Kanazawa boasts well-preserved Edo-era neighborhoods and the famed Kenrokuen Garden.",
   },
-
   {
     title: "Osaka",
     slug: "osaka",
@@ -66,3 +64,4 @@ const destinations = [
 ];
 
 export default destinations;
+

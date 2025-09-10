@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import accommodationData from "@/data/accommodation";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
@@ -26,7 +26,7 @@ export default function Accommodation({ items }) {
               className="relative overflow-hidden rounded-xl block"
             >
               <div className="relative h-64 w-full">
-                <Image
+                <SafeImage
                   src={
                     resolveImageUrl(
                       (Array.isArray(item.images) && item.images.length > 0

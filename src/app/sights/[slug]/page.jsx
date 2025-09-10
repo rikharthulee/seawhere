@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { fetchDestinationBySlug, fetchPOIsByDestination } from "@/lib/supabaseRest";
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import GygWidget from "@/components/GygWidget";
@@ -35,7 +35,7 @@ export default async function SightsByDestinationPage({ params }) {
               <article key={p.id} className="rounded-lg border overflow-hidden">
                 <div className="aspect-[4/3] relative bg-black/5">
                   {img ? (
-                    <Image
+                    <SafeImage
                       src={img}
                       alt={p.title}
                       fill

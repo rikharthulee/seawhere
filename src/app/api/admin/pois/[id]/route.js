@@ -65,6 +65,7 @@ export async function PUT(request, { params }) {
       provider: body.provider || null,
       deeplink: body.deeplink || null,
       timezone: body.timezone || null,
+      gyg_tour_id: body.gyg_tour_id || null,
     };
     const { error } = await supabase.from("poi").update(payload).eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });

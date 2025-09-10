@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import LocationForm from "./LocationForm";
+import DestinationForm from "./DestinationForm";
 
-export default function LocationsManager() {
+export default function DestinationsManager() {
   const supabase = createClientComponentClient();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +14,7 @@ export default function LocationsManager() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/locations", { cache: "no-store" });
+      const res = await fetch("/api/admin/destinations", { cache: "no-store" });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       setItems(json.items || []);
@@ -53,7 +53,7 @@ export default function LocationsManager() {
       </div>
 
       {editing ? (
-        <LocationForm
+        <DestinationForm
           initial={editing.id ? editing : null}
           onSaved={() => {
             setEditing(null);
@@ -132,7 +132,7 @@ export default function LocationsManager() {
                       onClick={async () => {
                         if (!confirm("Delete this destination?")) return;
                         try {
-                          const res = await fetch(`/api/admin/locations/${it.id}`, { method: "DELETE" });
+                        const res = await fetch(`/api/admin/destinations/${it.id}`, { method: "DELETE" });
                           if (!res.ok) {
                             const json = await res.json().catch(() => ({}));
                             alert(json?.error || `Delete failed (${res.status})`);

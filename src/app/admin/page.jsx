@@ -14,11 +14,9 @@ export default function AdminHome() {
       <section className="mt-8 grid gap-6 sm:grid-cols-2">
         <article className="p-5 rounded-xl ring-1 ring-black/10">
           <h2 className="text-xl font-semibold">Edit Destinations</h2>
-          <p className="mt-2 text-gray-700">
-            Create, edit, or delete destinations (locations) shown on the site.
-          </p>
+          <p className="mt-2 text-gray-700">Create, edit, or delete destinations shown on the site.</p>
           <Link
-            href="/admin/locations"
+            href="/admin/destinations"
             className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
           >
             Go to Destinations

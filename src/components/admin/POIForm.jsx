@@ -29,6 +29,7 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
   const [image, setImage] = useState(initial?.image || "");
   const [provider, setProvider] = useState(initial?.provider || "internal");
   const [deeplink, setDeeplink] = useState(initial?.deeplink || "");
+  const [gygTourId, setGygTourId] = useState(initial?.gyg_tour_id || "");
   const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? "");
   const [priceGBP, setPriceGBP] = useState(initial?.price?.gbp ?? "");
   const [priceUSD, setPriceUSD] = useState(initial?.price?.usd ?? "");
@@ -133,6 +134,7 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
             setImage(json.poi?.image || "");
             setProvider(json.poi?.provider || "");
             setDeeplink(json.poi?.deeplink || "");
+            setGygTourId(json.poi?.gyg_tour_id || "");
           }
         }
       } catch (_) {}
@@ -151,6 +153,7 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
     setPriceUSD(initial?.price?.usd ?? "");
     setPriceJPY(initial?.price?.jpy ?? "");
     setProvider(initial?.provider || "internal");
+    setGygTourId(initial?.gyg_tour_id || "");
   }, [initial]);
 
   // If editing with a known destination, preselect region/pref/div
@@ -171,10 +174,12 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
   const divisionsForPref = useMemo(() => divisions.filter((d) => d.prefecture_id === prefectureId), [divisions, prefectureId]);
   const destinationsForScope = useMemo(() => {
     return destinations.filter((d) => {
-      if (!prefectureId) return true;
-      if (d.prefecture_id !== prefectureId) return false;
+      // Prefecture filter (if chosen)
+      if (prefectureId && d.prefecture_id !== prefectureId) return false;
+      // If a division is chosen, include destinations that either:
+      // - belong to that division, or
+      // - are top-level (no division assigned)
       if (divisionId && d.division_id && d.division_id !== divisionId) return false;
-      if (divisionId && !d.division_id) return false;
       return true;
     });
   }, [destinations, prefectureId, divisionId]);
@@ -236,6 +241,7 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
         image: image || null,
         provider: provider || null,
         deeplink: deeplink || null,
+        gyg_tour_id: gygTourId === "" ? null : String(gygTourId),
         opening_rules: rules,
         opening_exceptions: exceptions,
       };
@@ -371,6 +377,16 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
         <div>
           <label className="block text-sm font-medium">Deeplink</label>
           <input className="w-full rounded border p-2" value={deeplink} onChange={(e) => setDeeplink(e.target.value)} placeholder="https://…" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">GYG Tour ID</label>
+          <input
+            className="w-full rounded border p-2"
+            value={gygTourId}
+            onChange={(e) => setGygTourId(e.target.value)}
+            placeholder="e.g. 1035544"
+          />
+          <div className="text-xs text-black/60 mt-1">Used to render the GetYourGuide availability widget.</div>
         </div>
 
         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">

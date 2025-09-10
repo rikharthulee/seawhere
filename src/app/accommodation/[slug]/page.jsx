@@ -1,14 +1,17 @@
 import accommodation from "@/data/accommodation";
 import { notFound } from "next/navigation";
 import EmblaCarousel from "@/components/EmblaCarousel";
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
+import Link from "next/link";
+import RichText from "@/components/RichText";
+import { resolveImageUrl } from "@/lib/imageUrl";
 import {
   fetchAccommodations,
   fetchAccommodationBySlug,
+  fetchDestinationById,
+  fetchPrefectureById,
+  fetchDivisionById,
 } from "@/lib/supabaseRest";
-import { resolveImageUrl } from "@/lib/imageUrl";
-import Link from "next/link";
-import RichText from "@/components/RichText";
 
 export async function generateStaticParams() {
   try {
@@ -26,12 +29,29 @@ export default async function AccommodationDetailPage({ params }) {
     const row = await fetchAccommodationBySlug(slug);
     if (row) {
       const gallery = Array.isArray(row.images) ? row.images : [];
+      // Fetch related geo labels in parallel (best-effort)
+      const [dest, pref, div] = await Promise.all([
+        fetchDestinationById(row.destination_id).catch(() => null),
+        fetchPrefectureById(row.prefecture_id).catch(() => null),
+        fetchDivisionById(row.division_id).catch(() => null),
+      ]);
       item = {
         title: row.name,
         image: resolveImageUrl(row.hero_image || row.thumbnail_image),
         images: gallery.map((k) => resolveImageUrl(k)).filter(Boolean),
         details: row.description || row.summary,
         credit: row.credit || null,
+        // New fields
+        priceBand: row.price_band || null,
+        rating: typeof row.rating === "number" ? row.rating : row.rating ? Number(row.rating) : null,
+        websiteUrl: row.website_url || null,
+        affiliateUrl: row.affiliate_url || null,
+        lat: row.lat ?? null,
+        lng: row.lng ?? null,
+        address: row.address || null,
+        destination: dest,
+        prefecture: pref,
+        division: div,
       };
     }
   } catch {}
@@ -67,7 +87,7 @@ export default async function AccommodationDetailPage({ params }) {
               slideClass="h-[48vh] min-h-[320px]"
             />
           ) : (
-            <Image
+            <SafeImage
               src={item.image}
               alt={item.title}
               width={1200}
@@ -88,6 +108,55 @@ export default async function AccommodationDetailPage({ params }) {
           <RichText value={item.details} />
         </div>
       </section>
+
+      {/* Quick facts */}
+      <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-black/80">
+        <div className="rounded border p-3 space-y-1">
+          <div className="font-medium text-black">Overview</div>
+          {item.priceBand ? (
+            <div><span className="text-black/70">Price band:</span> {item.priceBand}</div>
+          ) : null}
+          {typeof item.rating === 'number' ? (
+            <div><span className="text-black/70">Rating:</span> {item.rating.toFixed(1)} / 5</div>
+          ) : null}
+          {(item.lat ?? item.lng) ? (
+            <div><span className="text-black/70">Lat/Lng:</span> {item.lat ?? "—"}, {item.lng ?? "—"}</div>
+          ) : null}
+        </div>
+        <div className="rounded border p-3 space-y-1">
+          <div className="font-medium text-black">Location</div>
+          {item.destination ? (
+            <div>
+              <span className="text-black/70">Destination:</span>{' '}
+              <Link className="underline" href={`/destinations/${item.destination.slug}`}>{item.destination.name}</Link>
+            </div>
+          ) : null}
+          {item.prefecture ? (
+            <div><span className="text-black/70">Prefecture:</span> {item.prefecture.name}</div>
+          ) : null}
+          {item.division ? (
+            <div><span className="text-black/70">Division:</span> {item.division.name}</div>
+          ) : null}
+        </div>
+        <div className="rounded border p-3 space-y-2">
+          <div className="font-medium text-black">Links</div>
+          <div className="flex flex-wrap gap-2">
+            {item.websiteUrl ? (
+              <a href={item.websiteUrl} target="_blank" rel="noopener noreferrer" className="rounded border px-3 py-1">Website</a>
+            ) : null}
+            {item.affiliateUrl ? (
+              <a href={item.affiliateUrl} target="_blank" rel="noopener noreferrer" className="rounded bg-blue-600 text-white px-3 py-1">Book</a>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      {item.address ? (
+        <section className="mt-6">
+          <h2 className="text-xl font-semibold mb-2">Address</h2>
+          <pre className="rounded border bg-black/5 p-3 text-xs overflow-auto">{typeof item.address === 'string' ? item.address : JSON.stringify(item.address, null, 2)}</pre>
+        </section>
+      ) : null}
     </main>
   );
 }

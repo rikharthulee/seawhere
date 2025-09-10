@@ -116,7 +116,6 @@ export default function Navbar() {
 
   const links = [
     { href: "/", label: "Home" },
-    { href: "/regions", label: "Regions" },
     { href: "/destinations", label: "Destinations" },
     { href: "/sights", label: "Sights" },
     { href: "/accommodation", label: "Accommodation" },

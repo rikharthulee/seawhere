@@ -1,7 +1,7 @@
 // lib/queries.js
 import { supabaseServer } from "@/lib/supabase/server";
 
-export async function getLocations() {
+export async function getDestinations() {
   const supabase = supabaseServer();
   return supabase
     .from("destinations")
@@ -10,7 +10,7 @@ export async function getLocations() {
     .order("published_at", { ascending: false });
 }
 
-export async function getLocation(slug) {
+export async function getDestination(slug) {
   const supabase = supabaseServer();
   return supabase
     .from("destinations")
@@ -20,7 +20,7 @@ export async function getLocation(slug) {
     .maybeSingle();
 }
 
-export async function getLocationWithAreas(slug) {
+export async function getDestinationWithAreas(slug) {
   const supabase = supabaseServer();
 
   const { data: destination, error: dErr } = await supabase

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
@@ -70,7 +70,7 @@ export default async function POIDetailPage({ params }) {
       <section className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
         <div className="md:col-span-2">
           {img ? (
-            <Image
+            <SafeImage
               src={img}
               alt={poi.title}
               width={1200}
@@ -117,7 +117,7 @@ export default async function POIDetailPage({ params }) {
           {/* Tours widget (GetYourGuide) */}
           <div className="mt-8">
             <h2 className="text-xl font-semibold mb-2">Popular tours</h2>
-            <GygWidget />
+            <GygWidget tourId={poi.gyg_tour_id} />
           </div>
           <div className="mt-4 space-y-1 text-sm text-black/70">
             {poi.provider && providerLabel(poi.provider) ? (

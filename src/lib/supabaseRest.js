@@ -31,13 +31,13 @@ async function supaFetch(pathWithQuery, { revalidate = 60, tags } = {}) {
   return res.json();
 }
 
-export async function fetchLocations() {
+export async function fetchDestinations() {
   const query =
     "destinations?select=slug,name,summary,hero_image,thumbnail_image,status,credit&status=eq.published&order=name.asc";
   return supaFetch(query, { revalidate: 300, tags: ["destinations"] });
 }
 
-export async function fetchLocationsBySlug(slug) {
+export async function fetchDestinationBySlugRest(slug) {
   const query = `destinations?slug=eq.${encodeURIComponent(
     slug
   )}&select=slug,name,summary,body_richtext,hero_image,thumbnail_image,status,credit&limit=1`;
@@ -57,7 +57,7 @@ export async function fetchAccommodations() {
 
 export async function fetchAccommodationBySlug(slug) {
   const sel =
-    "slug,name,summary,description,hero_image,thumbnail_image,images,status,credit";
+    "slug,name,summary,description,hero_image,thumbnail_image,images,status,credit,price_band,rating,website_url,affiliate_url,lat,lng,address,destination_id,prefecture_id,division_id";
   const query = `accommodation?slug=eq.${encodeURIComponent(slug)}&select=${sel}&limit=1`;
   const rows = await supaFetch(query, {
     revalidate: 900,
@@ -182,7 +182,7 @@ export async function fetchPOIById(id) {
   if (!id) return null;
   const { data, error } = await db
     .from("poi")
-    .select("id, type, title, summary, details, duration_minutes, price, image, provider, deeplink, status, destination_id, lat, lng, timezone")
+    .select("id, type, title, summary, details, duration_minutes, price, image, provider, deeplink, status, destination_id, lat, lng, timezone, gyg_tour_id")
     .eq("id", id)
     .eq("status", "published")
     .maybeSingle();

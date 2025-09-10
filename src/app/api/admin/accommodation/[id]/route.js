@@ -4,7 +4,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
 export async function PUT(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const cookieStore = await cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
@@ -23,7 +23,7 @@ export async function PUT(req, { params }) {
 
 export async function DELETE(_req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const cookieStore = await cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     const { error } = await supabase.from("accommodation").delete().eq("id", id);

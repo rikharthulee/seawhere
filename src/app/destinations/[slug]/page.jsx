@@ -1,7 +1,7 @@
 // app/destinations/[slug]/page.jsx
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
@@ -20,7 +20,7 @@ export default async function DestinationPage({ params }) {
   const { data: dst, error } = await db
     .from("destinations")
     .select(
-      "id, name, slug, status, prefecture_id, division_id, hero_image, thumbnail_image, body_richtext, credit, lat, lng, published_at, created_at"
+      "id, name, slug, status, prefecture_id, division_id, hero_image, thumbnail_image, body_richtext, credit, lat, lng, published_at, created_at, gyg_location_id"
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -45,7 +45,7 @@ export default async function DestinationPage({ params }) {
       <section className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
         <div className="order-1 md:order-2">
           {hero ? (
-            <Image
+            <SafeImage
               src={hero}
               alt={dst.name}
               width={1200}
@@ -76,7 +76,7 @@ export default async function DestinationPage({ params }) {
       {/* Tours widget (GetYourGuide) */}
       <section className="mt-10">
         <h2 className="text-xl font-semibold mb-2">Popular tours</h2>
-        <GygWidget />
+        <GygWidget locationId={dst.gyg_location_id} />
       </section>
 
       {/* Meta details */}

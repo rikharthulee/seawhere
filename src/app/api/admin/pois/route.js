@@ -33,6 +33,7 @@ export async function POST(request) {
       provider: body.provider || null,
       deeplink: body.deeplink || null,
       timezone: body.timezone || null,
+      gyg_tour_id: body.gyg_tour_id || null,
     };
     const { data, error } = await supabase.from("poi").insert(payload).select("id").single();
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -79,7 +80,7 @@ export async function GET() {
   const { data, error } = await supabase
       .from("poi")
       .select(
-        "id, type, title, summary, details, duration_minutes, price, destination_id, status, lat, lng, image, provider, deeplink, timezone"
+        "id, type, title, summary, details, duration_minutes, price, destination_id, status, lat, lng, image, provider, deeplink, timezone, gyg_tour_id"
       )
       .order("title", { ascending: true });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });

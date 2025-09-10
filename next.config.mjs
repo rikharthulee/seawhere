@@ -45,6 +45,11 @@ const nextConfig = {
         destination: '/destinations/:slug',
         permanent: true,
       },
+      {
+        source: '/admin/locations',
+        destination: '/admin/destinations',
+        permanent: true,
+      },
     ];
   },
 };

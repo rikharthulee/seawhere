@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default function EmblaCarousel({
@@ -50,13 +50,12 @@ export default function EmblaCarousel({
           {images.map((src, i) => (
             <div key={i} className={`flex-[0_0_100%] relative ${slideClass}`}>
               <div className="absolute inset-0">
-                <Image
+                <SafeImage
                   src={resolveImageUrl(src)}
                   alt={`Slide ${i + 1}`}
                   fill
                   sizes="100vw"
                   className="object-cover"
-                  draggable={false}
                   priority={i === 0}
                 />
               </div>
