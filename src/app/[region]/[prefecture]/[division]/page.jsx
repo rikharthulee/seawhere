@@ -30,7 +30,10 @@ export default async function DivisionPage({ params }) {
         <span className="text-black">{pref.name} — {div.name}</span>
       </nav>
 
-      <h1 className="text-3xl md:text-4xl font-medium mb-6">{div.name}</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl md:text-4xl font-medium">{div.name}</h1>
+        <Link href={`/sights/division/${div.slug}`} className="underline">Sights in {div.name}</Link>
+      </div>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {destinations.map((dst) => (

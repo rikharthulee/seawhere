@@ -23,7 +23,7 @@ export async function generateStaticParams() {
 }
 
 export default async function AccommodationDetailPage({ params }) {
-  const { slug } = params;
+  const { slug } = await params;
   let item = null;
   try {
     const row = await fetchAccommodationBySlug(slug);

@@ -76,6 +76,16 @@ export default async function POIDetailPage({ params }) {
     return c.charAt(0).toUpperCase() + c.slice(1);
   }
 
+  function inferProvider(p) {
+    if (!p) return null;
+    const url = String(p.deeplink || '').toLowerCase();
+    if (p.gyg_tour_id || url.includes('getyourguide')) return 'GetYourGuide';
+    if (url.includes('dekitabi')) return 'Dekitabi';
+    if (url.includes('viator')) return 'Viator';
+    if (url.includes('tripadvisor')) return 'Tripadvisor';
+    return null;
+  }
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="border-t-2 border-black/10 pt-4">
@@ -124,7 +134,10 @@ export default async function POIDetailPage({ params }) {
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center rounded-md bg-blue-600 text-white px-4 py-2 hover:bg-blue-700"
                 >
-                  Book Now{providerLabel(poi.provider) ? ` on ${providerLabel(poi.provider)}` : ''}
+                  {(() => {
+                    const brand = providerLabel(poi.provider) || inferProvider(poi);
+                    return `Book Now${brand ? ` on ${brand}` : ''}`;
+                  })()}
                 </a>
               ) : null}
             </div>

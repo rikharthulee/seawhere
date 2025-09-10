@@ -145,6 +145,18 @@ export async function fetchDestinationBySlug(slug) {
   return data;
 }
 
+// Fetch destination by slug without requiring published status (used for sights index pages)
+export async function fetchDestinationBySlugLoose(slug) {
+  const s = String(slug || "").trim();
+  const { data, error } = await db
+    .from("destinations")
+    .select("id, slug, name, status")
+    .eq("slug", s)
+    .maybeSingle();
+  if (error) return null;
+  return data;
+}
+
 // Destination related content
 export async function fetchPOIsByDestination(destId) {
   const { data, error } = await db
@@ -161,6 +173,19 @@ export async function fetchAllPOIs() {
   const { data, error } = await db
     .from("poi")
     .select("id, slug, type, title, summary, image, destination_id, status, destinations ( slug, name )")
+    .eq("status", "published")
+    .order("title", { ascending: true });
+  if (error) return [];
+  return data ?? [];
+}
+
+// Fetch POIs by a set of destination IDs
+export async function fetchPOIsByDestinationIds(ids = []) {
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+  const { data, error } = await db
+    .from("poi")
+    .select("id, slug, type, title, summary, image, destination_id, status")
+    .in("destination_id", ids)
     .eq("status", "published")
     .order("title", { ascending: true });
   if (error) return [];
@@ -314,4 +339,37 @@ export async function fetchRegionById(id) {
     .single();
   if (error) return null;
   return data;
+}
+
+// Additional helpers for sights indexes
+export async function fetchDivisionBySlugLoose(slug) {
+  const { data, error } = await db
+    .from("divisions")
+    .select("id, name, slug, prefecture_id")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) return null;
+  return data;
+}
+
+export async function fetchPrefecturesByRegion(regionId) {
+  const { data, error } = await db
+    .from("prefectures")
+    .select("id, name, slug, region_id")
+    .eq("region_id", regionId)
+    .order("order_index", { ascending: true });
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function fetchDestinationsByPrefectureIds(prefIds = []) {
+  if (!Array.isArray(prefIds) || prefIds.length === 0) return [];
+  const { data, error } = await db
+    .from("destinations")
+    .select("id, name, slug, thumbnail_image, status, prefecture_id")
+    .in("prefecture_id", prefIds)
+    .eq("status", "published")
+    .order("name", { ascending: true });
+  if (error) return [];
+  return data ?? [];
 }

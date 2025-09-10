@@ -56,6 +56,16 @@ export default async function POIDetailBySlugPage({ params }) {
     return c.charAt(0).toUpperCase() + c.slice(1);
   }
 
+  function inferProvider(p) {
+    if (!p) return null;
+    const url = String(p.deeplink || "").toLowerCase();
+    if (p.gyg_tour_id || url.includes("getyourguide")) return "GetYourGuide";
+    if (url.includes("dekitabi")) return "Dekitabi";
+    if (url.includes("viator")) return "Viator";
+    if (url.includes("tripadvisor")) return "Tripadvisor";
+    return null;
+  }
+
   // Opening rules/exceptions are shown on the ID route today; keep the same
   // minimal layout here for parity without additional round-trips.
   return (
@@ -105,7 +115,10 @@ export default async function POIDetailBySlugPage({ params }) {
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center rounded-md bg-blue-600 text-white px-4 py-2 hover:bg-blue-700"
                 >
-                  Book Now{providerLabel(p.provider) ? ` on ${providerLabel(p.provider)}` : ""}
+                  {(() => {
+                    const brand = providerLabel(p.provider) || inferProvider(p);
+                    return `Book Now${brand ? ` on ${brand}` : ""}`;
+                  })()}
                 </a>
               ) : null}
             </div>

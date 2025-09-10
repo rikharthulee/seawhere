@@ -25,7 +25,10 @@ export default async function RegionsPage() {
           );
           return (
             <div key={r.id} className="rounded-lg border p-4">
-              <div className="text-lg font-semibold mb-2">{r.name}</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-lg font-semibold">{r.name}</div>
+                <Link href={`/sights/region/${r.slug}`} className="underline text-sm">Sights</Link>
+              </div>
               {prefs.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {prefs.map((p) => (

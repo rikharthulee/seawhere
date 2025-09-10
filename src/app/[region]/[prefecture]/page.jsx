@@ -32,7 +32,10 @@ export default async function PrefecturePage({ params }) {
         <span className="text-black">{pref.name}</span>
       </nav>
 
-      <h1 className="text-3xl md:text-4xl font-medium mb-6">{pref.name}</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl md:text-4xl font-medium">{pref.name}</h1>
+        <Link href={`/sights/prefecture/${pref.slug}`} className="underline">Sights in {pref.name}</Link>
+      </div>
 
       {divisions.length > 0 ? (
         <>

@@ -1,28 +1,27 @@
 import { notFound } from "next/navigation";
-import { fetchDestinationBySlug, fetchDestinationBySlugLoose, fetchPOIsByDestination } from "@/lib/supabaseRest";
-import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
+import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import GygWidget from "@/components/GygWidget";
+import { fetchRegionBySlug, fetchPrefecturesByRegion, fetchDestinationsByPrefectureIds, fetchPOIsByDestinationIds } from "@/lib/supabaseRest";
 
 export const revalidate = 300;
 
-export default async function SightsByDestinationPage({ params }) {
+export default async function SightsByRegionPage({ params }) {
   const { slug } = await params;
-  let dst = await fetchDestinationBySlug(slug).catch(() => null);
-  if (!dst) {
-    // Fall back to loading the destination even if not published so the page exists
-    dst = await fetchDestinationBySlugLoose(slug).catch(() => null);
-  }
-  if (!dst) notFound();
-  const pois = await fetchPOIsByDestination(dst.id).catch(() => []);
+  const region = await fetchRegionBySlug(slug).catch(() => null);
+  if (!region) notFound();
+  const prefs = await fetchPrefecturesByRegion(region.id).catch(() => []);
+  const prefIds = prefs.map((p) => p.id).filter(Boolean);
+  const dests = await fetchDestinationsByPrefectureIds(prefIds).catch(() => []);
+  const destIds = dests.map((d) => d.id).filter(Boolean);
+  const pois = await fetchPOIsByDestinationIds(destIds).catch(() => []);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="border-t-2 border-black/10 pt-4">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
-            Sights in {dst.name}
+            Sights in {region.name}
           </h1>
           <Link href="/sights" className="underline ml-4">
             Back
@@ -35,10 +34,11 @@ export default async function SightsByDestinationPage({ params }) {
         {Array.isArray(pois) && pois.length > 0 ? (
           pois.map((p) => {
             const img = resolveImageUrl(p.image);
+            const href = p.slug ? `/sights/poi/${encodeURIComponent(p.id)}` : `/sights/poi/${encodeURIComponent(p.id)}`;
             return (
               <Link
                 key={p.id}
-                href={p.slug ? `/sights/${encodeURIComponent(dst.slug)}/${encodeURIComponent(p.slug)}` : `/sights/poi/${encodeURIComponent(p.id)}`}
+                href={href}
                 className="block rounded-lg border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black/40"
               >
                 <div className="aspect-[4/3] relative bg-black/5">
@@ -62,15 +62,10 @@ export default async function SightsByDestinationPage({ params }) {
             );
           })
         ) : (
-          <div className="col-span-full text-black/60">No sights yet for this destination.</div>
+          <div className="col-span-full text-black/60">No sights found for this region.</div>
         )}
-      </section>
-
-      {/* Tours widget (GetYourGuide) */}
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-2">Popular tours</h2>
-        <GygWidget />
       </section>
     </main>
   );
 }
+
