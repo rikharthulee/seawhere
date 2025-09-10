@@ -32,7 +32,11 @@ export default async function SightsByDestinationPage({ params }) {
           pois.map((p) => {
             const img = resolveImageUrl(p.image);
             return (
-              <article key={p.id} className="rounded-lg border overflow-hidden">
+              <Link
+                key={p.id}
+                href={p.slug ? `/sights/${encodeURIComponent(dst.slug)}/${encodeURIComponent(p.slug)}` : `/sights/poi/${encodeURIComponent(p.id)}`}
+                className="block rounded-lg border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black/40"
+              >
                 <div className="aspect-[4/3] relative bg-black/5">
                   {img ? (
                     <SafeImage
@@ -50,7 +54,7 @@ export default async function SightsByDestinationPage({ params }) {
                     <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}
                 </div>
-              </article>
+              </Link>
             );
           })
         ) : (

@@ -20,6 +20,8 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
   // Core fields
   const [type, setType] = useState(initial?.type || "sight");
   const [title, setTitle] = useState(initial?.title || "");
+  const [slug, setSlug] = useState(initial?.slug || "");
+  const [slugTouched, setSlugTouched] = useState(!!initial?.id);
   const [summary, setSummary] = useState(initial?.summary || "");
   const [details, setDetails] = useState(initial?.details || null);
   const [destinationId, setDestinationId] = useState(initial?.destination_id || "");
@@ -51,6 +53,15 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
 
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+
+  function slugify(s) {
+    return (s || "")
+      .toLowerCase()
+      .trim()
+      .replace(/['"]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
 
   // Load geo data; prefer server-backed admin endpoint for reliability
   useEffect(() => {
@@ -103,6 +114,17 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
       cancelled = true;
     };
   }, [supabase]);
+
+  // Keep slug in sync with title unless user edits slug
+  useEffect(() => {
+    if (!slugTouched) setSlug(slugify(title));
+  }, [title, slugTouched]);
+
+  // Sync slug when switching between rows or when initial loads
+  useEffect(() => {
+    setSlug(initial?.slug || "");
+    setSlugTouched(!!initial?.id);
+  }, [initial?.id, initial?.slug]);
 
   // If editing and opening data not provided, fetch once
   useEffect(() => {
@@ -220,10 +242,13 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
     setFormError("");
     try {
       if (!title.trim()) throw new Error("Title is required");
+      const finalSlug = slugify(slug || title);
+      if (!finalSlug) throw new Error("Slug is required");
       if (!destinationId) throw new Error("Select a destination");
       const payload = {
         type,
         title,
+        slug: finalSlug,
         summary,
         details,
         duration_minutes: durationMinutes === "" ? null : Number(durationMinutes),
@@ -298,6 +323,16 @@ export default function POIForm({ id, initial, onSaved, onCancel }) {
         <div className="md:col-span-2">
           <label className="block text-sm font-medium">Title</label>
           <input className="w-full rounded border p-2" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">Slug</label>
+          <input
+            className="w-full rounded border p-2"
+            value={slug}
+            onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
+            placeholder="e.g. meiji-shrine"
+          />
         </div>
 
         <div className="md:col-span-2">

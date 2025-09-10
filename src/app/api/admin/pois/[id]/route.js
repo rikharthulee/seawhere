@@ -53,6 +53,7 @@ export async function PUT(request, { params }) {
     const payload = {
       type: body.type,
       title: body.title,
+      slug: body.slug,
       summary: body.summary || null,
       details: body.details || null,
       duration_minutes: body.duration_minutes ?? null,

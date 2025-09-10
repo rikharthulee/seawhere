@@ -19,8 +19,10 @@ export default function Sights({ items = [] }) {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {sorted.map((p) => {
           const img = resolveImageUrl(p.image);
+          const destSlug = p?.destinations?.slug || p?.destination?.slug || null;
+          const href = p.slug && destSlug ? `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` : `/sights/poi/${encodeURIComponent(p.id)}`;
           return (
-            <Link key={p.id} href={`/sights/poi/${p.id}`} className="group block relative overflow-hidden rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/40">
+            <Link key={p.id} href={href} className="group block relative overflow-hidden rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/40">
               <div className="relative h-64 w-full bg-black/5">
                 {img ? (
                   <SafeImage

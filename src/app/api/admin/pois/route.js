@@ -21,6 +21,7 @@ export async function POST(request) {
     const payload = {
       type: body.type,
       title: body.title,
+      slug: body.slug,
       summary: body.summary || null,
       details: body.details || null,
       duration_minutes: body.duration_minutes ?? null,
@@ -80,7 +81,7 @@ export async function GET() {
   const { data, error } = await supabase
       .from("poi")
       .select(
-        "id, type, title, summary, details, duration_minutes, price, destination_id, status, lat, lng, image, provider, deeplink, timezone, gyg_tour_id"
+        "id, slug, type, title, summary, details, duration_minutes, price, destination_id, status, lat, lng, image, provider, deeplink, timezone, gyg_tour_id"
       )
       .order("title", { ascending: true });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });

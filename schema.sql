@@ -164,6 +164,7 @@ CREATE TABLE public.poi (
   price jsonb,
   gyg_tour_id numeric,
   gyg_location_id numeric,
+  slug text,
   CONSTRAINT poi_pkey PRIMARY KEY (id),
   CONSTRAINT poi_destination_id_new_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
 );

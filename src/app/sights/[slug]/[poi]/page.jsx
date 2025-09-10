@@ -1,17 +1,15 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
-import { fetchPOIById, fetchPOIOpeningRules, fetchPOIOpeningExceptions, fetchDestinationById } from "@/lib/supabaseRest";
-import { createClient } from "@supabase/supabase-js";
+import { fetchPOIByDestinationAndSlug, fetchPOIOpeningRules, fetchPOIOpeningExceptions } from "@/lib/supabaseRest";
 
 export const revalidate = 300;
 
 function fmtTime(t) {
   if (!t) return null;
-  // Expect HH:MM or HH:MM:SS, trim seconds
   const s = String(t);
   const m = s.match(/^([0-9]{1,2}:[0-9]{2})(?::[0-9]{2})?$/);
   return m ? m[1] : s;
@@ -19,43 +17,25 @@ function fmtTime(t) {
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export default async function POIDetailPage({ params }) {
-  const { id } = await params;
-  const poi = await fetchPOIById(id).catch(() => null);
-  if (!poi) notFound();
-  const [rules, exceptions, dest] = await Promise.all([
-    fetchPOIOpeningRules(poi.id).catch(() => []),
-    fetchPOIOpeningExceptions(poi.id).catch(() => []),
-    fetchDestinationById(poi.destination_id).catch(() => null),
+export default async function POIDetailBySlugPage({ params }) {
+  const { slug, poi } = await params;
+  const result = await fetchPOIByDestinationAndSlug(slug, poi).catch(() => null);
+  if (!result?.poi || !result?.destination) notFound();
+  const { poi: p, destination: dest } = result;
+  const [rules, exceptions] = await Promise.all([
+    fetchPOIOpeningRules(p.id).catch(() => []),
+    fetchPOIOpeningExceptions(p.id).catch(() => []),
   ]);
 
-  // If the database now has slugs for POIs and destinations, redirect to the
-  // nested slug route for better URLs. Fail silently if not available yet.
-  try {
-    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (SUPABASE_URL && SUPABASE_ANON_KEY && dest?.slug) {
-      const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      const { data: row } = await db
-        .from("poi")
-        .select("slug")
-        .eq("id", id)
-        .maybeSingle();
-      if (row?.slug && typeof row.slug === "string") {
-        redirect(`/sights/${encodeURIComponent(dest.slug)}/${encodeURIComponent(row.slug)}`);
-      }
-    }
-  } catch {}
-
-  const img = resolveImageUrl(poi.image);
-  const price = poi.price || null;
-  function fmtPrice(p) {
-    if (!p) return null;
+  const img = resolveImageUrl(p.image);
+  const price = p.price || null;
+  function fmtPrice(val) {
+    if (!val) return null;
     const parts = [];
-    if (typeof p.gbp === 'number') parts.push(`£${p.gbp.toFixed(2)}`);
-    if (typeof p.usd === 'number') parts.push(`$${p.usd.toFixed(2)}`);
-    if (typeof p.jpy === 'number') parts.push(`¥${Math.round(p.jpy).toLocaleString('en-US')}`);
-    return parts.join(' / ');
+    if (typeof val.gbp === "number") parts.push(`£${val.gbp.toFixed(2)}`);
+    if (typeof val.usd === "number") parts.push(`$${val.usd.toFixed(2)}`);
+    if (typeof val.jpy === "number") parts.push(`¥${Math.round(val.jpy).toLocaleString("en-US")}`);
+    return parts.join(" / ");
   }
   function fmtDuration(mins) {
     if (mins == null) return null;
@@ -70,18 +50,20 @@ export default async function POIDetailPage({ params }) {
   function providerLabel(code) {
     if (!code) return null;
     const c = String(code).toLowerCase();
-    if (c === 'gyg') return 'GetYourGuide';
-    if (c === 'dekitabi') return 'Dekitabi';
-    if (c === 'internal') return null;
+    if (c === "gyg") return "GetYourGuide";
+    if (c === "dekitabi") return "Dekitabi";
+    if (c === "internal") return null;
     return c.charAt(0).toUpperCase() + c.slice(1);
   }
 
+  // Opening rules/exceptions are shown on the ID route today; keep the same
+  // minimal layout here for parity without additional round-trips.
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="border-t-2 border-black/10 pt-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">{poi.title}</h1>
-          <Link href="/sights" className="underline ml-4">Back</Link>
+          <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">{p.title}</h1>
+          <Link href={`/sights/${dest.slug}`} className="underline ml-4">Back</Link>
         </div>
         <div className="border-b-2 border-black/10 mt-3" />
       </div>
@@ -91,7 +73,7 @@ export default async function POIDetailPage({ params }) {
           {img ? (
             <SafeImage
               src={img}
-              alt={poi.title}
+              alt={p.title}
               width={1200}
               height={800}
               className="w-full h-auto rounded-xl object-cover"
@@ -100,12 +82,11 @@ export default async function POIDetailPage({ params }) {
         </div>
 
         <div className="md:col-span-2">
-          {/* Key info + CTA */}
           <div className="rounded-lg border p-3 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="text-sm text-black/70 space-x-3">
-                {fmtDuration(poi.duration_minutes) ? (
-                  <span><span className="font-medium text-black">Duration:</span> {fmtDuration(poi.duration_minutes)}</span>
+                {fmtDuration(p.duration_minutes) ? (
+                  <span><span className="font-medium text-black">Duration:</span> {fmtDuration(p.duration_minutes)}</span>
                 ) : null}
                 {fmtPrice(price) ? (
                   <span><span className="font-medium text-black">Price:</span> {fmtPrice(price)}</span>
@@ -117,34 +98,25 @@ export default async function POIDetailPage({ params }) {
                   </span>
                 ) : null}
               </div>
-              {poi.deeplink ? (
+              {p.deeplink ? (
                 <a
-                  href={poi.deeplink}
+                  href={p.deeplink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center rounded-md bg-blue-600 text-white px-4 py-2 hover:bg-blue-700"
                 >
-                  Book Now{providerLabel(poi.provider) ? ` on ${providerLabel(poi.provider)}` : ''}
+                  Book Now{providerLabel(p.provider) ? ` on ${providerLabel(p.provider)}` : ""}
                 </a>
               ) : null}
             </div>
           </div>
 
-          {poi.summary ? <p className="text-lg leading-relaxed mb-3">{poi.summary}</p> : null}
-          {poi.details ? <RichTextReadOnly value={poi.details} /> : null}
+          {p.summary ? <p className="text-lg leading-relaxed mb-3">{p.summary}</p> : null}
+          {p.details ? <RichTextReadOnly value={p.details} /> : null}
 
-          {/* Tours widget (GetYourGuide) */}
           <div className="mt-8">
             <h2 className="text-xl font-semibold mb-2">Popular tours</h2>
-            <GygWidget tourId={poi.gyg_tour_id} />
-          </div>
-          <div className="mt-4 space-y-1 text-sm text-black/70">
-            {poi.provider && providerLabel(poi.provider) ? (
-              <div><span className="font-medium text-black">Provider:</span> {providerLabel(poi.provider)}</div>
-            ) : null}
-            {(poi.lat ?? poi.lng) ? (
-              <div><span className="font-medium text-black">Location:</span> {poi.lat ?? "—"}, {poi.lng ?? "—"}</div>
-            ) : null}
+            <GygWidget tourId={p.gyg_tour_id} />
           </div>
         </div>
       </section>

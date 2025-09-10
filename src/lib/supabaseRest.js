@@ -149,7 +149,7 @@ export async function fetchDestinationBySlug(slug) {
 export async function fetchPOIsByDestination(destId) {
   const { data, error } = await db
     .from("poi")
-    .select("id, type, title, summary, image, status")
+    .select("id, slug, type, title, summary, image, status")
     .eq("destination_id", destId)
     .eq("status", "published")
     .order("title", { ascending: true });
@@ -160,7 +160,7 @@ export async function fetchPOIsByDestination(destId) {
 export async function fetchAllPOIs() {
   const { data, error } = await db
     .from("poi")
-    .select("id, type, title, summary, image, destination_id, status")
+    .select("id, slug, type, title, summary, image, destination_id, status, destinations ( slug, name )")
     .eq("status", "published")
     .order("title", { ascending: true });
   if (error) return [];
@@ -188,6 +188,33 @@ export async function fetchPOIById(id) {
     .maybeSingle();
   if (error) return null;
   return data;
+}
+
+// Fetch a POI by destination slug and poi slug (nested route support)
+// Note: requires a `slug` column on `public.poi` and uniqueness either
+// global or per-destination.
+export async function fetchPOIByDestinationAndSlug(destinationSlug, poiSlug) {
+  const s = String(destinationSlug || "").trim();
+  // Do not require destination to be published here — we only need its ID/name
+  // to resolve the POI, which already enforces published status below.
+  const { data: dst } = await db
+    .from("destinations")
+    .select("id, slug, name")
+    .eq("slug", s)
+    .maybeSingle();
+  if (!dst?.id) return null;
+  const { data, error } = await db
+    .from("poi")
+    .select(
+      "id, slug, type, title, summary, details, duration_minutes, price, image, provider, deeplink, status, destination_id, lat, lng, timezone, gyg_tour_id"
+    )
+    .eq("destination_id", dst.id)
+    .eq("slug", poiSlug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (error) return null;
+  if (!data) return null;
+  return { poi: data, destination: dst };
 }
 
 export async function fetchPOIOpeningRules(id) {
