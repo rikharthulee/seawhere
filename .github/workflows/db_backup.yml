@@ -3,7 +3,7 @@ name: Supabase DB Backup (session pooler via Docker PG17 - Schedule Run 03:00 UT
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: '0 3 * * *'  # every day at 03:00 UTC
+    - cron: '0 19 * * *'  # runs at 03:00 UTC+8 (daily)
 
 jobs:
   dump:
