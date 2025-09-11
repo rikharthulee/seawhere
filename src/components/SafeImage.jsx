@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import { resolveImageUrl, resolveImageProps } from "@/lib/imageUrl";
+import { supabasePublicKeyFromUrl } from "@/lib/sbImg";
 
 // Hosts allowed by next.config images.remotePatterns
 const SUPABASE_HOST = (() => {
@@ -41,11 +42,17 @@ export default function SafeImage({ src, alt = "", className = "", fill, sizes, 
   const host = external ? hostnameFor(resolved) : null;
   const allowed = !external || (host && ALLOWED_HOSTS.has(host));
   const blurDataURL = resolveImageProps(resolved, { width, height })?.blurDataURL;
+  const sbKey = supabasePublicKeyFromUrl(resolved);
+  const proxied = sbKey
+    ? `/api/img?key=${encodeURIComponent(sbKey)}`
+    : external && !allowed
+    ? `/api/img?url=${encodeURIComponent(resolved)}`
+    : resolved;
 
   if (allowed) {
     return (
       <Image
-        src={resolved}
+        src={proxied}
         alt={alt}
         className={className}
         {...(fill ? { fill: true } : { width, height })}
@@ -57,16 +64,6 @@ export default function SafeImage({ src, alt = "", className = "", fill, sizes, 
     );
   }
 
-  // Fallback to native <img> when domain isn't configured
-  // When `fill` is requested, rely on the parent container being relative with fixed height
-  return (
-    <img
-      src={resolved}
-      alt={alt}
-      className={className}
-      {...(!fill ? { width, height } : {})}
-      loading={priority ? "eager" : "lazy"}
-      decoding="async"
-    />
-  );
+  // As a last resort (shouldn't hit if proxy works), render native img
+  return <img src={proxied} alt={alt} className={className} {...(!fill ? { width, height } : {})} loading={priority ? "eager" : "lazy"} decoding="async"/>;
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import SafeImage from "@/components/SafeImage";
 import CallNowButton from "./CallNowButton";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -185,10 +186,11 @@ export default function Navbar() {
             return (
               <>
                 {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <SafeImage
                     src={avatarUrl}
                     alt="Avatar"
+                    width={28}
+                    height={28}
                     className="h-7 w-7 rounded-full object-cover border border-black/10"
                   />
                 ) : (
@@ -220,12 +222,18 @@ export default function Navbar() {
         style={{ paddingTop: `${bannerH}px` }}
       >
         {/* Skyline glued to top of the bar */}
-        <img
-          src="/banner.svg"
-          alt="Banner"
-          className="absolute left-1/2 -translate-x-1/2 top-0 w-auto pointer-events-none select-none z-10"
-          style={{ height: `${bannerH}px` }}
-        />
+        <div className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none select-none z-10" style={{ height: `${bannerH}px`, width: '100%' }}>
+          <div className="relative" style={{ height: '100%', width: '100%' }}>
+            <SafeImage
+              src="/banner.svg"
+              alt="Banner"
+              fill
+              sizes="100vw"
+              className="object-contain"
+              priority
+            />
+          </div>
+        </div>
         {/* Black link bar (normal height) */}
         <div className="bg-black">
           <div className="mx-auto max-w-6xl py-2">
@@ -290,10 +298,11 @@ export default function Navbar() {
             <div className="mt-3">
               <div className="mb-2 flex items-center gap-2">
                 {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <SafeImage
                     src={avatarUrl}
                     alt="Avatar"
+                    width={32}
+                    height={32}
                     className="h-8 w-8 rounded-full object-cover"
                   />
                 ) : (

@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import SafeImage from "@/components/SafeImage";
 
 export default function ImageUpload({
   label,
@@ -53,11 +54,12 @@ export default function ImageUpload({
       </div>
       {value ? (
         <div className="flex items-start gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           {previewUrl ? (
-            <img
+            <SafeImage
               src={previewUrl}
               alt={`${label} preview`}
+              width={144}
+              height={96}
               className="h-24 w-36 object-cover rounded border"
             />
           ) : null}

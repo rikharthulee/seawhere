@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useMemo, useState } from "react";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import SafeImage from "@/components/SafeImage";
 
 export default function MultiImageUpload({ label, value = [], onChange, prefix = "accommodation" }) {
   const [uploading, setUploading] = useState(false);
@@ -63,9 +64,8 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
         <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {previews.map((p, idx) => (
             <li key={`${p.key}-${idx}`} className="border rounded p-2 space-y-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               {p.url ? (
-                <img src={p.url} alt={`Gallery ${idx + 1}`} className="h-28 w-full object-cover rounded" />
+                <SafeImage src={p.url} alt={`Gallery ${idx + 1}`} width={320} height={160} className="h-28 w-full object-cover rounded" />
               ) : null}
               <div className="flex items-center justify-between gap-2">
                 <div className="text-[10px] text-neutral-600 truncate" title={p.key}>{p.key}</div>
