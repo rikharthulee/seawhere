@@ -1,27 +1,17 @@
-name: Supabase DB Backup (Session pooler, env-driven)
-
-on:
-  workflow_dispatch: {}
-  # schedule:
-  #   - cron: '0 3 * * *'   # optional: daily at 03:00 UTC
-
 jobs:
   dump:
     runs-on: ubuntu-latest
     env:
-      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}   # e.g. aws-1-eu-west-2.pooler.supabase.com
-      PORT: ${{ secrets.SUPABASE_SESSION_PORT }}   # e.g. 5432
-      DB_USER: ${{ secrets.SUPABASE_DB_USER }}     # e.g. postgres.<project_ref>
-      DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}     # usually postgres
-      PGSSLMODE: require                           # force TLS
+      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}
+      PORT: ${{ secrets.SUPABASE_SESSION_PORT }}
+      DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+      DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}
+      PGSSLMODE: require
     steps:
-      - name: Install Postgres client
+      - name: Install Postgres 17 client
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client netcat-traditional
-
-      - name: Check TCP reachability
-        run: nc -vz "$HOST" "$PORT"
+          sudo apt-get install -y postgresql-client-17 netcat-traditional
 
       - name: Sanity check DB auth
         env:
