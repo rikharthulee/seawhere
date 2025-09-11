@@ -74,21 +74,34 @@ export default function LoginForm() {
         return;
       }
 
-      // Fire-and-forget cookie sync to server; don't block navigation
+      // Ensure server cookies are synced before navigating, otherwise
+      // the /admin middleware may redirect back to /login.
       try {
         const { data } = await supabase.auth.getSession();
         const session = data?.session;
-        fetch("/auth/callback", {
+        await fetch("/auth/callback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
+          // keepalive helps ensure the request completes even if navigation begins
+          keepalive: true,
           body: JSON.stringify({ event: "SIGNED_IN", session }),
-        }).catch(() => {});
+        });
       } catch (_) {}
 
       const redirect = getRedirectTarget();
-      router.replace(redirect);
-      router.refresh();
+      if (typeof window !== "undefined") {
+        window.location.replace(redirect);
+        // Fallback in case replace is ignored
+        setTimeout(() => {
+          try {
+            if (location.pathname === "/login") location.assign(redirect);
+          } catch {}
+        }, 400);
+      } else {
+        router.replace(redirect);
+        router.refresh();
+      }
       return;
     } catch (err) {
       setErrorMsg("Unexpected error. Please try again.");

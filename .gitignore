@@ -21,6 +21,7 @@
 /build
 
 /database imports
+/sql_backup
 
 # misc
 .DS_Store
