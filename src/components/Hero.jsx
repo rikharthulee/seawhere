@@ -1,12 +1,18 @@
+import Link from "next/link";
+import SafeImage from "@/components/SafeImage";
+
 export default function Hero() {
   return (
     <>
       {/* HERO */}
       <section className="relative h-[65vh] min-h-[420px]">
-        <img
-          src="https://plus.unsplash.com/premium_photo-1661964177687-57387c2cbd14?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.1.0"
+        <SafeImage
+          src="https://plus.unsplash.com/premium_photo-1661964177687-57387c2cbd14?q=80&w=2000&auto=format&fit=crop&ixlib=rb-4.1.0"
           alt="Japan landscape"
-          className="absolute inset-0 h-full w-full object-cover"
+          fill
+          sizes="100vw"
+          className="object-cover"
+          priority
         />
 
         {/* Stronger gradient scrim for readability */}
@@ -35,22 +41,22 @@ export default function Hero() {
             We offer a <strong>30-minute, no-obligation consultation</strong>,
             then a flat fee of <strong>£125</strong> for a comprehensive
             tailored itinerary and <strong>unlimited email support</strong> on
-            the build-up to your holiday. Because we’re based in South-East
+            the build-up to your holiday. Because we're based in South-East
             Asia, we can provide{" "}
             <strong>real-time, on-the-ground assistance</strong> while you
             travel.
           </p>
           <p className="mt-4 text-lg leading-relaxed text-gray-800">
             What you choose to book is entirely up to you — but with us as your
-            trusted advisor, you’re bound to enjoy a richer, more cost-effective
+            trusted advisor, you're bound to enjoy a richer, more cost-effective
             Japan experience.
           </p>
-          <a
-            href="#contact"
+          <Link
+            href="/contact"
             className="inline-block mt-8 rounded-full bg-black text-white px-6 py-3 hover:bg-gray-800 transition"
           >
             Contact Us
-          </a>
+          </Link>
         </div>
       </section>
     </>

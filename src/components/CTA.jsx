@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function CTA() {
   return (
     <section id="plan" className="py-16">
@@ -5,19 +7,19 @@ export default function CTA() {
         <div className="grid gap-6 md:grid-cols-2 items-center">
           <div>
             <h3 className="text-2xl md:text-3xl font-medium">
-              Plan your tailor‑made journey
+              Plan your tailor-made journey
             </h3>
             <p className="mt-2 text-white/80">
               Speak to a specialist to craft an itinerary around you.
             </p>
           </div>
           <div className="md:text-right">
-            <a
-              href="#contact"
+            <Link
+              href="/contact"
               className="inline-block rounded-full bg-white text-black px-6 py-3"
             >
-              Speak to an Expert
-            </a>
+              Contact Us
+            </Link>
           </div>
         </div>
       </div>
