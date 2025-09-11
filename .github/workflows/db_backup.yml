@@ -1,27 +1,26 @@
-name: Supabase DB Backup (Session pooler, PG17)
+name: Supabase DB Backup (PG17 client)
 
 on:
-  workflow_dispatch: {}        # run manually from Actions tab
-  # schedule:                  # optional: daily at 03:00 UTC
-  #   - cron: '0 3 * * *'
+  workflow_dispatch: {}
 
 jobs:
   dump:
     runs-on: ubuntu-latest
     env:
-      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}   # e.g. your session pooler host
-      PORT: ${{ secrets.SUPABASE_SESSION_PORT }}   # e.g. 5432
-      DB_USER: ${{ secrets.SUPABASE_DB_USER }}     # e.g. postgres.<project_ref>
-      DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}     # usually postgres
-      PGSSLMODE: require                           # force TLS
+      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}
+      PORT: ${{ secrets.SUPABASE_SESSION_PORT }}
+      DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+      DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}
+      PGSSLMODE: require
     steps:
       - name: Install Postgres 17 client
         run: |
           sudo apt-get update
+          sudo apt-get install -y wget gnupg lsb-release
+          echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
           sudo apt-get install -y postgresql-client-17 netcat-traditional
-
-      - name: Check TCP reachability (optional)
-        run: nc -vz "$HOST" "$PORT"
 
       - name: Sanity check DB auth
         env:
@@ -37,17 +36,15 @@ jobs:
           TS=$(date -u +'%Y%m%dT%H%M%SZ')
           RAW="japanman_backup_${TS}.sql"
           OUT="${RAW}.gz"
-
           pg_dump "host=$HOST port=$PORT user=$DB_USER dbname=$DB_NAME sslmode=$PGSSLMODE" \
             --clean --if-exists \
             --no-owner --no-privileges \
             --format=plain \
             --verbose \
             --file="$RAW"
-
           test -s "$RAW" || (echo "Dump file is empty"; exit 1)
           gzip -9 "$RAW"
-          echo "OUT=$OUT" >> "$GITHUB_ENV"
+          echo "OUT=$OUT" >> $GITHUB_ENV
           ls -lh "$OUT"
 
       - name: Upload artifact
