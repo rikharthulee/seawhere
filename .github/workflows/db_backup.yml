@@ -1,18 +1,18 @@
-name: Supabase DB Backup (Session pooler IPv4)
+name: Supabase DB Backup (Session pooler 5432)
 
 on:
   workflow_dispatch: {}
   # schedule:
-  #   - cron: '0 3 * * *'   # daily at 03:00 UTC (optional)
+  #   - cron: '0 3 * * *'   # optional daily run
 
 jobs:
   dump:
     runs-on: ubuntu-latest
     env:
-      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}
-      PORT: ${{ secrets.SUPABASE_SESSION_PORT }}
-      DB_USER: ${{ secrets.SUPABASE_DB_USER }}
-      DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}
+      HOST: aws-1-eu-west-2.pooler.supabase.com
+      PORT: 5432
+      DB_USER: postgres.tcpvpleybpbpkbruthbz
+      DB_NAME: postgres
     steps:
       - name: Install Postgres client
         run: |
@@ -22,11 +22,11 @@ jobs:
       - name: Check TCP reachability
         run: nc -vz "$HOST" "$PORT"
 
-      - name: Sanity check DB auth (lists tables)
+      - name: Sanity check DB auth
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-          psql "host=$HOST port=$PORT user=$DB_USER dbname=$DB_NAME sslmode=require" -c '\dt'
+          psql -h "$HOST" -p "$PORT" -U "$DB_USER" -d "$DB_NAME" -c '\dt' sslmode=require
 
       - name: Dump schema+data, verify, gzip
         env:
@@ -36,8 +36,8 @@ jobs:
           TS=$(date -u +'%Y%m%dT%H%M%SZ')
           RAW="japanman_backup_${TS}.sql"
           OUT="${RAW}.gz"
-          echo "Dumping via session pooler $HOST:$PORT as $DB_USER ..."
-          pg_dump "host=$HOST port=$PORT user=$DB_USER dbname=$DB_NAME sslmode=require" \
+          echo "Dumping via $HOST:$PORT as $DB_USER ..."
+          pg_dump -h "$HOST" -p "$PORT" -U "$DB_USER" -d "$DB_NAME" sslmode=require \
             --clean --if-exists \
             --no-owner --no-privileges \
             --format=plain \
