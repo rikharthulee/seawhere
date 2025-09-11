@@ -1,65 +1,50 @@
-name: Supabase DB Backup (no HOST secret, IPv4 forced)
+name: Supabase DB Backup (Session pooler IPv4)
 
 on:
   workflow_dispatch: {}
   # schedule:
-  #   - cron: '0 3 * * *'   # daily 03:00 UTC if you want
+  #   - cron: '0 3 * * *'   # uncomment to run daily at 03:00 UTC
 
 jobs:
   dump:
     runs-on: ubuntu-latest
+    env:
+      DB_USER: postgres
+      DB_NAME: postgres
+      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}
+      PORT: ${{ secrets.SUPABASE_SESSION_PORT }}
     steps:
-      - name: Install tools
+      - name: Install Postgres client
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client jq curl netcat-traditional
+          sudo apt-get install -y postgresql-client netcat-traditional
 
-      - name: Resolve IPv4 via DoH (Cloudflare) for fixed hostname
-        id: dns
+      - name: Check TCP reachability (pooler)
         run: |
-          set -euo pipefail
-          HOST="db.tcpvpleybpbpkbruthbz.supabase.co"
-          IP=$(curl -s 'https://cloudflare-dns.com/dns-query?name=db.tcpvpleybpbpkbruthbz.supabase.co&type=A' \
-               -H 'accept: application/dns-json' \
-             | jq -r '.Answer[]?.data' | head -n1 || true)
-          if [ -z "${IP:-}" ]; then
-            echo "Failed to resolve IPv4 A record for $HOST"; exit 1
-          fi
-          echo "HOST=$HOST" >> $GITHUB_ENV
-          echo "IPV4=$IP"   >> $GITHUB_ENV
-          echo "Using $HOST -> $IP"
-
-      - name: Check TCP 5432 reachability (IPv4)
-        run: |
-          set -euo pipefail
-          nc -vz "$IPV4" 5432
+          echo "Host: $HOST  Port: $PORT"
+          nc -vz "$HOST" "$PORT"
 
       - name: Sanity check DB auth
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          PGSSLMODE: require
         run: |
-          set -euo pipefail
-          psql "hostaddr=$IPV4 host=$HOST port=5432 user=postgres dbname=postgres sslmode=require" -c '\dt'
+          psql "host=$HOST port=$PORT user=$DB_USER dbname=$DB_NAME sslmode=require" -c '\dt'
 
-      - name: Dump database (schema + data), verify, compress
+      - name: Dump (schema+data), verify, gzip
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          PGSSLMODE: require
         run: |
           set -euo pipefail
           TS=$(date -u +'%Y%m%dT%H%M%SZ')
           RAW="japanman_backup_${TS}.sql"
           OUT="${RAW}.gz"
-          echo "Dumping via IPv4 $IPV4 with SSL..."
           pg_dump \
-            --hostaddr="$IPV4" \
             --host="$HOST" \
-            --port=5432 \
-            --username="postgres" \
-            --dbname="postgres" \
+            --port="$PORT" \
+            --username="$DB_USER" \
+            --dbname="$DB_NAME" \
             --clean --if-exists \
-            --no-owner \
+            --no-owner --no-privileges \
             --format=plain \
             --verbose \
             --file="$RAW"
