@@ -1,54 +1,77 @@
-name: Supabase DB Backup
+name: Supabase DB Backup (IPv4 forced)
 
 on:
   workflow_dispatch: {}
   # schedule:
-  #   - cron: '0 3 * * *'   # daily 03:00 UTC
+  #   - cron: '0 3 * * *'   # daily at 03:00 UTC
 
 jobs:
   dump:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Postgres client
+      - name: Install tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-client dnsutils netcat-traditional
 
-      - name: Sanity check connection (lists tables & shows DB size)
+      - name: Resolve IPv4 for Supabase host
+        id: dns
         env:
-          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          PGSSLMODE: require
+          HOST: ${{ secrets.SUPABASE_DB_HOST }}
         run: |
           set -euo pipefail
-          psql "host=${{ secrets.SUPABASE_DB_HOST }} port=5432 user=${{ secrets.SUPABASE_DB_USER }} dbname=${{ secrets.SUPABASE_DB_NAME }}" -c '\dt' || (echo "Cannot list tables"; exit 1)
-          psql "host=${{ secrets.SUPABASE_DB_HOST }} port=5432 user=${{ secrets.SUPABASE_DB_USER }} dbname=${{ secrets.SUPABASE_DB_NAME }}" -c "select now() as utc_now, current_database() as db, pg_size_pretty(pg_database_size(current_database())) as size;"
+          IP=$(dig +short A "$HOST" | head -n1)
+          if [ -z "$IP" ]; then
+            echo "Failed to resolve IPv4 A record for $HOST"; exit 1
+          fi
+          echo "IPv4=$IP"
+          echo "IPV4=$IP" >> $GITHUB_ENV
 
-      - name: Dump database (schema + data)
+      - name: Sanity check connectivity (IPv4, port 5432)
+        env:
+          IPV4: ${{ env.IPV4 }}
+        run: |
+          set -euo pipefail
+          nc -vz "$IPV4" 5432
+
+      - name: Sanity check DB auth (list tables)
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           PGSSLMODE: require
+          IPV4: ${{ env.IPV4 }}
+          DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+          DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}
+        run: |
+          set -euo pipefail
+          # Use hostaddr to bypass DNS & force IPv4; include host for SNI/SSL cert name
+          psql "hostaddr=$IPV4 host=${{ secrets.SUPABASE_DB_HOST }} port=5432 user=$DB_USER dbname=$DB_NAME sslmode=require" -c '\dt'
+
+      - name: Dump database (schema + data), verify, compress
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGSSLMODE: require
+          IPV4: ${{ env.IPV4 }}
+          DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+          DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}
+          DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
         run: |
           set -euo pipefail
           TS=$(date -u +'%Y%m%dT%H%M%SZ')
           RAW="japanman_backup_${TS}.sql"
-          OUT="japanman_backup_${TS}.sql.gz"
-
-          echo "Running pg_dump -> $RAW"
+          OUT="${RAW}.gz"
+          echo "Dumping via IPv4 $IPV4 with SSL..."
           pg_dump \
-            --host="${{ secrets.SUPABASE_DB_HOST }}" \
+            --hostaddr="$IPV4" \
+            --host="$DB_HOST" \
             --port=5432 \
-            --username="${{ secrets.SUPABASE_DB_USER }}" \
-            --dbname="${{ secrets.SUPABASE_DB_NAME }}" \
+            --username="$DB_USER" \
+            --dbname="$DB_NAME" \
             --clean --if-exists \
             --no-owner \
             --format=plain \
             --verbose \
             --file="$RAW"
-
-          echo "Verifying dump size..."
           test -s "$RAW" || (echo "Dump file is empty"; exit 1)
-
-          echo "Compressing -> $OUT"
           gzip -9 "$RAW"
           echo "OUT=$OUT" >> $GITHUB_ENV
           ls -lh "$OUT"
