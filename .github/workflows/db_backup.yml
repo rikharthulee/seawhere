@@ -1,51 +1,50 @@
-name: Supabase DB Backup (PG17 client)
+name: Supabase DB Backup (session pooler via Docker PG17)
 
 on:
   workflow_dispatch: {}
+  # schedule:
+  #   - cron: '0 3 * * *'  # optional daily run
 
 jobs:
   dump:
     runs-on: ubuntu-latest
     env:
-      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}
-      PORT: ${{ secrets.SUPABASE_SESSION_PORT }}
-      DB_USER: ${{ secrets.SUPABASE_DB_USER }}
-      DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}
-      PGSSLMODE: require
+      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}   # e.g. your session pooler host
+      PORT: ${{ secrets.SUPABASE_SESSION_PORT }}   # 5432
+      DB_USER: ${{ secrets.SUPABASE_DB_USER }}     # postgres.<project_ref>
+      DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}     # postgres
     steps:
-      - name: Install Postgres 17 client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget gnupg lsb-release
-          echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-17 netcat-traditional
+      - name: Pull postgres:17 image
+        run: docker pull postgres:17
 
-      - name: Sanity check DB auth
+      - name: Sanity check DB auth (psql inside container)
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-          psql "host=$HOST port=$PORT user=$DB_USER dbname=$DB_NAME sslmode=$PGSSLMODE" -c '\dt'
+          docker run --rm -e PGPASSWORD="$PGPASSWORD" postgres:17 psql \
+            "host=${HOST} port=${PORT} user=${DB_USER} dbname=${DB_NAME} sslmode=require" \
+            -c '\dt'
 
-      - name: Dump schema+data, verify, gzip
+      - name: Dump schema+data (pg_dump 17 in container), verify, gzip
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
-          TS=$(date -u +'%Y%m%dT%H%M%SZ')
+          TS="$(date -u +'%Y%m%dT%H%M%SZ')"
           RAW="japanman_backup_${TS}.sql"
-          OUT="${RAW}.gz"
-          pg_dump "host=$HOST port=$PORT user=$DB_USER dbname=$DB_NAME sslmode=$PGSSLMODE" \
+
+          docker run --rm -e PGPASSWORD="$PGPASSWORD" postgres:17 pg_dump \
+            "host=${HOST} port=${PORT} user=${DB_USER} dbname=${DB_NAME} sslmode=require" \
             --clean --if-exists \
             --no-owner --no-privileges \
             --format=plain \
             --verbose \
-            --file="$RAW"
-          test -s "$RAW" || (echo "Dump file is empty"; exit 1)
+            > "$RAW"
+
+          test -s "$RAW"
           gzip -9 "$RAW"
-          echo "OUT=$OUT" >> $GITHUB_ENV
-          ls -lh "$OUT"
+          echo "OUT=${RAW}.gz" >> "$GITHUB_ENV"
+          ls -lh "${RAW}.gz"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
