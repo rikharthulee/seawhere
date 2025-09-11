@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { sbImg, supabasePublicKeyFromUrl } from "@/lib/sbImg";
+import { resolveImageUrl, resolveImageProps } from "@/lib/imageUrl";
 
 // Hosts allowed by next.config images.remotePatterns
 const SUPABASE_HOST = (() => {
@@ -36,27 +36,23 @@ function hostnameFor(src) {
  */
 export default function SafeImage({ src, alt = "", className = "", fill, sizes, width, height, priority = false }) {
   const s = String(src || "");
-  const external = isExternal(s);
-  const host = external ? hostnameFor(s) : null;
+  const resolved = resolveImageUrl(s) || s;
+  const external = isExternal(resolved);
+  const host = external ? hostnameFor(resolved) : null;
   const allowed = !external || (host && ALLOWED_HOSTS.has(host));
-  const sbKey = external ? supabasePublicKeyFromUrl(s) : null;
+  const blurDataURL = resolveImageProps(resolved, { width, height })?.blurDataURL;
 
   if (allowed) {
     return (
       <Image
-        src={s}
+        src={resolved}
         alt={alt}
         className={className}
         {...(fill ? { fill: true } : { width, height })}
         sizes={sizes}
         priority={priority}
-        {...(sbKey
-          ? {
-              // Use Supabase transform CDN when source is a Supabase public URL
-              loader: ({ width, quality }) => sbImg(sbKey, { width, quality: quality || 80 }),
-              unoptimized: true, // we provide fully-formed CDN URL
-            }
-          : {})}
+        placeholder={blurDataURL ? "blur" : undefined}
+        blurDataURL={blurDataURL}
       />
     );
   }
@@ -65,7 +61,7 @@ export default function SafeImage({ src, alt = "", className = "", fill, sizes, 
   // When `fill` is requested, rely on the parent container being relative with fixed height
   return (
     <img
-      src={s}
+      src={resolved}
       alt={alt}
       className={className}
       {...(!fill ? { width, height } : {})}
