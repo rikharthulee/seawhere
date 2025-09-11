@@ -1,0 +1,43 @@
+name: Supabase DB Backup
+
+on:
+  workflow_dispatch: {} # run manually
+  # schedule:
+  #   - cron: '0 3 * * *'   # uncomment to run daily at 03:00 UTC
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Postgres client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Dump database (schema + data) and gzip
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+          DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+          DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}
+        run: |
+          TS=$(date -u +'%Y%m%dT%H%M%SZ')
+          OUT="japanman_backup_${TS}.sql.gz"
+          echo "Backing up $DB_NAME@$DB_HOST -> $OUT"
+          pg_dump \
+            -h "$DB_HOST" \
+            -U "$DB_USER" \
+            -p 5432 \
+            -d "$DB_NAME" \
+            --clean --if-exists \
+            --no-owner \
+            --format=plain \
+          | gzip > "$OUT"
+          echo "OUT=$OUT" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup
+          path: ${{ env.OUT }}
+          retention-days: 14
