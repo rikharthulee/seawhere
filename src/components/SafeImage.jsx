@@ -1,7 +1,6 @@
 "use client";
 import Image from "next/image";
 import { resolveImageUrl, resolveImageProps } from "@/lib/imageUrl";
-import { supabasePublicKeyFromUrl } from "@/lib/sbImg";
 
 // Hosts allowed by next.config images.remotePatterns
 const SUPABASE_HOST = (() => {
@@ -12,8 +11,17 @@ const SUPABASE_HOST = (() => {
     return null;
   }
 })();
+const SUPABASE_ASSETS_HOST = (() => {
+  try {
+    const u = process.env.NEXT_PUBLIC_SUPABASE_ASSETS_URL;
+    return u ? new URL(u).hostname : null;
+  } catch {
+    return null;
+  }
+})();
 const ALLOWED_HOSTS = new Set([
   SUPABASE_HOST,
+  SUPABASE_ASSETS_HOST,
   "picsum.photos",
   "images.unsplash.com",
   "plus.unsplash.com",
@@ -42,12 +50,7 @@ export default function SafeImage({ src, alt = "", className = "", fill, sizes, 
   const host = external ? hostnameFor(resolved) : null;
   const allowed = !external || (host && ALLOWED_HOSTS.has(host));
   const blurDataURL = resolveImageProps(resolved, { width, height })?.blurDataURL;
-  const sbKey = supabasePublicKeyFromUrl(resolved);
-  const proxied = sbKey
-    ? `/api/img?key=${encodeURIComponent(sbKey)}`
-    : external && !allowed
-    ? `/api/img?url=${encodeURIComponent(resolved)}`
-    : resolved;
+  const proxied = external && !allowed ? `/api/img?url=${encodeURIComponent(resolved)}` : resolved;
 
   if (allowed) {
     return (

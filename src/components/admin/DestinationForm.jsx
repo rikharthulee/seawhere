@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import ImageUpload from "./ImageUpload";
+import MultiImageUpload from "@/components/admin/MultiImageUpload";
 import { fetchPrefectures, fetchAllDivisions } from "@/lib/supabaseRest";
 import ParagraphEditor from "./ParagraphEditor";
 
@@ -25,6 +26,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
   const [thumb, setThumb] = useState(initial?.thumbnail_image || "");
   const [status, setStatus] = useState(initial?.status || "draft");
   const [credit, setCredit] = useState(initial?.credit || "");
+  const [images, setImages] = useState(Array.isArray(initial?.images) ? initial.images : []);
   const [gygLocationId, setGygLocationId] = useState(initial?.gyg_location_id || "");
   const [saving, setSaving] = useState(false);
   const [assignTo, setAssignTo] = useState(initial?.division_id ? "division" : "prefecture");
@@ -53,6 +55,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
     setThumb(initial?.thumbnail_image || "");
     setStatus(initial?.status || "draft");
     setCredit(initial?.credit || "");
+    setImages(Array.isArray(initial?.images) ? initial.images : []);
     setGygLocationId(initial?.gyg_location_id || "");
     setAssignTo(initial?.division_id ? "division" : "prefecture");
     setPrefectureId(initial?.prefecture_id || "");
@@ -158,6 +161,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
         body_richtext: body,
         hero_image: hero || null,
         thumbnail_image: thumb || null,
+        images: Array.isArray(images) ? images : [],
         status,
         credit: credit || null,
         gyg_location_id: gygLocationId === "" ? null : String(gygLocationId),
@@ -344,6 +348,14 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
             label="Thumbnail image"
             value={thumb}
             onChange={setThumb}
+            prefix={`destinations/${slug || slugify(name) || "unsorted"}`}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <MultiImageUpload
+            label="Gallery images"
+            value={images}
+            onChange={setImages}
             prefix={`destinations/${slug || slugify(name) || "unsorted"}`}
           />
         </div>

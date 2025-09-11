@@ -83,6 +83,7 @@ CREATE TABLE public.destinations (
   published_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
   gyg_location_id numeric,
+  images jsonb,
   CONSTRAINT destinations_pkey PRIMARY KEY (id),
   CONSTRAINT destinations_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id),
   CONSTRAINT destinations_prefecture_id_fkey FOREIGN KEY (prefecture_id) REFERENCES public.prefectures(id)
@@ -142,8 +143,8 @@ CREATE TABLE public.itinerary_items (
   title_override text,
   CONSTRAINT itinerary_items_pkey PRIMARY KEY (id),
   CONSTRAINT itinerary_items_poi_id_fkey FOREIGN KEY (poi_id) REFERENCES public.poi(id),
-  CONSTRAINT itinerary_items_itinerary_day_id_fkey FOREIGN KEY (itinerary_day_id) REFERENCES public.itinerary_days(id),
-  CONSTRAINT itinerary_items_accommodation_item_id_fkey FOREIGN KEY (accommodation_item_id) REFERENCES public.accommodation(id)
+  CONSTRAINT itinerary_items_accommodation_item_id_fkey FOREIGN KEY (accommodation_item_id) REFERENCES public.accommodation(id),
+  CONSTRAINT itinerary_items_itinerary_day_id_fkey FOREIGN KEY (itinerary_day_id) REFERENCES public.itinerary_days(id)
 );
 CREATE TABLE public.poi (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

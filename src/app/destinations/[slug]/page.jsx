@@ -2,6 +2,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import SafeImage from "@/components/SafeImage";
+import EmblaCarousel from "@/components/EmblaCarousel";
 import Link from "next/link";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
@@ -20,7 +21,7 @@ export default async function DestinationPage({ params }) {
   const { data: dst, error } = await db
     .from("destinations")
     .select(
-      "id, name, slug, status, prefecture_id, division_id, hero_image, thumbnail_image, body_richtext, credit, lat, lng, published_at, created_at, gyg_location_id"
+      "id, name, slug, status, prefecture_id, division_id, hero_image, thumbnail_image, images, body_richtext, credit, lat, lng, published_at, created_at, gyg_location_id"
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -29,6 +30,7 @@ export default async function DestinationPage({ params }) {
   if (error || !dst) notFound();
 
   const hero = resolveImageUrl(dst.hero_image || dst.thumbnail_image);
+  const gallery = Array.isArray(dst.images) ? dst.images.map((k) => resolveImageUrl(k)).filter(Boolean) : [];
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
@@ -44,12 +46,20 @@ export default async function DestinationPage({ params }) {
 
       <section className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
         <div className="order-1 md:order-2">
-          {hero ? (
+          {gallery.length > 0 ? (
+            <EmblaCarousel
+              images={gallery}
+              options={{ loop: true, align: "start" }}
+              className="rounded-xl overflow-hidden"
+              slideClass="h-[48vh] min-h-[320px]"
+            />
+          ) : hero ? (
             <SafeImage
               src={hero}
               alt={dst.name}
               width={1200}
               height={800}
+              sizes="(min-width: 768px) 50vw, 100vw"
               className="w-full h-auto rounded-xl object-cover"
               priority={false}
             />

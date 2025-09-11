@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAssetsUrl = process.env.NEXT_PUBLIC_SUPABASE_ASSETS_URL;
 let remotePatterns = [];
 try {
   if (supabaseUrl) {
@@ -20,6 +21,12 @@ try {
       hostname: host,
       pathname: '/storage/v1/render/image/**',
     });
+  }
+  if (supabaseAssetsUrl) {
+    const host = new URL(supabaseAssetsUrl).hostname;
+    remotePatterns.push({ protocol: 'https', hostname: host, pathname: '/storage/v1/object/public/**' });
+    remotePatterns.push({ protocol: 'https', hostname: host, pathname: '/storage/v1/object/sign/**' });
+    remotePatterns.push({ protocol: 'https', hostname: host, pathname: '/storage/v1/render/image/**' });
   }
 } catch {}
 
