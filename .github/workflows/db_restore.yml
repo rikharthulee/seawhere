@@ -1,0 +1,100 @@
+name: Supabase DB Restore (session pooler via Docker PG17)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type YES to confirm you want to restore the database'
+        required: true
+        default: 'NO'
+      backup_run_id:
+        description: 'GitHub Actions run ID that produced the db-backup artifact (optional if file_url is provided)'
+        required: false
+      file_url:
+        description: 'Direct URL to .sql or .sql.gz to restore (optional if backup_run_id is provided)'
+        required: false
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    env:
+      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}     # session pooler host (IPv4)
+      PORT: ${{ secrets.SUPABASE_SESSION_PORT }}     # 5432
+      DB_USER: ${{ secrets.SUPABASE_DB_USER }}       # postgres.<project_ref>
+      DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}       # postgres
+    steps:
+      - name: Validate inputs
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.inputs.confirm }}" != "YES" ]; then
+            echo "You must confirm with confirm=YES"; exit 1
+          fi
+          if [ -z "${{ github.event.inputs.backup_run_id }}" ] && [ -z "${{ github.event.inputs.file_url }}" ]; then
+            echo "Provide either backup_run_id OR file_url"; exit 1
+          fi
+
+      - name: Ensure tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl jq
+
+      - name: Fetch dump from artifact (if backup_run_id provided)
+        if: ${{ github.event.inputs.backup_run_id != '' }}
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          run_id: ${{ github.event.inputs.backup_run_id }}
+          name: db-backup
+          path: restore_artifact
+
+      - name: Fetch dump from URL (if file_url provided)
+        if: ${{ github.event.inputs.file_url != '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p restore_artifact
+          echo "Downloading ${{ github.event.inputs.file_url }} ..."
+          curl -L "${{ github.event.inputs.file_url }}" -o restore_artifact/input
+
+      - name: Normalize dump filename
+        run: |
+          set -euo pipefail
+          FILE=$(ls -1 restore_artifact | head -n1 || true)
+          if [ -z "$FILE" ]; then echo "No dump file found"; exit 1; fi
+          # If the file came down without extension, try to detect gzip
+          if file "restore_artifact/$FILE" | grep -qi 'gzip'; then
+            mv "restore_artifact/$FILE" restore.sql.gz
+          else
+            # If it already has .sql/.gz, keep extension
+            case "$FILE" in
+              *.sql.gz) mv "restore_artifact/$FILE" restore.sql.gz ;;
+              *.sql)    mv "restore_artifact/$FILE" restore.sql ;;
+              *)        mv "restore_artifact/$FILE" restore.sql ;;
+            esac
+          fi
+          ls -lh
+
+      - name: Decompress if needed
+        run: |
+          set -euo pipefail
+          if [ -f restore.sql.gz ]; then
+            echo "Decompressing restore.sql.gz ..."
+            gunzip -f restore.sql.gz
+          fi
+          test -s restore.sql
+
+      - name: Show first lines (sanity preview)
+        run: |
+          set -euo pipefail
+          head -n 20 restore.sql || true
+
+      - name: Restore using Docker postgres:17
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          docker pull postgres:17
+          echo "Restoring into $HOST:$PORT as $DB_USER on $DB_NAME ..."
+          # Note: sslmode=require is passed in the connstring
+          docker run --rm -e PGPASSWORD="$PGPASSWORD" -v "$PWD:/work" -w /work postgres:17 psql \
+            "host=${HOST} port=${PORT} user=${DB_USER} dbname=${DB_NAME} sslmode=require" \
+            -f restore.sql
+          echo "✅ Restore completed"
