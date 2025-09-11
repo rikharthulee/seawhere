@@ -1,15 +1,15 @@
-name: Supabase DB Backup (session pooler via Docker PG17)
+name: Supabase DB Backup (session pooler via Docker PG17 - Schedule Run 03:00 UTC)
 
 on:
   workflow_dispatch: {}
-  # schedule:
-  #   - cron: '0 3 * * *'  # optional daily run
+  schedule:
+    - cron: '0 3 * * *'  # every day at 03:00 UTC
 
 jobs:
   dump:
     runs-on: ubuntu-latest
     env:
-      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}   # e.g. your session pooler host
+      HOST: ${{ secrets.SUPABASE_SESSION_HOST }}   # session pooler host
       PORT: ${{ secrets.SUPABASE_SESSION_PORT }}   # 5432
       DB_USER: ${{ secrets.SUPABASE_DB_USER }}     # postgres.<project_ref>
       DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}     # postgres
@@ -46,7 +46,7 @@ jobs:
           echo "OUT=${RAW}.gz" >> "$GITHUB_ENV"
           ls -lh "${RAW}.gz"
 
-      - name: Upload artifact
+      - name: Upload artifact (kept 14 days)
         uses: actions/upload-artifact@v4
         with:
           name: db-backup
