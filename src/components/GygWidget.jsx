@@ -1,4 +1,5 @@
 "use client";
+import Script from "next/script";
 
 /**
  * GetYourGuide widget wrapper.
@@ -26,6 +27,11 @@ export default function GygWidget({
     // Availability widget for a specific tour
     return (
       <div className={className}>
+        <Script
+          src="https://widget.getyourguide.com/dist/pa.umd.production.min.js"
+          strategy="afterInteractive"
+          data-gyg-partner-id={partnerId}
+        />
         <div
           data-gyg-href="https://widget.getyourguide.com/default/availability.frame"
           data-gyg-tour-id={String(tourId)}
@@ -50,6 +56,11 @@ export default function GygWidget({
     // City widget for destination pages
     return (
       <div className={className}>
+        <Script
+          src="https://widget.getyourguide.com/dist/pa.umd.production.min.js"
+          strategy="afterInteractive"
+          data-gyg-partner-id={partnerId}
+        />
         <div
           data-gyg-href="https://widget.getyourguide.com/default/city.frame"
           data-gyg-location-id={String(locationId)}
@@ -64,6 +75,11 @@ export default function GygWidget({
   // Generic widget fallback
   return (
     <div className={className}>
+      <Script
+        src="https://widget.getyourguide.com/dist/pa.umd.production.min.js"
+        strategy="afterInteractive"
+        data-gyg-partner-id={partnerId}
+      />
       <div data-gyg-widget="auto" data-gyg-partner-id={partnerId} />
     </div>
   );

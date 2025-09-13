@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import { supabaseAdmin } from "@/lib/supabase/serverAdmin";
-import { getDestinationsByPrefecture } from "@/lib/data/geo";
+import { getPrefectureBySlug, getDestinationsByPrefecture } from "@/lib/data/geo";
 import { getSightsByDestinationIds } from "@/lib/data/sights";
 
 export const revalidate = 300;
@@ -11,14 +10,7 @@ export const runtime = 'nodejs';
 
 export default async function SightsByPrefecturePage({ params }) {
   const { slug } = await params;
-  const db = supabaseAdmin();
-
-  // Load prefecture by slug (no region constraint), minimal fields
-  const { data: pref } = await db
-    .from("prefectures")
-    .select("id, name, slug")
-    .eq("slug", slug)
-    .maybeSingle();
+  const pref = await getPrefectureBySlug(slug, undefined).catch(() => null);
   if (!pref?.id) notFound();
 
   const destinations = await getDestinationsByPrefecture(pref.id).catch(() => []);

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/serverAdmin";
+import { supabaseAdmin } from "@/lib/supabaseServer";
 
 export async function getPublishedSights() {
   const db = supabaseAdmin();
@@ -77,4 +77,3 @@ export async function getSightOpeningExceptions(id) {
   if (error) return [];
   return data || [];
 }
-

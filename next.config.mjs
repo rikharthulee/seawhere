@@ -42,7 +42,12 @@ const nextConfig = {
       { protocol: 'https', hostname: 'secure.gravatar.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
     ],
+    formats: ['image/avif','image/webp'],
+    minimumCacheTTL: 60,
   },
+  poweredByHeader: false,
+  compress: true,
+  httpAgentOptions: { keepAlive: true },
   async redirects() {
     return [
       {

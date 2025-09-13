@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/serverAdmin";
+import { supabaseAdmin } from "@/lib/supabaseServer";
 
 export async function getRegions() {
   const db = supabaseAdmin();

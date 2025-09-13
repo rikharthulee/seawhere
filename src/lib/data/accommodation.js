@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase/serverAdmin";
+import { supabaseAdmin } from "@/lib/supabaseServer";
 
 export async function getPublishedAccommodation() {
   const db = supabaseAdmin();
@@ -21,4 +21,3 @@ export async function getAccommodationBySlug(slug) {
   if (error) return null;
   return data;
 }
-
