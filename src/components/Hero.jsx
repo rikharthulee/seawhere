@@ -7,7 +7,7 @@ export default function Hero() {
       {/* HERO */}
       <section className="relative h-[65vh] min-h-[420px]">
         <SafeImage
-          src="https://plus.unsplash.com/premium_photo-1661964177687-57387c2cbd14?q=80&w=2000&auto=format&fit=crop&ixlib=rb-4.1.0"
+          src="/hero.webp"
           alt="Japan landscape"
           fill
           sizes="100vw"
