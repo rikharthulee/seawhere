@@ -1,18 +1,19 @@
 import Link from "next/link";
-import SafeImage from "@/components/SafeImage";
+import Image from "next/image";
 
 export default function Hero() {
   return (
     <>
       {/* HERO */}
       <section className="relative h-[65vh] min-h-[420px]">
-        <SafeImage
+        <Image
           src="/hero.webp"
           alt="Japan landscape"
           fill
           sizes="100vw"
           className="object-cover"
           priority
+          quality={70}
         />
 
         {/* Stronger gradient scrim for readability */}
