@@ -1,4 +1,4 @@
-name: Supabase DB Backup (session pooler via Docker PG17 - Schedule Run 03:00 UTC)
+name: Supabase DB Backup (session pooler via Docker PG17 - Schedule Run 03:00 Laos Time)
 
 on:
   workflow_dispatch: {}
