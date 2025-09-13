@@ -1,11 +1,11 @@
 import Accommodation from "@/components/Accommodation";
-import { fetchAccommodations } from "@/lib/supabaseRest";
+import { getPublishedAccommodation } from "@/lib/data/accommodation";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default async function AccommodationPage() {
   let items = [];
   try {
-    const rows = await fetchAccommodations();
+    const rows = await getPublishedAccommodation();
     items = rows.map((r) => ({
       slug: r.slug,
       title: r.name,
@@ -20,3 +20,4 @@ export default async function AccommodationPage() {
   );
 }
 export const revalidate = 900;
+export const runtime = 'nodejs';

@@ -1,21 +1,19 @@
 import { notFound } from "next/navigation";
-import { fetchDestinationBySlug, fetchDestinationBySlugLoose, fetchSightsByDestination } from "@/lib/supabaseRest";
+import { getDestinationBySlugLoose } from "@/lib/data/destinations";
+import { getSightsForDestination } from "@/lib/data/sights";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import GygWidget from "@/components/GygWidget";
 
 export const revalidate = 300;
+export const runtime = 'nodejs';
 
 export default async function SightsByDestinationPage({ params }) {
   const { slug } = await params;
-  let dst = await fetchDestinationBySlug(slug).catch(() => null);
-  if (!dst) {
-    // Fall back to loading the destination even if not published so the page exists
-    dst = await fetchDestinationBySlugLoose(slug).catch(() => null);
-  }
+  let dst = await getDestinationBySlugLoose(slug).catch(() => null);
   if (!dst) notFound();
-  const sights = await fetchSightsByDestination(dst.id).catch(() => []);
+  const sights = await getSightsForDestination(dst.id).catch(() => []);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -44,10 +42,13 @@ export default async function SightsByDestinationPage({ params }) {
               }
             }
             const img = resolveImageUrl(imgPath);
+            const canLink = !!p.slug;
+            const CardTag = canLink ? Link : 'div';
+            const cardProps = canLink ? { href: `/sights/${encodeURIComponent(dst.slug)}/${encodeURIComponent(p.slug)}` } : {};
             return (
-              <Link
+              <CardTag
                 key={p.id}
-                href={p.slug ? `/sights/${encodeURIComponent(dst.slug)}/${encodeURIComponent(p.slug)}` : `/sights/poi/${encodeURIComponent(p.id)}`}
+                {...cardProps}
                 className="block rounded-lg border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black/40"
               >
                 <div className="aspect-[4/3] relative bg-black/5">
@@ -67,7 +68,7 @@ export default async function SightsByDestinationPage({ params }) {
                     <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}
                 </div>
-              </Link>
+              </CardTag>
             );
           })
         ) : (

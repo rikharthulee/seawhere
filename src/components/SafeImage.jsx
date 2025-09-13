@@ -50,7 +50,8 @@ export default function SafeImage({ src, alt = "", className = "", fill, sizes, 
   const host = external ? hostnameFor(resolved) : null;
   const allowed = !external || (host && ALLOWED_HOSTS.has(host));
   const blurDataURL = resolveImageProps(resolved, { width, height })?.blurDataURL;
-  const proxied = external && !allowed ? `/api/img?url=${encodeURIComponent(resolved)}` : resolved;
+  // For disallowed external hosts, avoid proxy to prevent server timeouts; render native <img> directly
+  const proxied = resolved;
 
   if (allowed) {
     return (
@@ -67,6 +68,6 @@ export default function SafeImage({ src, alt = "", className = "", fill, sizes, 
     );
   }
 
-  // As a last resort (shouldn't hit if proxy works), render native img
-  return <img src={proxied} alt={alt} className={className} {...(!fill ? { width, height } : {})} loading={priority ? "eager" : "lazy"} decoding="async"/>;
+  // Disallowed external host: render native img directly (bypasses Next/Image domain checks and proxy)
+  return <img src={resolved} alt={alt} className={className} {...(!fill ? { width, height } : {})} loading={priority ? "eager" : "lazy"} decoding="async"/>;
 }

@@ -1,6 +1,6 @@
 // app/destinations/[slug]/page.jsx
 import { notFound } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { getDestinationBySlug } from "@/lib/data/destinations";
 import SafeImage from "@/components/SafeImage";
 import EmblaCarousel from "@/components/EmblaCarousel";
 import Link from "next/link";
@@ -8,26 +8,13 @@ import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
-export const revalidate = 0;
+export const revalidate = 300;
+export const runtime = 'nodejs';
 
 export default async function DestinationPage({ params }) {
   const { slug } = await params;
-  const db = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-
-  // Fetch destination (published only)
-  const { data: dst, error } = await db
-    .from("destinations")
-    .select(
-      "id, name, slug, status, prefecture_id, division_id, hero_image, thumbnail_image, images, body_richtext, credit, lat, lng, published_at, created_at, gyg_location_id"
-    )
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
-
-  if (error || !dst) notFound();
+  const dst = await getDestinationBySlug(slug).catch(() => null);
+  if (!dst) notFound();
 
   const hero = resolveImageUrl(dst.hero_image || dst.thumbnail_image);
   const gallery = Array.isArray(dst.images) ? dst.images.map((k) => resolveImageUrl(k)).filter(Boolean) : [];

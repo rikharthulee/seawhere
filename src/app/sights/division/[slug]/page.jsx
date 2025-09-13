@@ -2,17 +2,19 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import { fetchDivisionBySlugLoose, fetchDestinationsByDivision, fetchSightsByDestinationIds } from "@/lib/supabaseRest";
+import { getDivisionBySlugLoose, getDestinationsByDivision } from "@/lib/data/geo";
+import { getSightsByDestinationIds } from "@/lib/data/sights";
 
 export const revalidate = 300;
+export const runtime = 'nodejs';
 
 export default async function SightsByDivisionPage({ params }) {
   const { slug } = await params;
-  const div = await fetchDivisionBySlugLoose(slug).catch(() => null);
+  const div = await getDivisionBySlugLoose(slug).catch(() => null);
   if (!div) notFound();
-  const destinations = await fetchDestinationsByDivision(div.id).catch(() => []);
+  const destinations = await getDestinationsByDivision(div.id).catch(() => []);
   const destIds = (destinations || []).map((d) => d.id).filter(Boolean);
-  const pois = await fetchSightsByDestinationIds(destIds).catch(() => []);
+  const pois = await getSightsByDestinationIds(destIds).catch(() => []);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -42,13 +44,13 @@ export default async function SightsByDivisionPage({ params }) {
             }
             const img = resolveImageUrl(imgPath);
             const destSlug = p?.destinations?.slug || null;
-            const href = destSlug && p.slug
-              ? `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}`
-              : `/sights/poi/${encodeURIComponent(p.id)}`;
+            const canLink = !!(destSlug && p.slug);
+            const Tag = canLink ? Link : 'div';
+            const linkProps = canLink ? { href: `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
             return (
-              <Link
+              <Tag
                 key={p.id}
-                href={href}
+                {...linkProps}
                 className="block rounded-lg border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black/40"
               >
                 <div className="aspect-[4/3] relative bg-black/5">
@@ -68,7 +70,7 @@ export default async function SightsByDivisionPage({ params }) {
                     <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}
                 </div>
-              </Link>
+              </Tag>
             );
           })
         ) : (

@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { fetchRegions, fetchPrefectures } from "@/lib/supabaseRest";
+import { getRegions, getPrefectures } from "@/lib/data/geo";
 
 export default async function RegionsPage() {
   let regions = [];
   let prefectures = [];
   try {
-    regions = await fetchRegions();
-    prefectures = await fetchPrefectures();
+    regions = await getRegions();
+    prefectures = await getPrefectures();
   } catch {}
 
   const prefByRegion = new Map();
@@ -53,3 +53,4 @@ export default async function RegionsPage() {
 }
 
 export const revalidate = 300;
+export const runtime = 'nodejs';

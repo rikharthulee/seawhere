@@ -5,17 +5,13 @@ import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import RichText from "@/components/RichText";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import {
-  fetchAccommodations,
-  fetchAccommodationBySlug,
-  fetchDestinationById,
-  fetchPrefectureById,
-  fetchDivisionById,
-} from "@/lib/supabaseRest";
+import { getPublishedAccommodation, getAccommodationBySlug } from "@/lib/data/accommodation";
+import { getDestinationById } from "@/lib/data/destinations";
+import { getPrefectureById, getDivisionById } from "@/lib/data/geo";
 
 export async function generateStaticParams() {
   try {
-    const rows = await fetchAccommodations();
+    const rows = await getPublishedAccommodation();
     return rows.map((a) => ({ slug: a.slug }));
   } catch {
     return accommodation.map((a) => ({ slug: a.slug }));
@@ -26,14 +22,14 @@ export default async function AccommodationDetailPage({ params }) {
   const { slug } = await params;
   let item = null;
   try {
-    const row = await fetchAccommodationBySlug(slug);
+    const row = await getAccommodationBySlug(slug);
     if (row) {
       const gallery = Array.isArray(row.images) ? row.images : [];
       // Fetch related geo labels in parallel (best-effort)
       const [dest, pref, div] = await Promise.all([
-        fetchDestinationById(row.destination_id).catch(() => null),
-        fetchPrefectureById(row.prefecture_id).catch(() => null),
-        fetchDivisionById(row.division_id).catch(() => null),
+        getDestinationById(row.destination_id).catch(() => null),
+        getPrefectureById(row.prefecture_id).catch(() => null),
+        getDivisionById(row.division_id).catch(() => null),
       ]);
       item = {
         title: row.name,
@@ -161,3 +157,4 @@ export default async function AccommodationDetailPage({ params }) {
   );
 }
 export const revalidate = 900;
+export const runtime = 'nodejs';

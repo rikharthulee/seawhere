@@ -2,19 +2,21 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import { fetchRegionBySlug, fetchPrefecturesByRegion, fetchDestinationsByPrefectureIds, fetchSightsByDestinationIds } from "@/lib/supabaseRest";
+import { getRegionBySlug, getPrefecturesByRegion, getDestinationsByPrefectureIds } from "@/lib/data/geo";
+import { getSightsByDestinationIds } from "@/lib/data/sights";
 
 export const revalidate = 300;
+export const runtime = 'nodejs';
 
 export default async function SightsByRegionPage({ params }) {
   const { slug } = await params;
-  const region = await fetchRegionBySlug(slug).catch(() => null);
+  const region = await getRegionBySlug(slug).catch(() => null);
   if (!region) notFound();
-  const prefs = await fetchPrefecturesByRegion(region.id).catch(() => []);
+  const prefs = await getPrefecturesByRegion(region.id).catch(() => []);
   const prefIds = prefs.map((p) => p.id).filter(Boolean);
-  const dests = await fetchDestinationsByPrefectureIds(prefIds).catch(() => []);
+  const dests = await getDestinationsByPrefectureIds(prefIds).catch(() => []);
   const destIds = dests.map((d) => d.id).filter(Boolean);
-  const pois = await fetchSightsByDestinationIds(destIds).catch(() => []);
+  const pois = await getSightsByDestinationIds(destIds).catch(() => []);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -44,13 +46,13 @@ export default async function SightsByRegionPage({ params }) {
             }
             const img = resolveImageUrl(imgPath);
             const destSlug = p?.destinations?.slug || null;
-            const href = destSlug && p.slug
-              ? `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}`
-              : `/sights/poi/${encodeURIComponent(p.id)}`;
+            const canLink = !!(destSlug && p.slug);
+            const Tag = canLink ? Link : 'div';
+            const linkProps = canLink ? { href: `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
             return (
-              <Link
+              <Tag
                 key={p.id}
-                href={href}
+                {...linkProps}
                 className="block rounded-lg border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black/40"
               >
                 <div className="aspect-[4/3] relative bg-black/5">
@@ -70,7 +72,7 @@ export default async function SightsByRegionPage({ params }) {
                     <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}
                 </div>
-              </Link>
+              </Tag>
             );
           })
         ) : (

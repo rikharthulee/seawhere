@@ -40,14 +40,19 @@ export async function GET(req) {
 
     if (!upstream) return placeholder(400);
 
+    // Fetch with timeout to avoid long hangs on first load
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(upstream, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
         Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
       },
-      cache: "no-store",
+      cache: "force-cache",
+      signal: controller.signal,
     });
+    clearTimeout(t);
 
     if (!res.ok || !res.body) {
       return placeholder(res.status || 502);
@@ -59,9 +64,11 @@ export async function GET(req) {
 
     return new Response(res.body, { status: 200, headers });
   } catch (e) {
-    return placeholder(500);
+    return placeholder(504);
   }
 }
+
+export const runtime = 'nodejs';
 
 function placeholder(status = 200) {
   const base64 =
@@ -76,4 +83,3 @@ function placeholder(status = 200) {
     },
   });
 }
-

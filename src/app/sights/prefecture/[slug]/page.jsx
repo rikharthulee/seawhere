@@ -2,16 +2,16 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import { createClient } from "@supabase/supabase-js";
-import { fetchDestinationsByPrefecture, fetchSightsByDestinationIds } from "@/lib/supabaseRest";
+import { supabaseAdmin } from "@/lib/supabase/serverAdmin";
+import { getDestinationsByPrefecture } from "@/lib/data/geo";
+import { getSightsByDestinationIds } from "@/lib/data/sights";
 
 export const revalidate = 300;
+export const runtime = 'nodejs';
 
 export default async function SightsByPrefecturePage({ params }) {
   const { slug } = await params;
-  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const db = supabaseAdmin();
 
   // Load prefecture by slug (no region constraint), minimal fields
   const { data: pref } = await db
@@ -21,9 +21,9 @@ export default async function SightsByPrefecturePage({ params }) {
     .maybeSingle();
   if (!pref?.id) notFound();
 
-  const destinations = await fetchDestinationsByPrefecture(pref.id).catch(() => []);
+  const destinations = await getDestinationsByPrefecture(pref.id).catch(() => []);
   const destIds = (destinations || []).map((d) => d.id).filter(Boolean);
-  const pois = await fetchSightsByDestinationIds(destIds).catch(() => []);
+  const pois = await getSightsByDestinationIds(destIds).catch(() => []);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -53,13 +53,13 @@ export default async function SightsByPrefecturePage({ params }) {
             }
             const img = resolveImageUrl(imgPath);
             const destSlug = p?.destinations?.slug || null;
-            const href = destSlug && p.slug
-              ? `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}`
-              : `/sights/poi/${encodeURIComponent(p.id)}`;
+            const canLink = !!(destSlug && p.slug);
+            const Tag = canLink ? Link : 'div';
+            const linkProps = canLink ? { href: `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
             return (
-              <Link
+              <Tag
                 key={p.id}
-                href={href}
+                {...linkProps}
                 className="block rounded-lg border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black/40"
               >
                 <div className="aspect-[4/3] relative bg-black/5">
@@ -79,7 +79,7 @@ export default async function SightsByPrefecturePage({ params }) {
                     <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}
                 </div>
-              </Link>
+              </Tag>
             );
           })
         ) : (

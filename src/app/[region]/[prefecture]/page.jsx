@@ -1,23 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  fetchRegionBySlug,
-  fetchPrefectureBySlug,
-  fetchDivisionsByPrefecture,
-  fetchDestinationsByPrefecture,
-} from "@/lib/supabaseRest";
+import { getRegionBySlug, getPrefectureBySlug, getDivisionsByPrefecture, getDestinationsByPrefecture } from "@/lib/data/geo";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default async function PrefecturePage({ params }) {
   const { region, prefecture } = await params;
 
-  const reg = await fetchRegionBySlug(region).catch(() => null);
+  const reg = await getRegionBySlug(region).catch(() => null);
   if (!reg) notFound();
-  const pref = await fetchPrefectureBySlug(prefecture, reg.id).catch(() => null);
+  const pref = await getPrefectureBySlug(prefecture, reg.id).catch(() => null);
   if (!pref) notFound();
 
-  const divisions = (await fetchDivisionsByPrefecture(pref.id).catch(() => [])) || [];
-  const allPrefDests = await fetchDestinationsByPrefecture(pref.id).catch(() => []);
+  const divisions = await getDivisionsByPrefecture(pref.id).catch(() => []);
+  const allPrefDests = await getDestinationsByPrefecture(pref.id).catch(() => []);
   const unassignedDests = Array.isArray(allPrefDests)
     ? allPrefDests.filter((d) => !d.division_id)
     : [];
@@ -92,3 +87,4 @@ export default async function PrefecturePage({ params }) {
 }
 
 export const revalidate = 300;
+export const runtime = 'nodejs';

@@ -1,11 +1,11 @@
 import Destinations from "@/components/Destinations";
-import { fetchDestinations } from "@/lib/supabaseRest";
+import { getPublishedDestinations } from "@/lib/data/destinations";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default async function DestinationsPage() {
   let items = [];
   try {
-    const rows = await fetchDestinations();
+    const rows = await getPublishedDestinations();
     items = rows.map((r) => ({
       slug: r.slug,
       title: r.name,
@@ -24,3 +24,4 @@ export default async function DestinationsPage() {
 }
 
 export const revalidate = 300;
+export const runtime = 'nodejs';

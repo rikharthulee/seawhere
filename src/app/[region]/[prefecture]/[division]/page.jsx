@@ -1,24 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  fetchRegionBySlug,
-  fetchPrefectureBySlug,
-  fetchDivisionBySlug,
-  fetchDestinationsByDivision,
-} from "@/lib/supabaseRest";
+import { getRegionBySlug, getPrefectureBySlug, getDivisionBySlugLoose, getDestinationsByDivision } from "@/lib/data/geo";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default async function DivisionPage({ params }) {
   const { region, prefecture, division } = await params;
 
-  const reg = await fetchRegionBySlug(region).catch(() => null);
+  const reg = await getRegionBySlug(region).catch(() => null);
   if (!reg) notFound();
-  const pref = await fetchPrefectureBySlug(prefecture, reg.id).catch(() => null);
+  const pref = await getPrefectureBySlug(prefecture, reg.id).catch(() => null);
   if (!pref) notFound();
-  const div = await fetchDivisionBySlug(division, pref.id).catch(() => null);
+  const div = await getDivisionBySlugLoose(division).catch(() => null);
   if (!div) notFound();
 
-  const destinations = await fetchDestinationsByDivision(div.id).catch(() => []);
+  const destinations = await getDestinationsByDivision(div.id).catch(() => []);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -54,3 +49,4 @@ export default async function DivisionPage({ params }) {
 }
 
 export const revalidate = 300;
+export const runtime = 'nodejs';

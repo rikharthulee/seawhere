@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import ImageUpload from "./ImageUpload";
 import MultiImageUpload from "@/components/admin/MultiImageUpload";
-import { fetchPrefectures, fetchAllDivisions } from "@/lib/supabaseRest";
 import ParagraphEditor from "./ParagraphEditor";
 
 function slugify(s) {
@@ -93,15 +92,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
           .order("order_index", { ascending: true });
         if (!cancelled) setDivisions(Array.isArray(divs) ? divs : []);
       } catch {}
-      // Last resort: REST
-      if (!cancelled && prefectures.length === 0) {
-        const rows = await fetchPrefectures().catch(() => []);
-        setPrefectures(rows || []);
-      }
-      if (!cancelled && divisions.length === 0) {
-        const rows = await fetchAllDivisions().catch(() => []);
-        setDivisions(rows || []);
-      }
+      // No further fallback; admin meta + client reads should suffice
     }
     load();
     return () => {

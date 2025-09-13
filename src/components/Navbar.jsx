@@ -13,7 +13,6 @@ export default function Navbar() {
   const [userName, setUserName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
   const supabase = createClientComponentClient();
   // Keep banner height consistent between image size and padding space
@@ -36,20 +35,11 @@ export default function Navbar() {
       setIsAuthed(!!session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("display_name, avatar_url, role")
-          .eq("id", session.user.id)
-          .single();
-        setUserName(
-          prof?.display_name || session.user.user_metadata?.name || ""
-        );
-        setAvatarUrl(prof?.avatar_url || "");
-        setIsAdmin(["admin", "editor"].includes(prof?.role));
+        setUserName(session.user.user_metadata?.name || session.user.email || "");
+        setAvatarUrl("");
       } else {
         setUserName("");
         setAvatarUrl("");
-        setIsAdmin(false);
       }
     }
     prime();
@@ -59,31 +49,12 @@ export default function Navbar() {
         setIsAuthed(!!session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("display_name, avatar_url, role")
-            .eq("id", session.user.id)
-            .single();
-          setUserName(
-            prof?.display_name || session.user.user_metadata?.name || ""
-          );
-          setAvatarUrl(prof?.avatar_url || "");
-          setIsAdmin(["admin", "editor"].includes(prof?.role));
+          setUserName(session.user.user_metadata?.name || session.user.email || "");
+          setAvatarUrl("");
         } else {
           setUserName("");
           setAvatarUrl("");
-          setIsAdmin(false);
         }
-
-        // Sync client auth state to server cookies for SSR/admin routes
-        try {
-          await fetch("/auth/callback", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "same-origin",
-            body: JSON.stringify({ event, session }),
-          });
-        } catch (_) {}
       }
     );
     return () => {

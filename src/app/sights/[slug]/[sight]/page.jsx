@@ -1,57 +1,33 @@
+// moved from [poi]/page.jsx
 import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
-import { fetchSightByDestinationAndSlug, fetchSightOpeningHours, fetchSightOpeningExceptions } from "@/lib/supabaseRest";
+import { getSightBySlugs, getSightOpeningHours, getSightOpeningExceptions } from "@/lib/data/sights";
+import { fmtTime, fmtJPY } from "@/lib/format";
 
 export const revalidate = 300;
+export const runtime = 'nodejs';
 
-function fmtTime(t) {
-  if (!t) return null;
-  const s = String(t);
-  const m = s.match(/^([0-9]{1,2}:[0-9]{2})(?::[0-9]{2})?$/);
-  return m ? m[1] : s;
-}
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-function fmtJPY(amount) {
-  if (amount == null || amount === "") return null;
-  const n = Number(amount);
-  if (!Number.isFinite(n)) return null;
-  return `¥${Math.round(n).toLocaleString("en-US")}`;
-}
 
 export default async function SightDetailBySlugPage({ params }) {
-  const { slug, poi } = await params;
-  const result = await fetchSightByDestinationAndSlug(slug, poi).catch(() => null);
+  const { slug, sight } = await params;
+  const result = await getSightBySlugs(slug, sight).catch(() => null);
   if (!result?.sight || !result?.destination) notFound();
   const { sight: p, destination: dest } = result;
-  // Fetch openings via server route that uses service role and checks published status
   let rules = [];
   let exceptions = [];
-  try {
-    const res = await fetch(`/api/public/sights/${encodeURIComponent(p.id)}/openings`, { cache: 'no-store' });
-    if (res.ok) {
-      const json = await res.json();
-      rules = json.hours || [];
-      exceptions = json.exceptions || [];
-    }
-  } catch {}
-  if ((!rules || rules.length === 0) && (!exceptions || exceptions.length === 0)) {
-    // Fallback to direct Supabase reads (anon) if openings API returns nothing
-    try {
-      const [r, e] = await Promise.all([
-        fetchSightOpeningHours(p.id).catch(() => []),
-        fetchSightOpeningExceptions(p.id).catch(() => []),
-      ]);
-      rules = r || [];
-      exceptions = e || [];
-    } catch {}
-  }
+  const [r, e] = await Promise.all([
+    getSightOpeningHours(p.id).catch(() => []),
+    getSightOpeningExceptions(p.id).catch(() => []),
+  ]);
+  rules = r || [];
+  exceptions = e || [];
 
-  // Resolve main image from images jsonb or fallback
   let imgPath = null;
   if (p.images) {
     if (Array.isArray(p.images) && p.images.length > 0) {
@@ -63,8 +39,6 @@ export default async function SightDetailBySlugPage({ params }) {
   }
   const img = resolveImageUrl(imgPath);
 
-  // Opening rules/exceptions are shown on the ID route today; keep the same
-  // minimal layout here for parity without additional round-trips.
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="border-t-2 border-black/10 pt-4">
@@ -117,8 +91,6 @@ export default async function SightDetailBySlugPage({ params }) {
 
           {p.summary ? <p className="text-lg leading-relaxed mb-3">{p.summary}</p> : null}
           {p.body_richtext ? <RichTextReadOnly value={p.body_richtext} /> : null}
-
-          {/* GYG widget moved below opening times */}
         </div>
       </section>
 
