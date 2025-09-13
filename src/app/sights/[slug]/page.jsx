@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { fetchDestinationBySlug, fetchDestinationBySlugLoose, fetchPOIsByDestination } from "@/lib/supabaseRest";
+import { fetchDestinationBySlug, fetchDestinationBySlugLoose, fetchSightsByDestination } from "@/lib/supabaseRest";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
@@ -15,7 +15,7 @@ export default async function SightsByDestinationPage({ params }) {
     dst = await fetchDestinationBySlugLoose(slug).catch(() => null);
   }
   if (!dst) notFound();
-  const pois = await fetchPOIsByDestination(dst.id).catch(() => []);
+  const sights = await fetchSightsByDestination(dst.id).catch(() => []);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -32,9 +32,18 @@ export default async function SightsByDestinationPage({ params }) {
       </div>
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {Array.isArray(pois) && pois.length > 0 ? (
-          pois.map((p) => {
-            const img = resolveImageUrl(p.image);
+        {Array.isArray(sights) && sights.length > 0 ? (
+          sights.map((p) => {
+            let imgPath = p.image || null;
+            if (!imgPath && p.images) {
+              if (Array.isArray(p.images) && p.images.length > 0) {
+                const first = p.images[0];
+                imgPath = (first && (first.url || first.src)) || (typeof first === 'string' ? first : null);
+              } else if (typeof p.images === 'string') {
+                imgPath = p.images;
+              }
+            }
+            const img = resolveImageUrl(imgPath);
             return (
               <Link
                 key={p.id}
@@ -45,7 +54,7 @@ export default async function SightsByDestinationPage({ params }) {
                   {img ? (
                     <SafeImage
                       src={img}
-                      alt={p.title}
+                      alt={p.title || p.name}
                       fill
                       sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
                       className="object-cover"
@@ -53,7 +62,7 @@ export default async function SightsByDestinationPage({ params }) {
                   ) : null}
                 </div>
                 <div className="p-3">
-                  <div className="font-medium">{p.title}</div>
+                  <div className="font-medium">{p.title || p.name}</div>
                   {p.summary ? (
                     <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}

@@ -4,7 +4,7 @@ import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default function Sights({ items = [] }) {
   const sorted = Array.isArray(items)
-    ? [...items].sort((a, b) => (a.title || "").localeCompare(b.title || ""))
+    ? [...items].sort((a, b) => (a.title || a.name || "").localeCompare(b.title || b.name || ""))
     : [];
 
   return (
@@ -18,16 +18,28 @@ export default function Sights({ items = [] }) {
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {sorted.map((p) => {
-          const img = resolveImageUrl(p.image);
+          // Derive a display image from either legacy `image` (poi) or new `images` (sights)
+          let imgPath = p.image || null;
+          if (!imgPath && p.images) {
+            if (Array.isArray(p.images) && p.images.length > 0) {
+              const first = p.images[0];
+              imgPath = (first && (first.url || first.src)) || (typeof first === 'string' ? first : null);
+            } else if (typeof p.images === 'string') {
+              imgPath = p.images;
+            }
+          }
+          const img = resolveImageUrl(imgPath);
           const destSlug = p?.destinations?.slug || p?.destination?.slug || null;
-          const href = p.slug && destSlug ? `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` : `/sights/poi/${encodeURIComponent(p.id)}`;
+          const canLink = !!(p.slug && destSlug);
+          const CardTag = canLink ? Link : 'div';
+          const cardProps = canLink ? { href: `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
           return (
-            <Link key={p.id} href={href} className="group block relative overflow-hidden rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/40">
+            <CardTag key={p.id} {...cardProps} className="group block relative overflow-hidden rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/40">
               <div className="relative h-64 w-full bg-black/5">
                 {img ? (
                   <SafeImage
                     src={img}
-                    alt={p.title}
+                    alt={p.title || p.name}
                     fill
                     sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
                     className="object-cover transition duration-300 group-hover:scale-105"
@@ -39,14 +51,17 @@ export default function Sights({ items = [] }) {
                     {String(p.type).slice(0,1).toUpperCase() + String(p.type).slice(1)}
                   </span>
                 ) : null}
+                {p.deeplink ? (
+                  <span className="absolute right-2 top-2 rounded bg-blue-600 text-white text-xs px-2 py-0.5">Book</span>
+                ) : null}
               </div>
               <div className="p-3">
-                <div className="font-medium">{p.title}</div>
+                <div className="font-medium">{p.title || p.name}</div>
                 {p.summary ? (
                   <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
                 ) : null}
               </div>
-            </Link>
+            </CardTag>
           );
         })}
       </div>

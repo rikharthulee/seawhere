@@ -422,3 +422,77 @@ itinerary_day_items
     • Do we support per‑day time windows (AM/PM blocks)?
     • Should hotels be per‑night (check‑in/out) or per‑day reference only?
     • Customer‑facing PDF/Share link formatting.
+
+## 18. Food & Drink Catalog + Itinerary Integration
+
+### 18.1 Goals
+- Add a first-class **Food & Drink** catalog (restaurants, bars, cafés, other).
+- Make Food & Drink available in the **Itinerary Builder** alongside Hotels, Sights, Tours, and Excursions.
+- Keep the implementation **non-destructive** and consistent with current `itinerary_day_items` behavior.
+
+### 18.2 Data Model
+
+#### 18.2.1 `public.food_drink` (catalog)
+```sql
+create table if not exists public.food_drink (
+  id uuid primary key default gen_random_uuid(),
+  destination_id uuid references public.destinations(id) on delete cascade,
+  name text not null,
+  type text check (type in ('restaurant','bar','cafe','other')) default 'restaurant',
+  address text,
+  description text,
+  rating numeric,
+  images jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_food_drink_destination on public.food_drink(destination_id);
+```
+> Mirrors `hotels`-style fields; extend later with price range, cuisine tags, opening hours.
+
+#### 18.2.2 `public.itinerary_day_items` (reference link)
+Use polymorphic `item_type` + `ref_id`. Just add `'food_drink'` to allowed values.
+
+```sql
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.itinerary_day_items'::regclass
+      and contype = 'c'
+      and conname = 'itinerary_day_items_item_type_check'
+  ) then
+    alter table public.itinerary_day_items
+      drop constraint itinerary_day_items_item_type_check;
+  end if;
+
+  alter table public.itinerary_day_items
+    add constraint itinerary_day_items_item_type_check
+    check (item_type in ('hotel','excursion','sight','tour','food_drink'));
+end$$;
+```
+
+### 18.3 RLS
+```sql
+alter table public.food_drink enable row level security;
+
+create policy admin_all_food_drink on public.food_drink
+for all using (public.is_admin()) with check (public.is_admin());
+
+create policy public_read_food_drink on public.food_drink
+for select using (true);
+```
+
+### 18.4 UI Changes
+- **LibraryTabs**: add "Food & Drink".
+- **LibraryList**: filter by destination + type; sort by rating/name.
+- **DaysCanvas/DayItemsList**: dropping creates `itinerary_day_items` with `item_type='food_drink'`.
+- **InspectorSidebar**: notes, booking URL, time window, cost.
+
+### 18.5 API Contract
+- `GET /rest/v1/food_drink?...`
+- `POST /rest/v1/itinerary_day_items { item_type:'food_drink', ref_id:<food_drink_id>, ... }`
+
+### 18.6 Validation
+- Ensure `ref_id` points to `food_drink.id` when `item_type='food_drink'`.

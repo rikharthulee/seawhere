@@ -37,6 +37,17 @@ export default function AdminHome() {
         </article>
 
         <article className="p-5 rounded-xl ring-1 ring-black/10">
+          <h2 className="text-xl font-semibold">Edit Sights (new)</h2>
+          <p className="mt-2 text-gray-700">Manage sights stored in the new tables.</p>
+          <Link
+            href="/admin/sights"
+            className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
+          >
+            Go to Sights
+          </Link>
+        </article>
+
+        <article className="p-5 rounded-xl ring-1 ring-black/10">
           <h2 className="text-xl font-semibold">Edit POIs</h2>
           <p className="mt-2 text-gray-700">
             Manage points of interest (sights, food, tours, etc.)
