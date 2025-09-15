@@ -2,7 +2,7 @@ import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
-export default function Sights({ items = [] }) {
+export default function Experiences({ items = [] }) {
   const sorted = Array.isArray(items)
     ? [...items].sort((a, b) =>
         (a.title || a.name || "").localeCompare(b.title || b.name || "")
@@ -10,10 +10,10 @@ export default function Sights({ items = [] }) {
     : [];
 
   return (
-    <section id="sights">
+    <section id="experiences">
       <div className="border-t-2 border-black/10 pt-4">
         <div className="flex items-end justify-between">
-          <h2 className="text-3xl md:text-4xl font-medium">Sights</h2>
+          <h2 className="text-3xl md:text-4xl font-medium">Experiences</h2>
         </div>
         <div className="border-b-2 border-black/10 mt-3" />
       </div>
@@ -32,13 +32,12 @@ export default function Sights({ items = [] }) {
             }
           }
           const img = resolveImageUrl(imgPath);
-          const destSlug =
-            p?.destinations?.slug || p?.destination?.slug || null;
+          const destSlug = p?.destinations?.slug || p?.destination?.slug || null;
           const canLink = !!(p.slug && destSlug);
           const CardTag = canLink ? Link : "div";
           const cardProps = canLink
             ? {
-                href: `/sights/${encodeURIComponent(
+                href: `/experiences/${encodeURIComponent(
                   destSlug
                 )}/${encodeURIComponent(p.slug)}`,
               }
@@ -59,18 +58,6 @@ export default function Sights({ items = [] }) {
                     className="object-cover transition duration-300 group-hover:scale-105"
                   />
                 ) : null}
-                {/* Type badge */}
-                {p.type ? (
-                  <span className="absolute left-2 top-2 rounded-full bg-black/70 text-white text-xs px-2 py-0.5">
-                    {String(p.type).slice(0, 1).toUpperCase() +
-                      String(p.type).slice(1)}
-                  </span>
-                ) : null}
-                {p.deeplink ? (
-                  <span className="absolute right-2 top-2 rounded bg-blue-600 text-white text-xs px-2 py-0.5">
-                    Book
-                  </span>
-                ) : null}
               </div>
               <div className="p-3">
                 <div className="font-medium">{p.title || p.name}</div>
@@ -87,3 +74,4 @@ export default function Sights({ items = [] }) {
     </section>
   );
 }
+

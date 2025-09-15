@@ -71,7 +71,7 @@ export default function DestinationsManager() {
               <th className="text-left px-3 py-2">Slug</th>
               <th className="text-left px-3 py-2">Status</th>
               <th className="text-left px-3 py-2">Summary</th>
-              <th className="text-right px-3 py-2">Actions</th>
+              <th className="text-right px-3 py-2 w-[320px]">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -111,8 +111,8 @@ export default function DestinationsManager() {
                       <span className="inline-block text-xs rounded-full bg-green-100 text-green-800 px-2 py-0.5">Published</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 truncate max-w-[32rem]">{it.summary}</td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 truncate max-w-[20rem]">{it.summary}</td>
+                  <td className="px-3 py-2 text-right w-[320px] whitespace-nowrap">
                     <button
                       className="rounded border px-2 py-1 mr-2"
                       onClick={() => setEditing(it)}
@@ -128,7 +128,7 @@ export default function DestinationsManager() {
                       View
                     </a>
                     <button
-                      className="rounded border px-2 py-1"
+                      className="rounded bg-red-600 text-white px-2 py-1"
                       onClick={async () => {
                         if (!confirm("Delete this destination?")) return;
                         try {

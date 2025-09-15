@@ -12,9 +12,13 @@ export default function AdminHome() {
 
       {/* Action cards */}
       <section className="mt-8 grid gap-6 sm:grid-cols-2">
+        {/* Destinations */}
         <article className="p-5 rounded-xl ring-1 ring-black/10">
-          <h2 className="text-xl font-semibold">Edit Destinations</h2>
-          <p className="mt-2 text-gray-700">Create, edit, or delete destinations shown on the site.</p>
+          <h2 className="text-xl font-semibold">📍 Destinations</h2>
+          <p className="mt-2 text-gray-700">
+            Cities, towns, or areas that group sights, experiences, tours, and
+            accommodation.
+          </p>
           <Link
             href="/admin/destinations"
             className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
@@ -23,10 +27,12 @@ export default function AdminHome() {
           </Link>
         </article>
 
+        {/* Accommodation */}
         <article className="p-5 rounded-xl ring-1 ring-black/10">
-          <h2 className="text-xl font-semibold">Edit Accommodation</h2>
+          <h2 className="text-xl font-semibold">🏨 Accommodation</h2>
           <p className="mt-2 text-gray-700">
-            Manage accommodation entries displayed in the Accommodation section.
+            Places to stay overnight, such as hotels, ryokan, hostels, or
+            guesthouses.
           </p>
           <Link
             href="/admin/accommodation"
@@ -36,9 +42,13 @@ export default function AdminHome() {
           </Link>
         </article>
 
+        {/* Sights */}
         <article className="p-5 rounded-xl ring-1 ring-black/10">
-          <h2 className="text-xl font-semibold">Edit Sights (new)</h2>
-          <p className="mt-2 text-gray-700">Manage sights stored in the new tables.</p>
+          <h2 className="text-xl font-semibold">🏯 Sights</h2>
+          <p className="mt-2 text-gray-700">
+            Static places like temples, gardens, or landmarks that visitors can
+            go and see.
+          </p>
           <Link
             href="/admin/sights"
             className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
@@ -47,10 +57,53 @@ export default function AdminHome() {
           </Link>
         </article>
 
-        {/* Removed legacy POIs admin */}
-
+        {/* Experiences */}
         <article className="p-5 rounded-xl ring-1 ring-black/10">
-          <h2 className="text-xl font-semibold">View Website</h2>
+          <h2 className="text-xl font-semibold">🎎 Experiences</h2>
+          <p className="mt-2 text-gray-700">
+            Hands-on or cultural activities, like a tea ceremony, sumo try-on,
+            or cooking class.
+          </p>
+          <Link
+            href="/admin/experiences"
+            className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
+          >
+            Go to Experiences
+          </Link>
+        </article>
+
+        {/* Tours */}
+        <article className="p-5 rounded-xl ring-1 ring-black/10">
+          <h2 className="text-xl font-semibold">🚌 Tours</h2>
+          <p className="mt-2 text-gray-700">
+            Guided outings from A→A or A→B, such as walking tours or day trips.
+          </p>
+          <Link
+            href="/admin/tours"
+            className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
+          >
+            Go to Tours
+          </Link>
+        </article>
+
+        {/* Products */}
+        <article className="p-5 rounded-xl ring-1 ring-black/10">
+          <h2 className="text-xl font-semibold">📦 Products</h2>
+          <p className="mt-2 text-gray-700">
+            Curated bundles of sights, experiences, and tours that make up a day
+            plan.
+          </p>
+          <Link
+            href="/admin/products"
+            className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
+          >
+            Go to Products
+          </Link>
+        </article>
+
+        {/* View Website */}
+        <article className="p-5 rounded-xl ring-1 ring-black/10">
+          <h2 className="text-xl font-semibold">🌐 View Website</h2>
           <p className="mt-2 text-gray-700">
             Open the public homepage in a new tab.
           </p>

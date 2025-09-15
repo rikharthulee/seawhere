@@ -90,6 +90,7 @@ export default function Navbar() {
     { href: "/", label: "Home" },
     { href: "/destinations", label: "Destinations" },
     { href: "/sights", label: "Sights" },
+    { href: "/tours", label: "Tours" },
     { href: "/accommodation", label: "Accommodation" },
     { href: "/experiences", label: "Experiences" },
     { href: "/fooddrink", label: "Food & Drink" },

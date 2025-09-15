@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import SightsForm from "./SightsForm";
+import ExperiencesForm from "./ExperiencesForm";
 
-export default function SightsManager() {
+export default function ExperiencesManager() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -14,7 +14,7 @@ export default function SightsManager() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/sights", { cache: "no-store" });
+      const res = await fetch("/api/admin/experiences", { cache: "no-store" });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       setItems(json.items || []);
@@ -25,7 +25,7 @@ export default function SightsManager() {
         setDestMap(map);
       }
     } catch (e) {
-      setError(e?.message || "Failed to load sights");
+      setError(e?.message || "Failed to load experiences");
     } finally {
       setLoading(false);
     }
@@ -45,12 +45,12 @@ export default function SightsManager() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Sights</h2>
-        <button className="rounded bg-black text-white px-3 py-2" onClick={() => setEditing({})}>+ New Sight</button>
+        <h2 className="text-xl font-semibold">Experiences</h2>
+        <button className="rounded bg-black text-white px-3 py-2" onClick={() => setEditing({})}>+ New Experience</button>
       </div>
 
       {editing ? (
-        <SightsForm
+        <ExperiencesForm
           id={editing.id}
           initial={editing.id ? editing : null}
           onSaved={() => { setEditing(null); load(); }}
@@ -82,7 +82,7 @@ export default function SightsManager() {
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td className="px-3 py-3" colSpan={4}>No sights yet.</td>
+                <td className="px-3 py-3" colSpan={4}>No experiences yet.</td>
               </tr>
             ) : (
               items.map((it) => (
@@ -93,37 +93,18 @@ export default function SightsManager() {
                   <td className="px-3 py-2 text-right">
                     <button className="rounded border px-2 py-1 mr-2" onClick={async () => {
                       try {
-                        const res = await fetch(`/api/admin/sights/${it.id}`, { cache: "no-store" });
+                        const res = await fetch(`/api/admin/experiences/${it.id}`, { cache: "no-store" });
                         const json = await res.json();
                         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
-                        function trimTime(t) {
-                          if (!t) return "";
-                          const s = String(t);
-                          const m = s.match(/^([0-9]{2}:[0-9]{2})/);
-                          return m ? m[1] : s;
-                        }
-                        const init = {
-                          ...json.sight,
-                          hours: (json.hours || []).map(h => ({
-                            ...h,
-                            open_time: trimTime(h.open_time),
-                            close_time: trimTime(h.close_time),
-                          })),
-                          exceptions: (json.exceptions || []).map(e => ({
-                            ...e,
-                            open_time: trimTime(e.open_time),
-                            close_time: trimTime(e.close_time),
-                          })),
-                        };
-                        setEditing(init);
+                        setEditing(json);
                       } catch (e) {
-                        alert(e?.message || "Failed to load sight");
+                        alert(e?.message || "Failed to load experience");
                       }
                     }}>Edit</button>
                     {destMap[it.destination_id]?.slug && it.slug ? (
                       <Link
                         className="rounded border px-2 py-1 inline-block"
-                        href={`/sights/${encodeURIComponent(destMap[it.destination_id].slug)}/${encodeURIComponent(it.slug)}`}
+                        href={`/experiences/${encodeURIComponent(destMap[it.destination_id].slug)}/${encodeURIComponent(it.slug)}`}
                         target="_blank"
                       >
                         View
@@ -132,9 +113,9 @@ export default function SightsManager() {
                     <button
                       className="rounded bg-red-600 text-white px-2 py-1 ml-2"
                       onClick={async () => {
-                        if (!confirm("Delete this sight? This cannot be undone.")) return;
+                        if (!confirm("Delete this experience? This cannot be undone.")) return;
                         try {
-                          const res = await fetch(`/api/admin/sights/${it.id}`, { method: "DELETE" });
+                          const res = await fetch(`/api/admin/experiences/${it.id}`, { method: "DELETE" });
                           if (!res.ok) {
                             const json = await res.json().catch(() => ({}));
                             alert(json?.error || `Delete failed (${res.status})`);
