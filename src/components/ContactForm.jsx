@@ -45,7 +45,7 @@ export default function ContactForm() {
   return (
     <div className="mt-8">
       {submitted ? (
-        <div className="rounded-lg border border-black/10 p-4 bg-white">
+    <div className="rounded-[var(--radius)] border border-border p-4 bg-card text-card-foreground">
           <p className="text-green-700">
             Thank you for your enquiry - We will get back to you as soon as
             possible.
@@ -80,7 +80,7 @@ export default function ContactForm() {
             name="name"
             type="text"
             required
-            className="mt-1 w-full rounded-md border border-black/10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black/20"
+          className="mt-1 w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
@@ -96,7 +96,7 @@ export default function ContactForm() {
             name="email"
             type="email"
             required
-            className="mt-1 w-full rounded-md border border-black/10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black/20"
+          className="mt-1 w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
@@ -112,7 +112,7 @@ export default function ContactForm() {
             name="phone"
             type="tel"
             required
-            className="mt-1 w-full rounded-md border border-black/10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black/20"
+          className="mt-1 w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
@@ -128,7 +128,7 @@ export default function ContactForm() {
             name="message"
             rows={5}
             required
-            className="mt-1 w-full rounded-md border border-black/10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black/20"
+          className="mt-1 w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 

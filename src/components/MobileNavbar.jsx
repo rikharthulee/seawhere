@@ -56,7 +56,7 @@ export default function MobileNavbar({
           {/* Explore Japan collapsible */}
           <li>
             <button
-              className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-black/5"
+              className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-accent"
               onClick={() => setMobileExploreOpen((v) => !v)}
               aria-expanded={mobileExploreOpen}
               aria-controls="mobile-explore-panel"
@@ -83,17 +83,17 @@ export default function MobileNavbar({
                 mobileExploreOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
-              <ul className="mt-1 ml-2 flex flex-col gap-1 border-l border-black/10">
+              <ul className="mt-1 ml-2 flex flex-col gap-1 border-l border-border">
                 {exploreItems.map((l) => (
                   <li key={l.href}>
                     <Link
-                      className="block rounded-lg px-3 py-2 hover:bg-black/5"
+                      className="block rounded-lg px-3 py-2 hover:bg-accent"
                       href={l.href}
                       onClick={() => setOpen(false)}
                     >
                       <div className="text-sm leading-tight flex items-center gap-1">
                         <span>{l.label}</span>
-                        <span className="text-xs text-black/60">
+                        <span className="text-xs text-muted-foreground">
                           - {exploreDescriptions[l.href] || "Explore more"}
                         </span>
                       </div>
@@ -108,7 +108,7 @@ export default function MobileNavbar({
           {topLevel.map((l) => (
             <li key={l.href}>
               <Link
-                className="block rounded-lg px-3 py-2 hover:bg-black/5"
+                className="block rounded-lg px-3 py-2 hover:bg-accent"
                 href={l.href}
                 onClick={() => setOpen(false)}
               >
@@ -121,7 +121,7 @@ export default function MobileNavbar({
           {!isAuthed ? (
             <li>
               <Link
-                className="block rounded-lg px-3 py-2 hover:bg-black/5"
+                className="block rounded-lg px-3 py-2 hover:bg-accent"
                 href="/login"
                 onClick={() => setOpen(false)}
               >
@@ -156,7 +156,7 @@ export default function MobileNavbar({
                 onSignOut();
               }}
               disabled={signingOut}
-              className="w-full rounded bg-black text-white px-3 py-2 text-sm disabled:opacity-60"
+              className="w-full rounded bg-primary text-primary-foreground px-3 py-2 text-sm disabled:opacity-60"
             >
               {signingOut ? "Signing out…" : "Sign out"}
             </button>

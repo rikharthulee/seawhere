@@ -49,7 +49,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className={inter.className}>
         <Navbar />
-        <div className="site-root antialiased bg-white text-neutral-900">{children}</div>
+        <div className="site-root antialiased bg-background text-foreground">{children}</div>
         <Suspense fallback={null}>
           <GygAnalytics />
         </Suspense>

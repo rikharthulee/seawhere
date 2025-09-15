@@ -47,12 +47,12 @@ export default async function TourDetailBySlugPage({ params }) {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">{p.name}</h1>
           <Link href={`/tours/${dest.slug}`} className="underline ml-4">Back</Link>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
+        <div className="border-b-2 border-border mt-3" />
       </div>
 
       <section className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
@@ -69,23 +69,23 @@ export default async function TourDetailBySlugPage({ params }) {
         </div>
 
         <div className="md:col-span-2">
-          <div className="rounded-lg border p-3 mb-4">
+          <div className="rounded-[var(--radius)] border bg-card text-card-foreground p-3 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="text-sm text-black/70 flex flex-wrap gap-3">
+              <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
                 {dest ? (
                   <span>
-                    <span className="font-medium text-black">Destination:</span>{" "}
+                    <span className="font-medium text-foreground">Destination:</span>{" "}
                     <Link href={`/destinations/${dest.slug}`} className="underline">{dest.name}</Link>
                   </span>
                 ) : null}
                 {fmtJPY(p.price_amount) ? (
-                  <span><span className="font-medium text-black">Price:</span> {fmtJPY(p.price_amount)}</span>
+                  <span><span className="font-medium text-foreground">Price:</span> {fmtJPY(p.price_amount)}</span>
                 ) : null}
                 {p.duration_minutes ? (
-                  <span><span className="font-medium text-black">Duration:</span> {p.duration_minutes} min</span>
+                  <span><span className="font-medium text-foreground">Duration:</span> {p.duration_minutes} min</span>
                 ) : null}
                 {p.provider ? (
-                  <span><span className="font-medium text-black">Provider:</span> {p.provider}</span>
+                  <span><span className="font-medium text-foreground">Provider:</span> {p.provider}</span>
                 ) : null}
               </div>
               {p.deeplink ? (
@@ -93,7 +93,7 @@ export default async function TourDetailBySlugPage({ params }) {
                   href={p.deeplink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-md bg-blue-600 text-white px-4 py-2 hover:bg-blue-700"
+                  className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 hover:opacity-90"
                 >
                   Book Now
                 </a>
@@ -122,12 +122,12 @@ export default async function TourDetailBySlugPage({ params }) {
         <div>
           <h2 className="text-xl font-semibold mb-2">Availability</h2>
           {Array.isArray(rules) && rules.length > 0 ? (
-            <ul className="divide-y rounded border">
+            <ul className="divide-y rounded-[var(--radius)] border bg-card text-card-foreground">
               {rules.map((r, i) => (
                 <li key={i} className="px-3 py-2">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{fmtDays(r.days_of_week)}</span>
-                    <span className="text-black/70">{Array.isArray(r.start_times) ? r.start_times.join(', ') : ''}</span>
+                      <span className="text-muted-foreground">{Array.isArray(r.start_times) ? r.start_times.join(', ') : ''}</span>
                   </div>
                   {(r.valid_from || r.valid_to) ? (
                     <div className="text-xs text-black/60 mt-1">
@@ -140,25 +140,25 @@ export default async function TourDetailBySlugPage({ params }) {
               ))}
             </ul>
           ) : (
-            <p className="text-black/60">See provider for details.</p>
+            <p className="text-muted-foreground">See provider for details.</p>
           )}
         </div>
         <div>
           <h2 className="text-xl font-semibold mb-2">Exceptions</h2>
           {Array.isArray(exceptions) && exceptions.length > 0 ? (
-            <ul className="divide-y rounded border">
+            <ul className="divide-y rounded-[var(--radius)] border bg-card text-card-foreground">
               {exceptions.map((e, i) => (
                 <li key={i} className="px-3 py-2">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{e.date}</span>
-                    <span className="text-black/70">{e.action}{e.start_time ? ` @ ${e.start_time}` : ''}</span>
+                    <span className="text-muted-foreground">{e.action}{e.start_time ? ` @ ${e.start_time}` : ''}</span>
                   </div>
                   {e.note ? <div className="text-xs text-black/60 mt-1">{e.note}</div> : null}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-black/60">No exceptions listed.</p>
+            <p className="text-muted-foreground">No exceptions listed.</p>
           )}
         </div>
       </section>

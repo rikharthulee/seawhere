@@ -56,15 +56,15 @@ export default function DesktopBannerNav({ links, isAuthed, bannerH = 120 }) {
         </div>
       </div>
 
-      {/* Black link bar */}
-      <div className="bg-black">
+      {/* Tokenized link bar */}
+      <div className="bg-primary text-primary-foreground">
         <div className="mx-auto max-w-6xl py-2">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
             <div />
-            <div className="flex justify-center items-center gap-6 text-white">
+            <div className="flex justify-center items-center gap-6">
               {/* Explore Japan dropdown */}
               <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center gap-1 rounded px-2 py-1 text-white hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-white/50">
+                <DropdownMenuTrigger className="inline-flex items-center gap-1 rounded px-2 py-1 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-ring">
                   Explore Japan
                   <svg
                     className="h-4 w-4"

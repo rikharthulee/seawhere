@@ -11,11 +11,11 @@ export default function Tours({ items = [] }) {
 
   return (
     <section id="tours">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="border-t-2 border-border pt-2">
         <div className="flex items-end justify-between">
           <h2 className="text-3xl md:text-4xl font-medium">Tours</h2>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
+        <div className="border-b-2 border-border mt-3" />
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -44,9 +44,9 @@ export default function Tours({ items = [] }) {
             <CardTag
               key={p.id}
               {...cardProps}
-              className="group block relative overflow-hidden rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/40"
+              className="group block relative overflow-hidden rounded-xl border bg-card text-card-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <div className="relative h-64 w-full bg-black/5">
+              <div className="relative h-64 w-full bg-muted">
                 {img ? (
                   <SafeImage
                     src={img}
@@ -57,7 +57,7 @@ export default function Tours({ items = [] }) {
                   />
                 ) : null}
                 {p.deeplink ? (
-                  <span className="absolute right-2 top-2 rounded bg-blue-600 text-white text-xs px-2 py-0.5">
+                  <span className="absolute right-2 top-2 rounded bg-primary text-primary-foreground text-xs px-2 py-0.5">
                     Book
                   </span>
                 ) : null}
@@ -65,7 +65,7 @@ export default function Tours({ items = [] }) {
               <div className="p-3">
                 <div className="font-medium">{p.title || p.name}</div>
                 {p.summary ? (
-                  <p className="text-sm text-black/70 mt-1 line-clamp-3">
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
                     {p.summary}
                   </p>
                 ) : null}

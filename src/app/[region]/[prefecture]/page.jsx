@@ -19,12 +19,12 @@ export default async function PrefecturePage({ params }) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
-      <nav className="text-sm text-black/60 mb-4">
+      <nav className="text-sm text-muted-foreground mb-4">
         <Link href="/regions" className="underline">Regions</Link>
         <span> / </span>
         <span>{reg.name}</span>
         <span> / </span>
-        <span className="text-black">{pref.name}</span>
+        <span className="text-foreground">{pref.name}</span>
       </nav>
 
       <div className="flex items-center justify-between mb-6">

@@ -11,11 +11,11 @@ export default function Experiences({ items = [] }) {
 
   return (
     <section id="experiences">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="border-t-2 border-border pt-2">
         <div className="flex items-end justify-between">
           <h2 className="text-3xl md:text-4xl font-medium">Experiences</h2>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
+        <div className="border-b-2 border-border mt-3" />
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -46,9 +46,9 @@ export default function Experiences({ items = [] }) {
             <CardTag
               key={p.id}
               {...cardProps}
-              className="group block relative overflow-hidden rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/40"
+              className="group block relative overflow-hidden rounded-xl border bg-card text-card-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <div className="relative h-64 w-full bg-black/5">
+              <div className="relative h-64 w-full bg-muted">
                 {img ? (
                   <SafeImage
                     src={img}
@@ -62,7 +62,7 @@ export default function Experiences({ items = [] }) {
               <div className="p-3">
                 <div className="font-medium">{p.title || p.name}</div>
                 {p.summary ? (
-                  <p className="text-sm text-black/70 mt-1 line-clamp-3">
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
                     {p.summary}
                   </p>
                 ) : null}

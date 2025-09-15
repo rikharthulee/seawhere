@@ -20,7 +20,7 @@ export default async function SightsByRegionPage({ params }) {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
             Sights in {region.name}
@@ -29,7 +29,7 @@ export default async function SightsByRegionPage({ params }) {
             Back
           </Link>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
+        <div className="border-b-2 border-border mt-3" />
       </div>
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -53,9 +53,9 @@ export default async function SightsByRegionPage({ params }) {
               <Tag
                 key={p.id}
                 {...linkProps}
-                className="block rounded-lg border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black/40"
+                className="block rounded-[var(--radius)] border bg-card text-card-foreground overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <div className="aspect-[4/3] relative bg-black/5">
+                <div className="aspect-[4/3] relative bg-muted">
                   {img ? (
                     <SafeImage
                       src={img}
@@ -69,14 +69,14 @@ export default async function SightsByRegionPage({ params }) {
                 <div className="p-3">
                   <div className="font-medium">{p.title || p.name}</div>
                   {p.summary ? (
-                    <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}
                 </div>
               </Tag>
             );
           })
         ) : (
-          <div className="col-span-full text-black/60">No sights found for this region.</div>
+          <div className="col-span-full text-muted-foreground">No sights found for this region.</div>
         )}
       </section>
     </main>

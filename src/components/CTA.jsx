@@ -16,7 +16,7 @@ export default function CTA() {
           <div className="md:text-right">
             <Link
               href="/contact"
-              className="inline-block rounded-full bg-white text-black px-6 py-3"
+              className="inline-block rounded-full bg-card text-card-foreground px-6 py-3"
             >
               Contact Us
             </Link>

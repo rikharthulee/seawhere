@@ -5,9 +5,9 @@ export default function AdminHome() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
       {/* Header styled like other sections */}
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="border-t-2 border-border pt-2">
         <h1 className="text-3xl md:text-4xl font-medium">Admin Dashboard</h1>
-        <div className="border-b-2 border-black/10 mt-3" />
+        <div className="border-b-2 border-border mt-3" />
       </div>
 
       {/* Action cards */}
@@ -109,7 +109,7 @@ export default function AdminHome() {
           </p>
           <Link
             href="/"
-            className="inline-block mt-4 rounded border border-black/20 px-4 py-2 hover:bg-black/5"
+            className="inline-block mt-4 rounded border border-border px-4 py-2 hover:bg-accent"
           >
             Go to Home
           </Link>

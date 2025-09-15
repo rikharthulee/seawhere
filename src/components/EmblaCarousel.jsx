@@ -77,13 +77,13 @@ export default function EmblaCarousel({
 
         {/* Prev/Next with your preferred look (override shadcn defaults) */}
         <CarouselPrevious
-          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/80 backdrop-blur px-3 py-2 ring-1 ring-black/10 hover:bg-white"
+          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur px-3 py-2 ring-1 ring-border hover:bg-card"
           aria-label="Previous slide"
         >
           ‹
         </CarouselPrevious>
         <CarouselNext
-          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/80 backdrop-blur px-3 py-2 ring-1 ring-black/10 hover:bg-white"
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur px-3 py-2 ring-1 ring-border hover:bg-card"
           aria-label="Next slide"
         >
           ›
@@ -97,8 +97,8 @@ export default function EmblaCarousel({
             key={i}
             aria-label={`Go to slide ${i + 1}`}
             onClick={() => scrollTo(i)}
-            className={`h-2.5 w-2.5 rounded-full ring-1 ring-white/60 transition ${
-              i === selectedIndex ? "bg-white" : "bg-white/40 hover:bg-white/70"
+            className={`h-2.5 w-2.5 rounded-full ring-1 ring-primary-foreground/60 transition ${
+              i === selectedIndex ? "bg-primary-foreground" : "bg-primary-foreground/40 hover:bg-primary-foreground/70"
             }`}
           />
         ))}
