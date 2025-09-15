@@ -64,8 +64,8 @@ export default function AccommodationsManager() {
               <th className="text-left px-3 py-2">Name</th>
               <th className="text-left px-3 py-2">Slug</th>
               <th className="text-left px-3 py-2">Status</th>
-              <th className="text-left px-3 py-2">Summary</th>
-              <th className="text-right px-3 py-2 w-[320px]">Actions</th>
+              <th className="text-left px-3 py-2 hidden md:table-cell">Summary</th>
+              <th className="text-right px-3 py-2 sm:min-w-[280px]">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -90,45 +90,47 @@ export default function AccommodationsManager() {
                   <td className="px-3 py-2">{it.name}</td>
                   <td className="px-3 py-2">{it.slug}</td>
                   <td className="px-3 py-2">{it.status}</td>
-                  <td className="px-3 py-2 truncate max-w-[20rem]">{it.summary}</td>
-                  <td className="px-3 py-2 text-right w-[320px] whitespace-nowrap">
-                    <button className="rounded border px-2 py-1 mr-2" onClick={() => setEditing(it)}>Edit</button>
-                    {it.slug ? (
-                      <a
-                        className="rounded border px-2 py-1 mr-2 inline-block"
-                        href={`/accommodation/${encodeURIComponent(it.slug)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        View
-                      </a>
-                    ) : null}
-                    <button
-                      className="rounded bg-red-600 text-white px-2 py-1"
-                      onClick={async () => {
-                        if (!confirm("Delete this accommodation?")) return;
-                        try {
-                          const res = await fetch(`/api/admin/accommodation/${it.id}`, { method: "DELETE" });
-                          if (!res.ok) {
-                            const json = await res.json().catch(() => ({}));
-                            alert(json?.error || `Delete failed (${res.status})`);
-                            return;
-                          }
+                  <td className="px-3 py-2 hidden md:table-cell align-top">{it.summary}</td>
+                  <td className="px-3 py-2 text-center sm:text-right sm:min-w-[280px]">
+                    <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-nowrap sm:justify-end">
+                      <button className="rounded border px-2 py-1" onClick={() => setEditing(it)}>Edit</button>
+                      {it.slug ? (
+                        <a
+                          className="rounded border px-2 py-1 inline-block"
+                          href={`/accommodation/${encodeURIComponent(it.slug)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View
+                        </a>
+                      ) : null}
+                      <button
+                        className="rounded bg-red-600 text-white px-2 py-1"
+                        onClick={async () => {
+                          if (!confirm("Delete this accommodation?")) return;
                           try {
-                            await fetch(`/api/revalidate`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ tags: ["accommodation", `accommodation:${it.slug}`] }),
-                            });
-                          } catch {}
-                          load();
-                        } catch (e) {
-                          alert(e?.message || "Delete failed");
-                        }
-                      }}
-                    >
-                      Delete
-                    </button>
+                            const res = await fetch(`/api/admin/accommodation/${it.id}`, { method: "DELETE" });
+                            if (!res.ok) {
+                              const json = await res.json().catch(() => ({}));
+                              alert(json?.error || `Delete failed (${res.status})`);
+                              return;
+                            }
+                            try {
+                              await fetch(`/api/revalidate`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ tags: ["accommodation", `accommodation:${it.slug}`] }),
+                              });
+                            } catch {}
+                            load();
+                          } catch (e) {
+                            alert(e?.message || "Delete failed");
+                          }
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

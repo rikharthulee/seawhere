@@ -21,7 +21,7 @@ export default async function DestinationPage({ params }) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
-      <div className="border-t-2 border-black/10 pt-4">
+      <div className="border-t-2 border-black/10 pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">{dst.name}</h1>
           <Link href="/destinations" className="underline ml-4">

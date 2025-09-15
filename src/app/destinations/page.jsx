@@ -17,11 +17,11 @@ export default async function DestinationsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10">
+    <main className="mx-auto max-w-5xl px-4 py-10">
       <Destinations items={items} />
     </main>
   );
 }
 
 export const revalidate = 300;
-export const runtime = 'nodejs';
+export const runtime = "nodejs";

@@ -12,7 +12,7 @@ export default function Accommodation({ items }) {
 
   return (
     <section id="accommodation">
-      <div className="border-t-2 border-black/10 pt-4">
+      <div className="border-t-2 border-black/10 pt-2">
         <div className="flex items-end justify-between">
           <h2 className="text-3xl md:text-4xl font-medium">Accommodation</h2>
         </div>

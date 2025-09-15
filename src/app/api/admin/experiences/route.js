@@ -55,7 +55,15 @@ export async function POST(request) {
       status: body.status || "draft",
       lat: body.lat ?? null,
       lng: body.lng ?? null,
-      price: body.price || null,
+      // normalize price
+      price: body.price || (body.price_amount != null ? { amount: body.price_amount, currency: body.price_currency || 'JPY' } : null),
+      price_amount: body.price_amount ?? null,
+      price_currency: body.price_currency || null,
+      duration_minutes: body.duration_minutes ?? null,
+      provider: body.provider || null,
+      deeplink: body.deeplink || null,
+      gyg_id: body.gyg_id || null,
+      tags: Array.isArray(body.tags) ? body.tags : null,
     };
 
     const { data, error } = await client
@@ -102,4 +110,3 @@ export async function POST(request) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
   }
 }
-

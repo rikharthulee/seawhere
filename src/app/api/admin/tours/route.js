@@ -59,6 +59,7 @@ export async function POST(request) {
       provider: body.provider || null,
       deeplink: body.deeplink || null,
       gyg_id: body.gyg_id || null,
+      tags: Array.isArray(body.tags) ? body.tags : null,
       price_amount: body.price_amount ?? null,
       price_currency: body.price_currency || null,
     };

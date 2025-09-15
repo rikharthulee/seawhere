@@ -11,7 +11,7 @@ export default function Tours({ items = [] }) {
 
   return (
     <section id="tours">
-      <div className="border-t-2 border-black/10 pt-4">
+      <div className="border-t-2 border-black/10 pt-2">
         <div className="flex items-end justify-between">
           <h2 className="text-3xl md:text-4xl font-medium">Tours</h2>
         </div>
@@ -77,4 +77,3 @@ export default function Tours({ items = [] }) {
     </section>
   );
 }
-

@@ -46,7 +46,7 @@ export async function getSightBySlugs(destinationSlug, sightSlug) {
   if (!dst?.id) return null;
   const { data, error } = await db
     .from("sights")
-    .select("id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency")
+    .select("id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency, tags")
     .eq("destination_id", dst.id)
     .eq("slug", sightSlug)
     .eq("status", "published")

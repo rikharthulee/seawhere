@@ -23,8 +23,7 @@ export default async function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen p-6">
-      {/* header/nav */}
+    <div className="min-h-screen">
       {children}
     </div>
   );

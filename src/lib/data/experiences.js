@@ -50,9 +50,7 @@ export async function getExperienceBySlugs(destinationSlug, experienceSlug) {
   if (!dst?.id) return null;
   const { data, error } = await db
     .from("experiences")
-    .select(
-      "id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, price"
-    )
+    .select("id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, price, price_amount, price_currency, duration_minutes, provider, deeplink, gyg_id, tags")
     .eq("destination_id", dst.id)
     .eq("slug", experienceSlug)
     .eq("status", "published")
@@ -84,4 +82,3 @@ export async function getExperienceExceptions(id) {
   if (error) return [];
   return data || [];
 }
-

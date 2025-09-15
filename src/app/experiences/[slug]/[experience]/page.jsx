@@ -4,6 +4,8 @@ import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import { getExperienceBySlugs, getExperienceAvailabilityRules, getExperienceExceptions } from "@/lib/data/experiences";
+import { fmtJPY } from "@/lib/format";
+import GygWidget from "@/components/GygWidget";
 
 export const revalidate = 300;
 export const runtime = 'nodejs';
@@ -45,7 +47,7 @@ export default async function ExperienceDetailBySlugPage({ params }) {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
-      <div className="border-t-2 border-black/10 pt-4">
+      <div className="border-t-2 border-black/10 pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">{p.name}</h1>
           <Link href={`/experiences/${dest.slug}`} className="underline ml-4">Back</Link>
@@ -69,20 +71,51 @@ export default async function ExperienceDetailBySlugPage({ params }) {
         <div className="md:col-span-2">
           <div className="rounded-lg border p-3 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="text-sm text-black/70 space-x-3">
+              <div className="text-sm text-black/70 flex flex-wrap gap-3">
                 {dest ? (
                   <span>
                     <span className="font-medium text-black">Destination:</span>{" "}
                     <Link href={`/destinations/${dest.slug}`} className="underline">{dest.name}</Link>
                   </span>
                 ) : null}
+                {fmtJPY(p.price_amount) ? (
+                  <span><span className="font-medium text-black">Price:</span> {fmtJPY(p.price_amount)}</span>
+                ) : null}
+                {p.duration_minutes ? (
+                  <span><span className="font-medium text-black">Duration:</span> {p.duration_minutes} min</span>
+                ) : null}
+                {p.provider ? (
+                  <span><span className="font-medium text-black">Provider:</span> {p.provider}</span>
+                ) : null}
               </div>
+              {p.deeplink ? (
+                <a
+                  href={p.deeplink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-md bg-blue-600 text-white px-4 py-2 hover:bg-blue-700"
+                >
+                  Book Now
+                </a>
+              ) : null}
             </div>
           </div>
 
           {p.summary ? <p className="text-lg leading-relaxed mb-3">{p.summary}</p> : null}
           {p.body_richtext ? <RichTextReadOnly value={p.body_richtext} /> : null}
+          {Array.isArray(p.tags) && p.tags.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {p.tags.map((t, i) => (
+                <span key={i} className="inline-block rounded-full bg-black/10 px-2 py-0.5 text-xs">{t}</span>
+              ))}
+            </div>
+          ) : null}
         </div>
+  </section>
+
+      <section className="mt-8">
+        <h2 className="text-xl font-semibold mb-2">Book this experience</h2>
+        <GygWidget tourId={p.gyg_id} />
       </section>
 
       <section className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -134,4 +167,3 @@ export default async function ExperienceDetailBySlugPage({ params }) {
     </main>
   );
 }
-

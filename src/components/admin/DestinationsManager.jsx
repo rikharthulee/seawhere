@@ -70,8 +70,8 @@ export default function DestinationsManager() {
               <th className="text-left px-3 py-2">Name</th>
               <th className="text-left px-3 py-2">Slug</th>
               <th className="text-left px-3 py-2">Status</th>
-              <th className="text-left px-3 py-2">Summary</th>
-              <th className="text-right px-3 py-2 w-[320px]">Actions</th>
+              <th className="text-left px-3 py-2 hidden md:table-cell">Summary</th>
+              <th className="text-right px-3 py-2 sm:min-w-[280px]">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -111,48 +111,50 @@ export default function DestinationsManager() {
                       <span className="inline-block text-xs rounded-full bg-green-100 text-green-800 px-2 py-0.5">Published</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 truncate max-w-[20rem]">{it.summary}</td>
-                  <td className="px-3 py-2 text-right w-[320px] whitespace-nowrap">
-                    <button
-                      className="rounded border px-2 py-1 mr-2"
-                      onClick={() => setEditing(it)}
-                    >
-                      Edit
-                    </button>
-                    <a
-                      className="rounded border px-2 py-1 mr-2 inline-block"
-                      href={`/destinations/${encodeURIComponent(it.slug)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      View
-                    </a>
-                    <button
-                      className="rounded bg-red-600 text-white px-2 py-1"
-                      onClick={async () => {
-                        if (!confirm("Delete this destination?")) return;
-                        try {
-                        const res = await fetch(`/api/admin/destinations/${it.id}`, { method: "DELETE" });
-                          if (!res.ok) {
-                            const json = await res.json().catch(() => ({}));
-                            alert(json?.error || `Delete failed (${res.status})`);
-                            return;
-                          }
-                          try {
-                            await fetch(`/api/revalidate`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ tags: ["destinations", `destinations:${it.slug}`] }),
-                            });
-                          } catch {}
-                          load();
-                        } catch (e) {
-                          alert(e?.message || "Delete failed");
-                        }
-                      }}
-                    >
-                      Delete
-                    </button>
+                  <td className="px-3 py-2 hidden md:table-cell align-top">{it.summary}</td>
+                  <td className="px-3 py-2 text-center sm:text-right sm:min-w-[280px]">
+                    <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-nowrap sm:justify-end">
+                      <button
+                        className="rounded border px-2 py-1"
+                        onClick={() => setEditing(it)}
+                      >
+                        Edit
+                      </button>
+                      <a
+                        className="rounded border px-2 py-1 inline-block"
+                        href={`/destinations/${encodeURIComponent(it.slug)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View
+                      </a>
+                      <button
+                        className="rounded bg-red-600 text-white px-2 py-1"
+                        onClick={async () => {
+                         if (!confirm("Delete this destination?")) return;
+                         try {
+                         const res = await fetch(`/api/admin/destinations/${it.id}`, { method: "DELETE" });
+                           if (!res.ok) {
+                             const json = await res.json().catch(() => ({}));
+                             alert(json?.error || `Delete failed (${res.status})`);
+                             return;
+                           }
+                           try {
+                             await fetch(`/api/revalidate`, {
+                               method: "POST",
+                               headers: { "Content-Type": "application/json" },
+                               body: JSON.stringify({ tags: ["destinations", `destinations:${it.slug}`] }),
+                             });
+                           } catch {}
+                           load();
+                         } catch (e) {
+                           alert(e?.message || "Delete failed");
+                         }
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

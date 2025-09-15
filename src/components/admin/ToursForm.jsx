@@ -24,6 +24,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
   const [gygId, setGygId] = useState(initial?.gyg_id || "");
   const [priceAmount, setPriceAmount] = useState(initial?.price_amount ?? "");
   const [priceCurrency, setPriceCurrency] = useState(initial?.price_currency || "JPY");
+  const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
 
   const [regions, setRegions] = useState([]);
   const [prefectures, setPrefectures] = useState([]);
@@ -113,6 +114,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
     setGygId(initial?.gyg_id || "");
     setPriceAmount(initial?.price_amount ?? "");
     setPriceCurrency(initial?.price_currency || "JPY");
+    setTags(Array.isArray(initial?.tags) ? initial.tags : []);
     setRules(Array.isArray(initial?.rules) ? initial.rules : []);
     setExceptions(Array.isArray(initial?.exceptions) ? initial.exceptions : []);
   }, [initial]);
@@ -186,6 +188,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
         gyg_id: gygId === "" ? null : String(gygId),
         price_amount: priceAmount === "" ? null : Number(priceAmount),
         price_currency: priceCurrency || null,
+        tags: Array.isArray(tags) ? tags : null,
         availability_rules: (rules || []).map((r, idx) => ({
           idx,
           days_of_week: Array.isArray(r.days_of_week) ? r.days_of_week : String(r.days_of_week || "").split(",").map(s => Number(s.trim())).filter(n => !isNaN(n)),
@@ -331,6 +334,16 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
         <div className="md:col-span-2">
           <MultiImageUpload value={images} onChange={setImages} folderHint={`tours/${destSlugForUpload}`} />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium">Tags (comma separated)</label>
+          <input
+            className="w-full rounded border p-2"
+            value={(tags || []).join(", ")}
+            onChange={(e) => setTags(e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+            placeholder="e.g. walking,food,evening"
+          />
         </div>
       </div>
 

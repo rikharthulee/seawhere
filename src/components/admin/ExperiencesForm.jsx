@@ -20,6 +20,11 @@ export default function ExperiencesForm({ id, initial, onSaved, onCancel }) {
   const [lng, setLng] = useState(initial?.lng ?? "");
   const [priceAmount, setPriceAmount] = useState(initial?.price?.amount ?? "");
   const [priceCurrency, setPriceCurrency] = useState(initial?.price?.currency || "JPY");
+  const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? "");
+  const [provider, setProvider] = useState(initial?.provider || "internal");
+  const [deeplink, setDeeplink] = useState(initial?.deeplink || "");
+  const [gygId, setGygId] = useState(initial?.gyg_id || "");
+  const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
 
   const [regions, setRegions] = useState([]);
   const [prefectures, setPrefectures] = useState([]);
@@ -107,6 +112,11 @@ export default function ExperiencesForm({ id, initial, onSaved, onCancel }) {
     setPriceCurrency(initial?.price?.currency || "JPY");
     setRules(Array.isArray(initial?.rules) ? initial.rules : []);
     setExceptions(Array.isArray(initial?.exceptions) ? initial.exceptions : []);
+    setDurationMinutes(initial?.duration_minutes ?? "");
+    setProvider(initial?.provider || "internal");
+    setDeeplink(initial?.deeplink || "");
+    setGygId(initial?.gyg_id || "");
+    setTags(Array.isArray(initial?.tags) ? initial.tags : []);
   }, [initial]);
 
   // Derive geo scope
@@ -172,7 +182,15 @@ export default function ExperiencesForm({ id, initial, onSaved, onCancel }) {
         status,
         lat: lat === "" ? null : Number(lat),
         lng: lng === "" ? null : Number(lng),
+        duration_minutes: durationMinutes === "" ? null : Number(durationMinutes),
+        provider: provider || null,
+        deeplink: deeplink || null,
+        gyg_id: gygId === "" ? null : String(gygId),
+        tags: Array.isArray(tags) ? tags : null,
+        // price JSON for experiences schema; server also accepts price_amount/currency
         price: (priceAmount === "" && !priceCurrency) ? null : { amount: Number(priceAmount), currency: priceCurrency || "JPY" },
+        price_amount: priceAmount === "" ? null : Number(priceAmount),
+        price_currency: priceCurrency || null,
         availability_rules: (rules || []).map((r, idx) => ({
           idx,
           days_of_week: Array.isArray(r.days_of_week) ? r.days_of_week : String(r.days_of_week || "").split(",").map(s => Number(s.trim())).filter(n => !isNaN(n)),
@@ -188,6 +206,8 @@ export default function ExperiencesForm({ id, initial, onSaved, onCancel }) {
           note: e.note || null,
         })),
       };
+      // Note: provider/deeplink/gyg_id/duration_minutes/tags are collected in the form
+      // but only saved when matching columns exist. We avoid sending unknown columns.
       const res = await fetch(isEditing ? `/api/admin/experiences/${id}` : "/api/admin/experiences", {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -289,6 +309,22 @@ export default function ExperiencesForm({ id, initial, onSaved, onCancel }) {
           <label className="block text-sm font-medium">Longitude</label>
           <input className="w-full rounded border p-2" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="e.g. 139.6503" />
         </div>
+        <div>
+          <label className="block text-sm font-medium">Duration (minutes)</label>
+          <input className="w-full rounded border p-2" value={durationMinutes} onChange={(e) => setDurationMinutes(e.target.value)} placeholder="e.g. 120" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Provider</label>
+          <input className="w-full rounded border p-2" value={provider} onChange={(e) => setProvider(e.target.value)} placeholder="e.g. gyg, viator" />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium">Deeplink</label>
+          <input className="w-full rounded border p-2" value={deeplink} onChange={(e) => setDeeplink(e.target.value)} placeholder="https://…" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">GetYourGuide ID (optional)</label>
+          <input className="w-full rounded border p-2" value={gygId} onChange={(e) => setGygId(e.target.value)} placeholder="e.g. 123456" />
+        </div>
 
         <div>
           <label className="block text-sm font-medium">Price amount</label>
@@ -301,6 +337,16 @@ export default function ExperiencesForm({ id, initial, onSaved, onCancel }) {
 
         <div className="md:col-span-2">
           <MultiImageUpload value={images} onChange={setImages} folderHint={`experiences/${destSlugForUpload}`} />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium">Tags (comma separated)</label>
+          <input
+            className="w-full rounded border p-2"
+            value={(tags || []).join(", ")}
+            onChange={(e) => setTags(e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+            placeholder="e.g. tea,ceremony,cultural"
+          />
         </div>
       </div>
 
@@ -357,4 +403,3 @@ export default function ExperiencesForm({ id, initial, onSaved, onCancel }) {
     </div>
   );
 }
-

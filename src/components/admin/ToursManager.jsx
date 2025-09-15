@@ -65,7 +65,7 @@ export default function ToursManager() {
               <th className="text-left px-3 py-2">Name</th>
               <th className="text-left px-3 py-2">Status</th>
               <th className="text-left px-3 py-2">Destination</th>
-              <th className="text-right px-3 py-2">Actions</th>
+              <th className="text-right px-3 py-2 sm:min-w-[280px] md:w-[320px]">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -90,8 +90,9 @@ export default function ToursManager() {
                   <td className="px-3 py-2">{it.name}</td>
                   <td className="px-3 py-2">{it.status}</td>
                   <td className="px-3 py-2">{destMap[it.destination_id]?.name || it.destination_id || "—"}</td>
-                  <td className="px-3 py-2 text-right">
-                    <button className="rounded border px-2 py-1 mr-2" onClick={async () => {
+                  <td className="px-3 py-2 text-center sm:text-right sm:min-w-[280px] md:w-[320px]">
+                    <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-nowrap sm:justify-end">
+                      <button className="rounded border px-2 py-1" onClick={async () => {
                       try {
                         const res = await fetch(`/api/admin/tours/${it.id}`, { cache: "no-store" });
                         const json = await res.json();
@@ -101,19 +102,19 @@ export default function ToursManager() {
                       } catch (e) {
                         alert(e?.message || "Failed to load tour");
                       }
-                    }}>Edit</button>
-                    {destMap[it.destination_id]?.slug && it.slug ? (
-                      <Link
-                        className="rounded border px-2 py-1 inline-block"
-                        href={`/tours/${encodeURIComponent(destMap[it.destination_id].slug)}/${encodeURIComponent(it.slug)}`}
-                        target="_blank"
-                      >
-                        View
-                      </Link>
-                    ) : null}
-                    <button
-                      className="rounded bg-red-600 text-white px-2 py-1 ml-2"
-                      onClick={async () => {
+                      }}>Edit</button>
+                      {destMap[it.destination_id]?.slug && it.slug ? (
+                        <Link
+                          className="rounded border px-2 py-1 inline-block"
+                          href={`/tours/${encodeURIComponent(destMap[it.destination_id].slug)}/${encodeURIComponent(it.slug)}`}
+                          target="_blank"
+                        >
+                          View
+                        </Link>
+                      ) : null}
+                      <button
+                        className="rounded bg-red-600 text-white px-2 py-1"
+                        onClick={async () => {
                         if (!confirm("Delete this tour? This cannot be undone.")) return;
                         try {
                           const res = await fetch(`/api/admin/tours/${it.id}`, { method: "DELETE" });
@@ -127,9 +128,10 @@ export default function ToursManager() {
                           alert(e?.message || "Delete failed");
                         }
                       }}
-                    >
-                      Delete
-                    </button>
+                        >
+                          Delete
+                        </button>
+                    </div>
                   </td>
                 </tr>
               ))
