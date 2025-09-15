@@ -5,6 +5,7 @@ import SafeImage from "@/components/SafeImage";
 import CallNowButton from "./CallNowButton";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import DesktopBannerNav from "@/components/DesktopBannerNav";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -35,7 +36,9 @@ export default function Navbar() {
       setIsAuthed(!!session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setUserName(session.user.user_metadata?.name || session.user.email || "");
+        setUserName(
+          session.user.user_metadata?.name || session.user.email || ""
+        );
         setAvatarUrl("");
       } else {
         setUserName("");
@@ -49,7 +52,9 @@ export default function Navbar() {
         setIsAuthed(!!session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setUserName(session.user.user_metadata?.name || session.user.email || "");
+          setUserName(
+            session.user.user_metadata?.name || session.user.email || ""
+          );
           setAvatarUrl("");
         } else {
           setUserName("");
@@ -187,51 +192,11 @@ export default function Navbar() {
         </div>
       ) : null}
 
-      {/* Desktop banner perched on black link bar */}
-      {/* Wrapper reserves space above the bar so the banner isn't clipped */}
-      <div
-        className="hidden lg:block relative"
-        style={{ paddingTop: `${bannerH}px` }}
-      >
-        {/* Skyline glued to top of the bar */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none select-none z-10" style={{ height: `${bannerH}px`, width: '100%' }}>
-          <div className="relative" style={{ height: '100%', width: '100%' }}>
-            <SafeImage
-              src="/banner.svg"
-              alt="Banner"
-              fill
-              sizes="100vw"
-              className="object-contain"
-              priority
-            />
-          </div>
-        </div>
-        {/* Black link bar (normal height) */}
-        <div className="bg-black">
-          <div className="mx-auto max-w-6xl py-2">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
-              <div />
-              <ul className="flex justify-center items-center gap-6 text-white">
-                {computedLinks.map((l) => (
-                  <li key={l.href}>
-                    <Link className="hover:opacity-80" href={l.href}>
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-                {!isAuthed ? (
-                  <li>
-                    <Link className="hover:opacity-80" href="/login">
-                      Login
-                    </Link>
-                  </li>
-                ) : null}
-              </ul>
-              <div className="flex justify-end items-center gap-3 pr-4 pl-4 flex-nowrap min-w-0" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <DesktopBannerNav
+        links={computedLinks}
+        isAuthed={isAuthed}
+        bannerH={bannerH}
+      />
 
       {/* Mobile dropdown panel */}
       <div
