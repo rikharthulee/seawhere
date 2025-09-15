@@ -19,6 +19,15 @@ export default function MobileNavbar({
 }) {
   const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
 
+  const exploreDescriptions = {
+    "/destinations": "Cities, regions & itineraries",
+    "/sights": "Temples, museums, viewpoints",
+    "/tours": "Guided tours & tickets",
+    "/accommodation": "Hotels, ryokan & hostels",
+    "/experiences": "Classes, shows & activities",
+    "/fooddrink": "Eat & drink: ramen to kaiseki",
+  };
+
   const { exploreItems, topLevel } = useMemo(() => {
     const exploreHrefs = new Set([
       "/destinations",
@@ -82,7 +91,12 @@ export default function MobileNavbar({
                       href={l.href}
                       onClick={() => setOpen(false)}
                     >
-                      {l.label}
+                      <div className="text-sm leading-tight flex items-center gap-1">
+                        <span>{l.label}</span>
+                        <span className="text-xs text-black/60">
+                          - {exploreDescriptions[l.href] || "Explore more"}
+                        </span>
+                      </div>
                     </Link>
                   </li>
                 ))}

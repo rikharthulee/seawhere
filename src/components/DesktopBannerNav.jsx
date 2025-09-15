@@ -22,6 +22,15 @@ export default function DesktopBannerNav({ links, isAuthed, bannerH = 120 }) {
     "/fooddrink",
   ]);
 
+  const exploreDescriptions = {
+    "/destinations": "Cities, regions & itineraries",
+    "/sights": "Temples, museums, viewpoints",
+    "/tours": "Guided tours & tickets",
+    "/accommodation": "Hotels, ryokan & hostels",
+    "/experiences": "Classes, shows & activities",
+    "/fooddrink": "Eat & drink: ramen to kaiseki",
+  };
+
   const exploreItems = links.filter((l) => exploreHrefs.has(l.href));
   const topLevel = links.filter((l) => !exploreHrefs.has(l.href));
 
@@ -72,8 +81,15 @@ export default function DesktopBannerNav({ links, isAuthed, bannerH = 120 }) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="min-w-[220px]">
                   {exploreItems.map((l) => (
-                    <DropdownMenuItem key={l.href} asChild>
-                      <Link href={l.href}>{l.label}</Link>
+                    <DropdownMenuItem key={l.href} asChild className="py-2">
+                      <Link href={l.href} className="block">
+                        <div className="text-sm leading-tight flex items-center gap-1">
+                          <span>{l.label}</span>
+                          <span className="text-xs text-muted-foreground">
+                            - {exploreDescriptions[l.href] || "Explore more"}
+                          </span>
+                        </div>
+                      </Link>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
