@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import AccommodationForm from "./AccommodationForm";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 
 export default function AccommodationsManager() {
   const supabase = createClientComponentClient();
@@ -14,7 +15,9 @@ export default function AccommodationsManager() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/accommodation", { cache: "no-store" });
+      const res = await fetch("/api/admin/accommodation", {
+        cache: "no-store",
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       setItems(json.items || []);
@@ -29,7 +32,9 @@ export default function AccommodationsManager() {
   useEffect(() => {
     const t = setTimeout(() => {
       if (loading) {
-        setError("Request timed out. Check RLS policies on public.accommodation and your Supabase URL/key.");
+        setError(
+          "Request timed out. Check RLS policies on public.accommodation and your Supabase URL/key."
+        );
         setLoading(false);
       }
     }, 10000);
@@ -41,7 +46,10 @@ export default function AccommodationsManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Accommodation</h2>
-        <button className="rounded bg-black text-white px-3 py-2" onClick={() => setEditing({})}>
+        <button
+          className="rounded bg-black text-white px-3 py-2"
+          onClick={() => setEditing({})}
+        >
           + New Accommodation
         </button>
       </div>
@@ -64,25 +72,37 @@ export default function AccommodationsManager() {
               <th className="text-left px-3 py-2">Name</th>
               <th className="text-left px-3 py-2">Slug</th>
               <th className="text-left px-3 py-2">Status</th>
-              <th className="text-left px-3 py-2 hidden md:table-cell">Summary</th>
+              <th className="text-left px-3 py-2 hidden md:table-cell">
+                Summary
+              </th>
               <th className="text-right px-3 py-2 sm:min-w-[280px]">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-3 py-3" colSpan={5}>Loading…</td>
+                <td className="px-3 py-3" colSpan={5}>
+                  Loading…
+                </td>
               </tr>
             ) : error ? (
               <tr>
                 <td className="px-3 py-3 text-red-700" colSpan={5}>
                   {error}
-                  <button className="ml-3 rounded border px-2 py-1" onClick={load}>Retry</button>
+                  <button
+                    className="ml-3 rounded border px-2 py-1"
+                    onClick={load}
+                  >
+                    Retry
+                  </button>
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td className="px-3 py-3" colSpan={5}>No accommodation items. Click “New Accommodation” to create your first one.</td>
+                <td className="px-3 py-3" colSpan={5}>
+                  No accommodation items. Click “New Accommodation” to create
+                  your first one.
+                </td>
               </tr>
             ) : (
               items.map((it) => (
@@ -90,10 +110,17 @@ export default function AccommodationsManager() {
                   <td className="px-3 py-2">{it.name}</td>
                   <td className="px-3 py-2">{it.slug}</td>
                   <td className="px-3 py-2">{it.status}</td>
-                  <td className="px-3 py-2 hidden md:table-cell align-top">{it.summary}</td>
+                  <td className="px-3 py-2 hidden md:table-cell align-top">
+                    {it.summary}
+                  </td>
                   <td className="px-3 py-2 text-center sm:text-right sm:min-w-[280px]">
                     <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-nowrap sm:justify-end">
-                      <button className="rounded border px-2 py-1" onClick={() => setEditing(it)}>Edit</button>
+                      <button
+                        className="rounded border px-2 py-1"
+                        onClick={() => setEditing(it)}
+                      >
+                        Edit
+                      </button>
                       {it.slug ? (
                         <a
                           className="rounded border px-2 py-1 inline-block"
@@ -104,22 +131,32 @@ export default function AccommodationsManager() {
                           View
                         </a>
                       ) : null}
-                      <button
-                        className="rounded bg-red-600 text-white px-2 py-1"
-                        onClick={async () => {
-                          if (!confirm("Delete this accommodation?")) return;
+                      <ConfirmDeleteButton
+                        title="Delete this accommodation?"
+                        description="This action cannot be undone. This will permanently delete the accommodation and attempt to revalidate related pages."
+                        onConfirm={async () => {
                           try {
-                            const res = await fetch(`/api/admin/accommodation/${it.id}`, { method: "DELETE" });
+                            const res = await fetch(
+                              `/api/admin/accommodation/${it.id}`,
+                              { method: "DELETE" }
+                            );
                             if (!res.ok) {
                               const json = await res.json().catch(() => ({}));
-                              alert(json?.error || `Delete failed (${res.status})`);
+                              alert(
+                                json?.error || `Delete failed (${res.status})`
+                              );
                               return;
                             }
                             try {
                               await fetch(`/api/revalidate`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ tags: ["accommodation", `accommodation:${it.slug}`] }),
+                                body: JSON.stringify({
+                                  tags: [
+                                    "accommodation",
+                                    `accommodation:${it.slug}`,
+                                  ],
+                                }),
                               });
                             } catch {}
                             load();
@@ -127,9 +164,7 @@ export default function AccommodationsManager() {
                             alert(e?.message || "Delete failed");
                           }
                         }}
-                      >
-                        Delete
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>

@@ -86,12 +86,12 @@ export default function AdminHome() {
           </Link>
         </article>
 
-        {/* Products */}
+        {/* Excursions */}
         <article className="p-5 rounded-xl ring-1 ring-black/10">
-          <h2 className="text-xl font-semibold">📦 Products</h2>
+          <h2 className="text-xl font-semibold">🗺️ Excursions</h2>
           <p className="mt-2 text-gray-700">
             Curated bundles of sights, experiences, and tours that make up a day
-            plan.
+            or half-day plan.
           </p>
           <Link
             href="/admin/products"

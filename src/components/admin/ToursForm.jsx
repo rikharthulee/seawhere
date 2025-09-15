@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import MultiImageUpload from "./MultiImageUpload";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import RichTextEditor from "./RichTextEditor";
 
 export default function ToursForm({ id, initial, onSaved, onCancel }) {
@@ -219,7 +220,6 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
   async function handleDelete() {
     if (!isEditing) return;
-    if (!confirm("Delete this tour? This cannot be undone.")) return;
     const res = await fetch(`/api/admin/tours/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
@@ -394,7 +394,12 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
         <button onClick={save} className="rounded bg-black text-white px-4 py-2">Save</button>
         <button onClick={onCancel} className="rounded border px-4 py-2">Cancel</button>
         {isEditing ? (
-          <button onClick={handleDelete} className="ml-auto rounded bg-red-600 text-white px-4 py-2">Delete</button>
+          <ConfirmDeleteButton
+            title="Delete this tour?"
+            description="This action cannot be undone. This will permanently delete the item and remove any associated data."
+            triggerClassName="ml-auto rounded bg-red-600 text-white px-4 py-2"
+            onConfirm={handleDelete}
+          />
         ) : null}
       </div>
     </div>

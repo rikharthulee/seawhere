@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import ImageUpload from "./ImageUpload";
 import MultiImageUpload from "./MultiImageUpload";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import ParagraphEditor from "./ParagraphEditor";
 
 function slugify(s) {
@@ -235,7 +236,6 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
 
   async function handleDelete() {
     if (!isEditing) return;
-    if (!confirm("Delete this accommodation? This cannot be undone.")) return;
     const res = await fetch(`/api/admin/accommodation/${initial.id}`, { method: "DELETE" });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
@@ -375,7 +375,12 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
         </button>
         <button onClick={onCancel} className="rounded border px-4 py-2">Cancel</button>
         {isEditing ? (
-          <button onClick={handleDelete} className="ml-auto rounded bg-red-600 text-white px-4 py-2">Delete</button>
+          <ConfirmDeleteButton
+            title="Delete this accommodation?"
+            description="This action cannot be undone. This will permanently delete the accommodation and attempt to revalidate related pages."
+            triggerClassName="ml-auto rounded bg-red-600 text-white px-4 py-2"
+            onConfirm={handleDelete}
+          />
         ) : null}
       </div>
     </div>

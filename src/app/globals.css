@@ -37,11 +37,7 @@
   --sidebar-ring: oklch(0.704 0.04 256.788);
 }
 
-/* Prevent layout shift when some pages have a scrollbar and others don't */
-/* Reserve vertical scrollbar space on all pages to prevent horizontal shift */
-html { overflow-y: scroll; }
-/* For modern browsers that support gutter reservation, this helps too */
-html { scrollbar-gutter: stable; }
+/* Keep default scrollbar behavior; no forced overflow or compensation. */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);

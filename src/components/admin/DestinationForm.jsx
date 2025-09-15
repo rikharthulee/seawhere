@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import ImageUpload from "./ImageUpload";
 import MultiImageUpload from "@/components/admin/MultiImageUpload";
 import ParagraphEditor from "./ParagraphEditor";
@@ -200,7 +201,6 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
 
   async function handleDelete() {
     if (!isEditing) return;
-    if (!confirm("Delete this destination? This cannot be undone.")) return;
     const res = await fetch(`/api/admin/destinations/${initial.id}`, { method: "DELETE" });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
@@ -395,12 +395,12 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
           Cancel
         </button>
         {isEditing ? (
-          <button
-            onClick={handleDelete}
-            className="ml-auto rounded bg-red-600 text-white px-4 py-2"
-          >
-            Delete
-          </button>
+          <ConfirmDeleteButton
+            title="Delete this destination?"
+            description="This action cannot be undone. This will permanently delete the destination and attempt to revalidate related pages."
+            triggerClassName="ml-auto rounded bg-red-600 text-white px-4 py-2"
+            onConfirm={handleDelete}
+          />
         ) : null}
       </div>
     </div>

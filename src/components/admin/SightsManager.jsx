@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SightsForm from "./SightsForm";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 
 export default function SightsManager() {
   const [items, setItems] = useState([]);
@@ -130,25 +131,24 @@ export default function SightsManager() {
                           View
                         </Link>
                       ) : null}
-                      <button
-                        className="rounded bg-red-600 text-white px-2 py-1"
-                        onClick={async () => {
-                        if (!confirm("Delete this sight? This cannot be undone.")) return;
-                        try {
-                          const res = await fetch(`/api/admin/sights/${it.id}`, { method: "DELETE" });
-                          if (!res.ok) {
-                            const json = await res.json().catch(() => ({}));
-                            alert(json?.error || `Delete failed (${res.status})`);
-                            return;
+                      <ConfirmDeleteButton
+                        title="Delete this sight?"
+                        description="This action cannot be undone. This will permanently delete the item and remove any associated data."
+                        triggerClassName="rounded bg-red-600 text-white px-2 py-1"
+                        onConfirm={async () => {
+                          try {
+                            const res = await fetch(`/api/admin/sights/${it.id}`, { method: "DELETE" });
+                            if (!res.ok) {
+                              const json = await res.json().catch(() => ({}));
+                              alert(json?.error || `Delete failed (${res.status})`);
+                              return;
+                            }
+                            load();
+                          } catch (e) {
+                            alert(e?.message || "Delete failed");
                           }
-                          load();
-                        } catch (e) {
-                          alert(e?.message || "Delete failed");
-                        }
-                      }}
-                        >
-                          Delete
-                        </button>
+                        }}
+                      />
                     </div>
                   </td>
                 </tr>

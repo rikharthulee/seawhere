@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import DestinationForm from "./DestinationForm";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 
 export default function DestinationsManager() {
   const supabase = createClientComponentClient();
@@ -128,32 +129,31 @@ export default function DestinationsManager() {
                       >
                         View
                       </a>
-                      <button
-                        className="rounded bg-red-600 text-white px-2 py-1"
-                        onClick={async () => {
-                         if (!confirm("Delete this destination?")) return;
-                         try {
-                         const res = await fetch(`/api/admin/destinations/${it.id}`, { method: "DELETE" });
-                           if (!res.ok) {
-                             const json = await res.json().catch(() => ({}));
-                             alert(json?.error || `Delete failed (${res.status})`);
-                             return;
-                           }
-                           try {
-                             await fetch(`/api/revalidate`, {
-                               method: "POST",
-                               headers: { "Content-Type": "application/json" },
-                               body: JSON.stringify({ tags: ["destinations", `destinations:${it.slug}`] }),
-                             });
-                           } catch {}
-                           load();
-                         } catch (e) {
-                           alert(e?.message || "Delete failed");
-                         }
+                      <ConfirmDeleteButton
+                        title="Delete this destination?"
+                        description="This action cannot be undone. This will permanently delete the destination and attempt to revalidate related pages."
+                        triggerClassName="rounded bg-red-600 text-white px-2 py-1"
+                        onConfirm={async () => {
+                          try {
+                            const res = await fetch(`/api/admin/destinations/${it.id}`, { method: "DELETE" });
+                            if (!res.ok) {
+                              const json = await res.json().catch(() => ({}));
+                              alert(json?.error || `Delete failed (${res.status})`);
+                              return;
+                            }
+                            try {
+                              await fetch(`/api/revalidate`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ tags: ["destinations", `destinations:${it.slug}`] }),
+                              });
+                            } catch {}
+                            load();
+                          } catch (e) {
+                            alert(e?.message || "Delete failed");
+                          }
                         }}
-                      >
-                        Delete
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>
