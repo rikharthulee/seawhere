@@ -30,7 +30,7 @@ function DropdownMenuContent({ className, sideOffset = 4, align = "start", ...pr
         sideOffset={sideOffset}
         align={align}
         className={cn(
-          "z-50 min-w-[12rem] overflow-hidden rounded-md border bg-white p-1 shadow-md",
+          "z-50 min-w-[12rem] overflow-hidden rounded-md border bg-popover text-popover-foreground p-1 shadow-md",
           className
         )}
         {...props}
@@ -59,4 +59,3 @@ export {
   DropdownMenuContent,
   DropdownMenuItem,
 }
-

@@ -51,7 +51,7 @@ export default function MobileNavbar({
           : "max-h-0 opacity-0 overflow-hidden"
       }`}
     >
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4 bg-background text-foreground">
         <ul className="flex flex-col gap-2">
           {/* Explore Japan collapsible */}
           <li>

@@ -106,7 +106,7 @@ export default function Navbar() {
     : links;
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-sm shadow-sm">
+    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-sm border-b">
       <nav className="mx-auto max-w-6xl px-4 py-2">
         <div className="flex items-center justify-between lg:hidden">
           {/* Burger (mobile only) */}
