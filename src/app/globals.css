@@ -30,6 +30,12 @@
   --destructive: hsl(0 84% 45%);
   --destructive-foreground: hsl(0 0% 100%);
 
+  /* semantic utility tokens */
+  --success: hsl(142 76% 90%);
+  --success-foreground: hsl(142 43% 25%);
+  --warning: hsl(48 97% 88%);
+  --warning-foreground: hsl(32 74% 25%);
+
   --border: hsl(24 6% 83%);
   --input: hsl(24 6% 83%);
   --ring: hsl(24 5% 35%);
@@ -99,6 +105,12 @@
 
   --destructive: hsl(0 62% 45%);
   --destructive-foreground: hsl(0 0% 100%);
+
+  /* semantic utility tokens */
+  --success: hsl(142 30% 18%);
+  --success-foreground: hsl(142 60% 80%);
+  --warning: hsl(48 30% 16%);
+  --warning-foreground: hsl(48 80% 80%);
 
   --border: hsl(24 6% 20%);
   --input: hsl(24 6% 20%);

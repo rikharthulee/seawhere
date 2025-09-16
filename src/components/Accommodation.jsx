@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
+import { Card, CardContent } from "@/components/ui/card";
 import accommodationData from "@/data/accommodation";
 import { resolveImageUrl } from "@/lib/imageUrl";
 
@@ -20,12 +21,9 @@ export default function Accommodation({ items }) {
       </div>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {sorted.map((item) => (
-          <div key={item.slug} className="group">
-            <Link
-              href={`/accommodation/${item.slug}`}
-              className="relative overflow-hidden rounded-xl block"
-            >
-              <div className="relative h-64 w-full">
+          <Card key={item.slug} asChild className="group overflow-hidden transition-shadow hover:shadow-md">
+            <Link href={`/accommodation/${item.slug}`} className="relative block focus:outline-none focus:ring-2 focus:ring-ring">
+              <div className="relative h-64 w-full bg-muted">
                 <SafeImage
                   src={
                     resolveImageUrl(
@@ -41,17 +39,16 @@ export default function Accommodation({ items }) {
                   className="object-cover transition duration-300 group-hover:scale-105"
                 />
               </div>
-              <div className="absolute inset-0 " />
-              <div className="absolute bottom-3 left-3 text-white text-lg font-medium">
+              <div className="absolute bottom-3 left-3 text-white text-lg font-medium drop-shadow">
                 {item.title || item.name}
               </div>
             </Link>
             {item.credit ? (
-              <div className="mt-1 text-xs text-gray-500 text-right">
-                {item.credit}
-              </div>
+              <CardContent className="pt-2">
+                <div className="text-xs text-muted-foreground text-right">{item.credit}</div>
+              </CardContent>
             ) : null}
-          </div>
+          </Card>
         ))}
       </div>
     </section>

@@ -4,6 +4,7 @@ import { getSightsForDestination } from "@/lib/data/sights";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 import GygWidget from "@/components/GygWidget";
 
 export const revalidate = 300;
@@ -46,11 +47,8 @@ export default async function SightsByDestinationPage({ params }) {
             const CardTag = canLink ? Link : 'div';
             const cardProps = canLink ? { href: `/sights/${encodeURIComponent(dst.slug)}/${encodeURIComponent(p.slug)}` } : {};
             return (
-              <CardTag
-                key={p.id}
-                {...cardProps}
-              className="block rounded-[var(--radius)] border bg-card text-card-foreground overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring"
-              >
+              <Card asChild className="overflow-hidden transition-shadow hover:shadow-md">
+                <CardTag key={p.id} {...cardProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">
                 <div className="aspect-[4/3] relative bg-muted">
                   {img ? (
                     <SafeImage
@@ -62,13 +60,14 @@ export default async function SightsByDestinationPage({ params }) {
                     />
                   ) : null}
                 </div>
-                <div className="p-3">
+                <CardContent className="p-4">
                   <div className="font-medium">{p.title || p.name}</div>
                   {p.summary ? (
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}
-                </div>
-              </CardTag>
+                </CardContent>
+                </CardTag>
+              </Card>
             );
           })
         ) : (

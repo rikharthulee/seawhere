@@ -2,6 +2,7 @@
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
 
 /**
  * Mobile-only slide-down panel for site navigation.
@@ -150,16 +151,16 @@ export default function MobileNavbar({
               )}
               <span className="text-sm">{userName}</span>
             </div>
-            <button
+            <Button
               onClick={() => {
                 setOpen(false);
                 onSignOut();
               }}
               disabled={signingOut}
-              className="w-full rounded bg-primary text-primary-foreground px-3 py-2 text-sm disabled:opacity-60"
+              className="w-full"
             >
               {signingOut ? "Signing out…" : "Sign out"}
-            </button>
+            </Button>
           </div>
         ) : null}
       </div>

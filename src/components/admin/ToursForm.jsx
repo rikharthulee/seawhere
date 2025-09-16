@@ -4,6 +4,9 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import MultiImageUpload from "./MultiImageUpload";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import RichTextEditor from "./RichTextEditor";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function ToursForm({ id, initial, onSaved, onCancel }) {
   const supabase = createClientComponentClient();
@@ -230,14 +233,20 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
   }
 
   return (
-    <div className="space-y-4 border rounded-lg p-4">
+    <Card className="space-y-4">
+      <CardContent>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">Status</label>
-          <select className="w-full rounded border p-2" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="draft">draft</option>
-            <option value="published">published</option>
-          </select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">draft</SelectItem>
+              <SelectItem value="published">published</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="md:col-span-2">
@@ -262,39 +271,59 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
         <div>
           <label className="block text-sm font-medium">Region</label>
-          <select className="w-full rounded border p-2" value={regionId} onChange={(e) => { setRegionId(e.target.value); setPrefectureId(""); setDivisionId(""); }}>
-            <option value="">All regions…</option>
-            {regions.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
+          <Select value={regionId || "__EMPTY__"} onValueChange={(v) => { const val = v === "__EMPTY__" ? "" : v; setRegionId(val); setPrefectureId(""); setDivisionId(""); }}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All regions…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">All regions…</SelectItem>
+              {regions.map((r) => (
+                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="block text-sm font-medium">Prefecture</label>
-          <select className="w-full rounded border p-2" value={prefectureId} onChange={(e) => { setPrefectureId(e.target.value); setDivisionId(""); }}>
-            <option value="">All prefectures…</option>
-            {prefecturesForRegion.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <Select value={prefectureId || "__EMPTY__"} onValueChange={(v) => { const val = v === "__EMPTY__" ? "" : v; setPrefectureId(val); setDivisionId(""); }}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All prefectures…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">All prefectures…</SelectItem>
+              {prefecturesForRegion.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="block text-sm font-medium">Division (optional)</label>
-          <select className="w-full rounded border p-2" value={divisionId} onChange={(e) => setDivisionId(e.target.value)} disabled={prefectureId === ""}>
-            <option value="">All divisions…</option>
-            {divisionsForPref.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+          <Select value={divisionId || "__EMPTY__"} onValueChange={(v) => setDivisionId(v === "__EMPTY__" ? "" : v)}>
+            <SelectTrigger className="w-full" disabled={prefectureId === ""}>
+              <SelectValue placeholder="All divisions…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">All divisions…</SelectItem>
+              {divisionsForPref.map((d) => (
+                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="md:col-span-2">
           <label className="block text-sm font-medium">Destination</label>
-          <select className="w-full rounded border p-2" value={destinationId} onChange={(e) => setDestinationId(e.target.value)}>
-            <option value="">Select a destination…</option>
-            {destinationsForScope.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+          <Select value={destinationId || "__EMPTY__"} onValueChange={(v) => setDestinationId(v === "__EMPTY__" ? "" : v)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a destination…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">Select a destination…</SelectItem>
+              {destinationsForScope.map((d) => (
+                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
@@ -351,7 +380,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
       <div className="space-y-2">
         <div className="text-sm font-medium">Availability rules</div>
-        <button type="button" className="rounded border px-3 py-1 text-sm" onClick={addRule}>Add rule</button>
+        <Button type="button" variant="outline" size="sm" onClick={addRule}>Add rule</Button>
         {Array.isArray(rules) && rules.length > 0 ? (
           <ul className="space-y-2 mt-2">
             {rules.map((r, idx) => (
@@ -361,7 +390,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
                 <input type="date" className="rounded border p-2" placeholder="Valid from" value={r.valid_from || ""} onChange={(e) => updRule(idx, { valid_from: e.target.value })} />
                 <input type="date" className="rounded border p-2" placeholder="Valid to" value={r.valid_to || ""} onChange={(e) => updRule(idx, { valid_to: e.target.value })} />
                 <input className="rounded border p-2" placeholder="Timezone" value={r.timezone || "Asia/Tokyo"} onChange={(e) => updRule(idx, { timezone: e.target.value })} />
-                <button type="button" className="rounded border px-2 py-1 text-xs text-red-700" onClick={() => delRule(idx)}>Remove</button>
+                <Button type="button" variant="destructive" size="sm" className="h-8 px-2 text-xs" onClick={() => delRule(idx)}>Remove</Button>
               </li>
             ))}
           </ul>
@@ -370,20 +399,25 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
       <div className="space-y-2">
         <div className="text-sm font-medium">Exceptions</div>
-        <button type="button" className="rounded border px-3 py-1 text-sm" onClick={addException}>Add exception</button>
+        <Button type="button" variant="outline" size="sm" onClick={addException}>Add exception</Button>
         {Array.isArray(exceptions) && exceptions.length > 0 ? (
           <ul className="space-y-2 mt-2">
             {exceptions.map((e, idx) => (
               <li key={idx} className="grid grid-cols-2 md:grid-cols-5 gap-2 items-center">
                 <input type="date" className="rounded border p-2" placeholder="Date" value={e.date || ""} onChange={(ev) => updException(idx, { date: ev.target.value })} />
-                <select className="rounded border p-2" value={e.action || "cancel"} onChange={(ev) => updException(idx, { action: ev.target.value })}>
-                  <option value="cancel">cancel</option>
-                  <option value="add">add</option>
-                  <option value="modify">modify</option>
-                </select>
+                <Select value={e.action || "cancel"} onValueChange={(v) => updException(idx, { action: v })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cancel">cancel</SelectItem>
+                    <SelectItem value="add">add</SelectItem>
+                    <SelectItem value="modify">modify</SelectItem>
+                  </SelectContent>
+                </Select>
                 <input type="time" className="rounded border p-2" placeholder="Start time" value={e.start_time || ""} onChange={(ev) => updException(idx, { start_time: ev.target.value })} />
                 <input className="rounded border p-2" placeholder="Note (optional)" value={e.note || ""} onChange={(ev) => updException(idx, { note: ev.target.value })} />
-                <button type="button" className="rounded border px-2 py-1 text-xs text-red-700" onClick={() => delException(idx)}>Remove</button>
+                <Button type="button" variant="destructive" size="sm" className="h-8 px-2 text-xs" onClick={() => delException(idx)}>Remove</Button>
               </li>
             ))}
           </ul>
@@ -391,17 +425,18 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
       </div>
 
       <div className="flex items-center gap-3">
-        <button onClick={save} className="rounded bg-black text-white px-4 py-2">Save</button>
-        <button onClick={onCancel} className="rounded border px-4 py-2">Cancel</button>
+        <Button onClick={save}>Save</Button>
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
         {isEditing ? (
           <ConfirmDeleteButton
             title="Delete this tour?"
             description="This action cannot be undone. This will permanently delete the item and remove any associated data."
-            triggerClassName="ml-auto rounded bg-red-600 text-white px-4 py-2"
+            triggerClassName="ml-auto"
             onConfirm={handleDelete}
           />
         ) : null}
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

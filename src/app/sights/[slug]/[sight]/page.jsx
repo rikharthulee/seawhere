@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
 import { getSightBySlugs, getSightOpeningHours, getSightOpeningExceptions } from "@/lib/data/sights";
@@ -63,7 +64,8 @@ export default async function SightDetailBySlugPage({ params }) {
         </div>
 
         <div className="md:col-span-2">
-          <div className="rounded-[var(--radius)] border bg-card text-card-foreground p-3 mb-4">
+          <Card className="mb-4">
+            <CardContent className="p-3">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
                 {dest ? (
@@ -93,7 +95,8 @@ export default async function SightDetailBySlugPage({ params }) {
                 </a>
               ) : null}
             </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {p.summary ? <p className="text-lg leading-relaxed mb-3">{p.summary}</p> : null}
           {Array.isArray(p.tags) && p.tags.length > 0 ? (

@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function ConfirmDeleteButton({
   onConfirm,
   title = "Delete this item?",
   description = "This action cannot be undone. This will permanently delete the item and remove any associated data.",
-  triggerClassName = "rounded bg-red-600 text-white px-2 py-1",
+  triggerClassName = "",
   children = "Delete",
 }) {
   const [pending, setPending] = useState(false);
@@ -31,9 +32,15 @@ export default function ConfirmDeleteButton({
 
   return (
     <>
-      <button className={triggerClassName} disabled={pending} onClick={() => setOpen(true)}>
+      <Button
+        variant="destructive"
+        size="sm"
+        className={`h-8 rounded-md ${triggerClassName}`}
+        disabled={pending}
+        onClick={() => setOpen(true)}
+      >
         {pending ? "Please wait…" : children}
-      </button>
+      </Button>
       {open ? (
         <div className="fixed inset-0 z-[100]">
           <div className="absolute inset-0 bg-black/50" onClick={() => !pending && setOpen(false)} />
@@ -43,22 +50,24 @@ export default function ConfirmDeleteButton({
               <p className="text-left text-sm text-black/70">{description}</p>
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
-                className="rounded border px-3 py-1.5 disabled:opacity-60"
+                variant="outline"
+                className="w-24"
                 onClick={() => setOpen(false)}
                 disabled={pending}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="rounded bg-red-600 text-white px-3 py-1.5 disabled:opacity-60"
+                variant="destructive"
+                className="w-24"
                 onClick={handleConfirm}
                 disabled={pending}
               >
                 {pending ? "Deleting…" : "Delete"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

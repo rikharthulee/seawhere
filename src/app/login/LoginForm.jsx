@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Button } from "@/components/ui/button";
 
 export default function LoginForm() {
   const supabase = createClientComponentClient();
@@ -167,21 +168,13 @@ export default function LoginForm() {
         {resetMsg ? (
           <p className="text-sm text-green-600">{resetMsg}</p>
         ) : null}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded bg-black px-3 py-2 text-white disabled:opacity-60"
-        >
+        <Button type="submit" disabled={loading} className="w-full">
           {loading ? "Signing in…" : "Sign In"}
-        </button>
+        </Button>
       </form>
-      <button
-        type="button"
-        onClick={handleSendReset}
-        className="text-sm text-blue-700 underline"
-      >
+      <Button type="button" variant="link" onClick={handleSendReset} className="p-0 h-auto">
         Forgot password?
-      </button>
+      </Button>
       <p className="text-xs text-neutral-500">
         Note: Access to the admin area requires your profile role to be
         set to "admin" or "editor".

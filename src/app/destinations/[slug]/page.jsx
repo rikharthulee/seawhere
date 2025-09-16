@@ -7,6 +7,7 @@ import Link from "next/link";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const revalidate = 300;
 export const runtime = 'nodejs';
@@ -78,18 +79,24 @@ export default async function DestinationPage({ params }) {
 
       {/* Meta details */}
       <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-        <div className="rounded-[var(--radius)] border bg-card text-card-foreground p-3">
-          <div><span className="font-medium text-foreground">Slug:</span> {dst.slug}</div>
-          <div><span className="font-medium text-foreground">Status:</span> {dst.status}</div>
-        </div>
-        <div className="rounded-[var(--radius)] border bg-card text-card-foreground p-3">
-          <div><span className="font-medium text-foreground">Prefecture ID:</span> {dst.prefecture_id || "—"}</div>
-          <div><span className="font-medium text-foreground">Division ID:</span> {dst.division_id || "—"}</div>
-        </div>
-        <div className="rounded-[var(--radius)] border bg-card text-card-foreground p-3">
-          <div><span className="font-medium text-foreground">Lat/Lng:</span> {dst.lat ?? "—"}, {dst.lng ?? "—"}</div>
-          <div><span className="font-medium text-foreground">Published:</span> {dst.published_at ? new Date(dst.published_at).toLocaleDateString() : "—"}</div>
-        </div>
+        <Card>
+          <CardContent className="p-3">
+            <div><span className="font-medium text-foreground">Slug:</span> {dst.slug}</div>
+            <div><span className="font-medium text-foreground">Status:</span> {dst.status}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <div><span className="font-medium text-foreground">Prefecture ID:</span> {dst.prefecture_id || "—"}</div>
+            <div><span className="font-medium text-foreground">Division ID:</span> {dst.division_id || "—"}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <div><span className="font-medium text-foreground">Lat/Lng:</span> {dst.lat ?? "—"}, {dst.lng ?? "—"}</div>
+            <div><span className="font-medium text-foreground">Published:</span> {dst.published_at ? new Date(dst.published_at).toLocaleDateString() : "—"}</div>
+          </CardContent>
+        </Card>
       </section>
     </main>
   );

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
@@ -45,12 +47,14 @@ export default function ContactForm() {
   return (
     <div className="mt-8">
       {submitted ? (
-    <div className="rounded-[var(--radius)] border border-border p-4 bg-card text-card-foreground">
-          <p className="text-green-700">
-            Thank you for your enquiry - We will get back to you as soon as
-            possible.
-          </p>
-        </div>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-green-700">
+              Thank you for your enquiry - We will get back to you as soon as
+              possible.
+            </p>
+          </CardContent>
+        </Card>
       ) : null}
       {error ? (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
@@ -133,13 +137,9 @@ export default function ContactForm() {
         </div>
 
         <div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-full bg-black text-white px-6 py-3 hover:bg-gray-800 transition disabled:opacity-60"
-          >
+          <Button type="submit" disabled={loading} className="rounded-full px-6">
             {loading ? "Sending…" : "Submit"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRegionBySlug, getPrefectureBySlug, getDivisionsByPrefecture, getDestinationsByPrefecture } from "@/lib/data/geo";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function PrefecturePage({ params }) {
   const { region, prefecture } = await params;
@@ -36,14 +37,16 @@ export default async function PrefecturePage({ params }) {
         <>
           <section className="space-y-6">
             {divisions.map((d) => (
-              <div key={d.id} className="rounded-lg border p-4">
+              <Card key={d.id}>
+                <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold">{d.name}</h2>
                   <Link href={`/${reg.slug}/${pref.slug}/${d.slug}`} className="underline">
                     View all
                   </Link>
                 </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </section>
           {unassignedDests.length > 0 ? (
@@ -51,16 +54,14 @@ export default async function PrefecturePage({ params }) {
               <h2 className="text-xl font-semibold mb-3">Other destinations in {pref.name}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {unassignedDests.map((dst) => (
-                  <Link
-                    key={dst.id}
-                    href={`/destinations/${dst.slug}`}
-                    className="block rounded-lg border overflow-hidden hover:shadow-sm"
-                  >
+                  <Card key={dst.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
+                    <Link href={`/destinations/${dst.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring">
                     <div className="aspect-[4/3] bg-black/5" style={{backgroundImage: dst.thumbnail_image ? `url(${resolveImageUrl(dst.thumbnail_image)})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center'}} />
-                    <div className="p-3">
+                    <CardContent className="p-4">
                       <div className="font-medium">{dst.name}</div>
-                    </div>
-                  </Link>
+                    </CardContent>
+                    </Link>
+                  </Card>
                 ))}
               </div>
             </section>
@@ -69,16 +70,14 @@ export default async function PrefecturePage({ params }) {
       ) : (
         <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {unassignedDests.map((dst) => (
-            <Link
-              key={dst.id}
-              href={`/destinations/${dst.slug}`}
-              className="block rounded-lg border overflow-hidden hover:shadow-sm"
-            >
+            <Card key={dst.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
+              <Link href={`/destinations/${dst.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring">
               <div className="aspect-[4/3] bg-black/5" style={{backgroundImage: dst.thumbnail_image ? `url(${resolveImageUrl(dst.thumbnail_image)})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center'}} />
-              <div className="p-3">
+              <CardContent className="p-4">
                 <div className="font-medium">{dst.name}</div>
-              </div>
-            </Link>
+              </CardContent>
+              </Link>
+            </Card>
           ))}
         </section>
       )}

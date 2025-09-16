@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
 export default function Hero() {
@@ -52,12 +53,9 @@ export default function Hero() {
             trusted advisor, you're bound to enjoy a richer, more cost-effective
             Japan experience.
           </p>
-          <Link
-            href="/contact"
-            className="inline-block mt-8 rounded-full bg-black text-white px-6 py-3 hover:bg-gray-800 transition"
-          >
-            Contact Us
-          </Link>
+          <Button asChild className="mt-8 rounded-full">
+            <Link href="/contact">Contact Us</Link>
+          </Button>
         </div>
       </section>
     </>

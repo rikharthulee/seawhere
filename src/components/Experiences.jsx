@@ -1,6 +1,7 @@
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Experiences({ items = [] }) {
   const sorted = Array.isArray(items)
@@ -35,19 +36,10 @@ export default function Experiences({ items = [] }) {
           const destSlug = p?.destinations?.slug || p?.destination?.slug || null;
           const canLink = !!(p.slug && destSlug);
           const CardTag = canLink ? Link : "div";
-          const cardProps = canLink
-            ? {
-                href: `/experiences/${encodeURIComponent(
-                  destSlug
-                )}/${encodeURIComponent(p.slug)}`,
-              }
-            : {};
+          const cardProps = canLink ? { href: `/experiences/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
           return (
-            <CardTag
-              key={p.id}
-              {...cardProps}
-              className="group block relative overflow-hidden rounded-xl border bg-card text-card-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
+            <Card asChild className="group overflow-hidden transition-shadow hover:shadow-md">
+              <CardTag key={p.id} {...cardProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">
               <div className="relative h-64 w-full bg-muted">
                 {img ? (
                   <SafeImage
@@ -59,15 +51,16 @@ export default function Experiences({ items = [] }) {
                   />
                 ) : null}
               </div>
-              <div className="p-3">
+              <CardContent className="p-4">
                 <div className="font-medium">{p.title || p.name}</div>
                 {p.summary ? (
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
                     {p.summary}
                   </p>
                 ) : null}
-              </div>
-            </CardTag>
+              </CardContent>
+              </CardTag>
+            </Card>
           );
         })}
       </div>

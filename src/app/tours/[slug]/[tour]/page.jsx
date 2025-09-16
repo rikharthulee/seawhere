@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import { getTourBySlugs, getTourAvailabilityRules, getTourExceptions } from "@/lib/data/tours";
 import { fmtJPY } from "@/lib/format";
@@ -69,8 +70,9 @@ export default async function TourDetailBySlugPage({ params }) {
         </div>
 
         <div className="md:col-span-2">
-          <div className="rounded-[var(--radius)] border bg-card text-card-foreground p-3 mb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <Card className="mb-4">
+            <CardContent className="p-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
                 {dest ? (
                   <span>
@@ -98,8 +100,9 @@ export default async function TourDetailBySlugPage({ params }) {
                   Book Now
                 </a>
               ) : null}
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {p.summary ? <p className="text-lg leading-relaxed mb-3">{p.summary}</p> : null}
           {Array.isArray(p.tags) && p.tags.length > 0 ? (

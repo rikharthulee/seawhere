@@ -4,6 +4,9 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import ImageUpload from "./ImageUpload";
 import MultiImageUpload from "./MultiImageUpload";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import ParagraphEditor from "./ParagraphEditor";
 
 function slugify(s) {
@@ -253,7 +256,8 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
   }
 
   return (
-    <div className="space-y-4 border rounded-lg p-4">
+    <Card className="space-y-4">
+      <CardContent>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">Name</label>
@@ -283,10 +287,15 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
       </div>
         <div>
           <label className="block text-sm font-medium">Status</label>
-          <select className="w-full rounded border p-2" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="draft">draft</option>
-            <option value="published">published</option>
-          </select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">draft</SelectItem>
+              <SelectItem value="published">published</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="block text-sm font-medium">Credit</label>
@@ -294,13 +303,18 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
         </div>
         <div>
           <label className="block text-sm font-medium">Price band</label>
-          <select className="w-full rounded border p-2" value={priceBand} onChange={(e) => setPriceBand(e.target.value)}>
-            <option value="">—</option>
-            <option value="$$">$$</option>
-            <option value="$$$">$$$</option>
-            <option value="$$$$">$$$$</option>
-            <option value="$$$$$">$$$$$</option>
-          </select>
+          <Select value={priceBand || "__EMPTY__"} onValueChange={(v) => setPriceBand(v === "__EMPTY__" ? "" : v)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select band" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">—</SelectItem>
+              <SelectItem value="$$">$$</SelectItem>
+              <SelectItem value="$$$">$$$</SelectItem>
+              <SelectItem value="$$$$">$$$$</SelectItem>
+              <SelectItem value="$$$$$">$$$$$</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="block text-sm font-medium">Rating</label>
@@ -330,39 +344,59 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
         <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium">Region</label>
-            <select className="w-full rounded border p-2" value={regionId} onChange={(e) => { setRegionId(e.target.value); setPrefectureId(""); setDivisionId(""); }}>
-              <option value="">All regions…</option>
-              {regions.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
+            <Select value={regionId || "__EMPTY__"} onValueChange={(v) => { const val = v === "__EMPTY__" ? "" : v; setRegionId(val); setPrefectureId(""); setDivisionId(""); }}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All regions…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__EMPTY__">All regions…</SelectItem>
+                {regions.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="block text-sm font-medium">Prefecture</label>
-            <select className="w-full rounded border p-2" value={prefectureId} onChange={(e) => { setPrefectureId(e.target.value); setDivisionId(""); }}>
-              <option value="">All prefectures…</option>
-              {prefecturesForRegion.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <Select value={prefectureId || "__EMPTY__"} onValueChange={(v) => { const val = v === "__EMPTY__" ? "" : v; setPrefectureId(val); setDivisionId(""); }}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All prefectures…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__EMPTY__">All prefectures…</SelectItem>
+                {prefecturesForRegion.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="block text-sm font-medium">Division (optional)</label>
-            <select className="w-full rounded border p-2" value={divisionId} onChange={(e) => setDivisionId(e.target.value)} disabled={!prefectureId}>
-              <option value="">All divisions…</option>
-              {divisionsForPref.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
+            <Select value={divisionId || "__EMPTY__"} onValueChange={(v) => setDivisionId(v === "__EMPTY__" ? "" : v)}>
+              <SelectTrigger className="w-full" disabled={!prefectureId}>
+                <SelectValue placeholder="All divisions…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__EMPTY__">All divisions…</SelectItem>
+                {divisionsForPref.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="md:col-span-1">
             <label className="block text-sm font-medium">Destination</label>
-            <select className="w-full rounded border p-2" value={destinationId} onChange={(e) => setDestinationId(e.target.value)}>
-              <option value="">Select a destination…</option>
-              {destinationsForScope.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
+            <Select value={destinationId || "__EMPTY__"} onValueChange={(v) => setDestinationId(v === "__EMPTY__" ? "" : v)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a destination…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__EMPTY__">Select a destination…</SelectItem>
+                {destinationsForScope.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -370,19 +404,20 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
       <ParagraphEditor value={body} onChange={setBody} label="Details (paragraphs)" />
 
       <div className="flex items-center gap-3">
-        <button onClick={save} disabled={saving} className="rounded bg-black text-white px-4 py-2 disabled:opacity-60">
+        <Button onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save"}
-        </button>
-        <button onClick={onCancel} className="rounded border px-4 py-2">Cancel</button>
+        </Button>
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
         {isEditing ? (
           <ConfirmDeleteButton
             title="Delete this accommodation?"
             description="This action cannot be undone. This will permanently delete the accommodation and attempt to revalidate related pages."
-            triggerClassName="ml-auto rounded bg-red-600 text-white px-4 py-2"
+            triggerClassName="ml-auto"
             onConfirm={handleDelete}
           />
         ) : null}
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import SafeImage from "@/components/SafeImage";
 
@@ -70,15 +71,15 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
               <div className="flex items-center justify-between gap-2">
                 <div className="text-[10px] text-neutral-600 truncate" title={p.key}>{p.key}</div>
                 <div className="flex items-center gap-1">
-                  <button type="button" className="rounded border px-2 py-0.5 text-xs" onClick={() => move(idx, -1)} disabled={idx === 0}>
+                  <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => move(idx, -1)} disabled={idx === 0}>
                     ↑
-                  </button>
-                  <button type="button" className="rounded border px-2 py-0.5 text-xs" onClick={() => move(idx, 1)} disabled={idx === previews.length - 1}>
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => move(idx, 1)} disabled={idx === previews.length - 1}>
                     ↓
-                  </button>
-                  <button type="button" className="rounded border px-2 py-0.5 text-xs text-red-700" onClick={() => removeAt(idx)}>
+                  </Button>
+                  <Button type="button" variant="destructive" size="sm" className="h-8 px-2 text-xs" onClick={() => removeAt(idx)}>
                     Remove
-                  </button>
+                  </Button>
                 </div>
               </div>
             </li>

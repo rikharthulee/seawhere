@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import DesktopBannerNav from "@/components/DesktopBannerNav";
 import MobileNavbar from "@/components/MobileNavbar";
+import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -170,14 +171,15 @@ export default function Navbar() {
               </>
             );
           })()}
-          <button
+          <Button
             onClick={handleSignOut}
             disabled={signingOut}
-            className="rounded bg-black text-white px-3 py-1 text-sm hover:opacity-80 disabled:opacity-60 whitespace-nowrap"
+            size="sm"
             title="Sign out"
+            className="whitespace-nowrap"
           >
             {signingOut ? "Signing out…" : "Sign out"}
-          </button>
+          </Button>
         </div>
       ) : null}
 
