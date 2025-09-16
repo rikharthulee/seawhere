@@ -21,10 +21,10 @@ export default function MobileNavbar({
   const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
 
   const exploreDescriptions = {
-    "/destinations": "Cities, regions & itineraries",
+    "/destinations": "Towns, cities and rural locations",
     "/sights": "Temples, museums, viewpoints",
     "/tours": "Guided tours & tickets",
-    "/accommodation": "Hotels, ryokan & hostels",
+    "/accommodation": "Hotels, ryokan and boutiques",
     "/experiences": "Classes, shows & activities",
     "/fooddrink": "Eat & drink: ramen to kaiseki",
   };

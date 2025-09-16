@@ -38,8 +38,8 @@ export default function Experiences({ items = [] }) {
           const CardTag = canLink ? Link : "div";
           const cardProps = canLink ? { href: `/experiences/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
           return (
-            <Card asChild className="group overflow-hidden transition-shadow hover:shadow-md">
-              <CardTag key={p.id} {...cardProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+            <Card key={p.id} asChild className="group overflow-hidden transition-shadow hover:shadow-md">
+              <CardTag {...cardProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">
               <div className="relative h-64 w-full bg-muted">
                 {img ? (
                   <SafeImage

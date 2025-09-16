@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import SafeImage from "@/components/SafeImage";
@@ -7,6 +7,7 @@ import SafeImage from "@/components/SafeImage";
 export default function MultiImageUpload({ label, value = [], onChange, prefix = "accommodation" }) {
   const [uploading, setUploading] = useState(false);
   const bucket = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;
+  const fileInputRef = useRef(null);
 
   const previews = useMemo(() => (Array.isArray(value) ? value.map((v) => ({ key: v, url: resolveImageUrl(v) })) : []), [value]);
 
@@ -36,7 +37,7 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
       alert(err.message || "Upload failed");
     } finally {
       setUploading(false);
-      e.target.value = "";
+      if (e?.target) e.target.value = "";
     }
   }, [bucket, onChange, value, prefix]);
 
@@ -55,11 +56,13 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mb-2">
       <label className="block text-sm font-medium">{label}</label>
       <div className="flex items-center gap-3">
-        <input type="file" accept="image/*" multiple onChange={handleFiles} />
-        {uploading ? <span className="text-sm">Uploading…</span> : null}
+        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFiles} className="hidden" />
+        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+          {uploading ? "Uploading…" : "Choose images"}
+        </Button>
       </div>
       {previews.length > 0 ? (
         <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

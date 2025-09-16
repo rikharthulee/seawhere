@@ -31,8 +31,7 @@ export default function AdminHome() {
         <article className="p-5 rounded-xl ring-1 ring-black/10">
           <h2 className="text-xl font-semibold">🏨 Accommodation</h2>
           <p className="mt-2 text-gray-700">
-            Places to stay overnight, such as hotels, ryokan, hostels, or
-            guesthouses.
+            Places to stay overnight, such as hotels, ryokan and boutiques.
           </p>
           <Link
             href="/admin/accommodation"

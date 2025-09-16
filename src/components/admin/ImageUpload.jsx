@@ -1,8 +1,9 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import SafeImage from "@/components/SafeImage";
+import { Button } from "@/components/ui/button";
 
 export default function ImageUpload({
   label,
@@ -12,6 +13,7 @@ export default function ImageUpload({
 }) {
   const supabase = createClientComponentClient();
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const bucket = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;
   const previewUrl = useMemo(() => resolveImageUrl(value), [value]);
 
@@ -41,16 +43,18 @@ export default function ImageUpload({
       alert(err.message || "Upload failed");
     } finally {
       setUploading(false);
-      e.target.value = "";
+      if (e?.target) e.target.value = "";
     }
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mb-2">
       <label className="block text-sm font-medium">{label}</label>
       <div className="flex items-center gap-3">
-        <input type="file" accept="image/*" onChange={handleFile} />
-        {uploading ? <span className="text-sm">Uploading…</span> : null}
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+          {uploading ? "Uploading…" : "Choose image"}
+        </Button>
       </div>
       {value ? (
         <div className="flex items-start gap-3">
