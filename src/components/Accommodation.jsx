@@ -42,12 +42,12 @@ export default function Accommodation({ items }) {
               <div className="absolute bottom-3 left-3 text-white text-lg font-medium drop-shadow">
                 {item.title || item.name}
               </div>
+              {item.credit ? (
+                <CardContent className="pt-2">
+                  <div className="text-xs text-muted-foreground text-right">{item.credit}</div>
+                </CardContent>
+              ) : null}
             </Link>
-            {item.credit ? (
-              <CardContent className="pt-2">
-                <div className="text-xs text-muted-foreground text-right">{item.credit}</div>
-              </CardContent>
-            ) : null}
           </Card>
         ))}
       </div>
