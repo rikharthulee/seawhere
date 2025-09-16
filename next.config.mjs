@@ -41,9 +41,12 @@ const nextConfig = {
       { protocol: 'https', hostname: 'gravatar.com' },
       { protocol: 'https', hostname: 'secure.gravatar.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      // Fallback: allow any supabase.co project (safety net if env host changes)
+      { protocol: 'https', hostname: '*.supabase.co' },
     ],
     formats: ['image/avif','image/webp'],
-    minimumCacheTTL: 60,
+    // Cache optimized images on Vercel edge cache for 1 day
+    minimumCacheTTL: 60 * 60 * 24,
   },
   poweredByHeader: false,
   compress: true,
