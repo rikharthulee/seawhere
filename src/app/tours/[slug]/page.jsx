@@ -9,11 +9,12 @@ import { Card, CardContent } from "@/components/ui/card";
 export const revalidate = 300;
 export const runtime = 'nodejs';
 
-export default async function ToursByDestinationPage({ params }) {
+export default async function ToursByDestinationPage({ params, searchParams }) {
   const { slug } = await params;
+  const divisionSlug = searchParams?.division || null;
   let dst = await getDestinationBySlugLoose(slug).catch(() => null);
   if (!dst) notFound();
-  const tours = await getToursForDestination(dst.id).catch(() => []);
+  const tours = await getToursForDestination(dst.id, divisionSlug).catch(() => []);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">

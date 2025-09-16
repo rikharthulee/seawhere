@@ -10,11 +10,12 @@ import GygWidget from "@/components/GygWidget";
 export const revalidate = 300;
 export const runtime = 'nodejs';
 
-export default async function SightsByDestinationPage({ params }) {
+export default async function SightsByDestinationPage({ params, searchParams }) {
   const { slug } = await params;
+  const divisionSlug = searchParams?.division || null;
   let dst = await getDestinationBySlugLoose(slug).catch(() => null);
   if (!dst) notFound();
-  const sights = await getSightsForDestination(dst.id).catch(() => []);
+  const sights = await getSightsForDestination(dst.id, divisionSlug).catch(() => []);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">

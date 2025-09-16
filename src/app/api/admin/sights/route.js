@@ -52,6 +52,7 @@ export async function POST(request) {
       body_richtext: body.body_richtext || null,
       images: Array.isArray(body.images) ? body.images : body.images || null,
       destination_id: body.destination_id,
+      division_id: body.division_id ?? null,
       status: body.status || "draft",
       lat: body.lat ?? null,
       lng: body.lng ?? null,

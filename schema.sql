@@ -64,7 +64,7 @@ CREATE TABLE public.destination_links (
   to_location_id uuid NOT NULL,
   relation text NOT NULL CHECK (relation = ANY (ARRAY['nearby'::text, 'day_trip'::text, 'gateway'::text, 'sister_area'::text])),
   weight integer DEFAULT 0,
-  CONSTRAINT destination_links_pkey PRIMARY KEY (from_location_id, relation, to_location_id)
+  CONSTRAINT destination_links_pkey PRIMARY KEY (to_location_id, from_location_id, relation)
 );
 CREATE TABLE public.destinations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -171,7 +171,9 @@ CREATE TABLE public.experiences (
   price_amount numeric,
   price_currency text DEFAULT 'JPY'::text,
   tags ARRAY,
+  division_id uuid,
   CONSTRAINT experiences_pkey PRIMARY KEY (id),
+  CONSTRAINT experiences_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id),
   CONSTRAINT experiences_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
 );
 CREATE TABLE public.food_drink (
@@ -185,8 +187,10 @@ CREATE TABLE public.food_drink (
   images jsonb,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  division_id uuid,
   CONSTRAINT food_drink_pkey PRIMARY KEY (id),
-  CONSTRAINT food_drink_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
+  CONSTRAINT food_drink_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT food_drink_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id)
 );
 CREATE TABLE public.hotels (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -196,8 +200,10 @@ CREATE TABLE public.hotels (
   description text,
   rating numeric,
   created_at timestamp with time zone DEFAULT now(),
+  division_id uuid,
   CONSTRAINT hotels_pkey PRIMARY KEY (id),
-  CONSTRAINT hotels_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
+  CONSTRAINT hotels_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT hotels_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id)
 );
 CREATE TABLE public.itineraries (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -373,8 +379,10 @@ CREATE TABLE public.sights (
   price_usd numeric,
   price_amount numeric,
   price_currency text DEFAULT 'JPY'::text,
+  division_id uuid,
   CONSTRAINT sights_pkey PRIMARY KEY (id),
-  CONSTRAINT sights_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
+  CONSTRAINT sights_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT sights_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id)
 );
 CREATE TABLE public.tour_availability_rules (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -423,8 +431,10 @@ CREATE TABLE public.tours (
   price jsonb,
   gyg_id numeric,
   tags ARRAY,
+  division_id uuid,
   CONSTRAINT tours_pkey PRIMARY KEY (id),
-  CONSTRAINT tours_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
+  CONSTRAINT tours_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT tours_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id)
 );
 CREATE TABLE public.user_roles (
   user_id uuid NOT NULL,

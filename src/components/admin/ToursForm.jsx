@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import MultiImageUpload from "./MultiImageUpload";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
@@ -32,7 +32,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
   const [regions, setRegions] = useState([]);
   const [prefectures, setPrefectures] = useState([]);
-  const [divisions, setDivisions] = useState([]);
+  const [divisionsForDest, setDivisionsForDest] = useState([]);
   const [destinations, setDestinations] = useState([]);
 
   const [regionId, setRegionId] = useState("");
@@ -66,7 +66,6 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
           if (!cancelled) {
             setRegions(json.regions || []);
             setPrefectures(json.prefectures || []);
-            setDivisions(json.divisions || []);
           }
         }
       } catch {}
@@ -86,10 +85,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
         const { data: p } = await supabase.from("prefectures").select("id,name,slug,region_id,order_index").order("order_index", { ascending: true });
         if (!cancelled && p && p.length && prefectures.length === 0) setPrefectures(p);
       } catch {}
-      try {
-        const { data: d } = await supabase.from("divisions").select("id,name,slug,prefecture_id,order_index").order("order_index", { ascending: true });
-        if (!cancelled && d && d.length && divisions.length === 0) setDivisions(d);
-      } catch {}
+      // Division options are loaded via RPC per destination; no general divisions fetch here.
       try {
         const { data: dst } = await supabase
           .from("destinations")
@@ -109,6 +105,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
     setBody(initial?.body_richtext || null);
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setDestinationId(initial?.destination_id || "");
+    setDivisionId(initial?.division_id || "");
     setStatus(initial?.status || "draft");
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
@@ -123,26 +120,47 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
     setExceptions(Array.isArray(initial?.exceptions) ? initial.exceptions : []);
   }, [initial]);
 
-  // Derive geo scope
+  // Derive geo scope (region/pref) from destination
   useEffect(() => {
-    if (!destinationId) return;
     const d = destinations.find((x) => x.id === destinationId);
-    if (!d) return;
+    if (!d) {
+      setPrefectureId("");
+      setRegionId("");
+      return;
+    }
     setPrefectureId(d.prefecture_id || "");
-    setDivisionId(d.division_id || "");
     const pref = prefectures.find((p) => p.id === d.prefecture_id);
     setRegionId(pref?.region_id || "");
   }, [destinationId, destinations, prefectures]);
 
+  // On destination change, fetch divisions via RPC and clear division only after initial mount
+  const prevDestIdRef = useRef(null);
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchDivs() {
+      if (!destinationId) { setDivisionsForDest([]); return; }
+      try {
+        const { data } = await supabase.rpc('get_divisions_for_destination', { dst_id: destinationId });
+        if (!cancelled) setDivisionsForDest(Array.isArray(data) ? data : []);
+      } catch {
+        if (!cancelled) setDivisionsForDest([]);
+      }
+    }
+    if (prevDestIdRef.current !== null && prevDestIdRef.current !== destinationId) {
+      setDivisionId("");
+    }
+    fetchDivs();
+    prevDestIdRef.current = destinationId;
+    return () => { cancelled = true; };
+  }, [destinationId, supabase]);
+
   const prefecturesForRegion = useMemo(() => prefectures.filter((p) => p.region_id === regionId), [prefectures, regionId]);
-  const divisionsForPref = useMemo(() => divisions.filter((d) => d.prefecture_id === prefectureId), [divisions, prefectureId]);
   const destinationsForScope = useMemo(() => {
     return destinations.filter((d) => {
       if (prefectureId && d.prefecture_id !== prefectureId) return false;
-      if (divisionId && d.division_id && d.division_id !== divisionId) return false;
       return true;
     });
-  }, [destinations, prefectureId, divisionId]);
+  }, [destinations, prefectureId]);
 
   const destSlugForUpload = useMemo(() => {
     const d = destinations.find((x) => x.id === destinationId);
@@ -183,6 +201,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
         body_richtext: body,
         images: Array.isArray(images) ? images : [],
         destination_id: destinationId,
+        division_id: divisionId || null,
         status,
         lat: lat === "" ? null : Number(lat),
         lng: lng === "" ? null : Number(lng),
@@ -297,20 +316,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <label className="block text-sm font-medium">Division (optional)</label>
-          <Select value={divisionId || "__EMPTY__"} onValueChange={(v) => setDivisionId(v === "__EMPTY__" ? "" : v)}>
-            <SelectTrigger className="w-full" disabled={prefectureId === ""}>
-              <SelectValue placeholder="All divisions…" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__EMPTY__">All divisions…</SelectItem>
-              {divisionsForPref.map((d) => (
-                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Division selection depends on destination and is provided below */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium">Destination</label>
           <Select value={destinationId || "__EMPTY__"} onValueChange={(v) => setDestinationId(v === "__EMPTY__" ? "" : v)}>
@@ -320,6 +326,21 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
             <SelectContent>
               <SelectItem value="__EMPTY__">Select a destination…</SelectItem>
               {destinationsForScope.map((d) => (
+                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">Division (optional)</label>
+          <Select value={divisionId || "__EMPTY__"} onValueChange={(v) => setDivisionId(v === "__EMPTY__" ? "" : v)}>
+            <SelectTrigger className="w-full" disabled={!destinationId}>
+              <SelectValue placeholder="No division (entire destination)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">No division (entire destination)</SelectItem>
+              {divisionsForDest.map((d) => (
                 <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
               ))}
             </SelectContent>
