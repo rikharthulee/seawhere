@@ -11,14 +11,26 @@ export async function getPublishedTours() {
   return data || [];
 }
 
-export async function getToursForDestination(destId) {
+export async function getToursForDestination(destId, divisionSlug = null) {
   const db = supabaseAdmin();
-  const { data, error } = await db
+  let query = db
     .from("tours")
     .select("id, slug, name, summary, images, destination_id, provider, deeplink, gyg_id, duration_minutes, price_amount, price_currency, tags")
     .eq("destination_id", destId)
     .eq("status", "published")
     .order("name", { ascending: true });
+
+  if (divisionSlug) {
+    const { data: div } = await db
+      .from("divisions")
+      .select("id")
+      .eq("slug", String(divisionSlug).trim())
+      .maybeSingle();
+    if (!div?.id) return [];
+    query = query.eq("division_id", div.id);
+  }
+
+  const { data, error } = await query;
   if (error) return [];
   return data || [];
 }

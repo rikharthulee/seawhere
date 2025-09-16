@@ -1,8 +1,12 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import MultiImageUpload from "./MultiImageUpload";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import RichTextEditor from "./RichTextEditor";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function ToursForm({ id, initial, onSaved, onCancel }) {
   const supabase = createClientComponentClient();
@@ -28,7 +32,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
   const [regions, setRegions] = useState([]);
   const [prefectures, setPrefectures] = useState([]);
-  const [divisions, setDivisions] = useState([]);
+  const [divisionsForDest, setDivisionsForDest] = useState([]);
   const [destinations, setDestinations] = useState([]);
 
   const [regionId, setRegionId] = useState("");
@@ -62,7 +66,6 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
           if (!cancelled) {
             setRegions(json.regions || []);
             setPrefectures(json.prefectures || []);
-            setDivisions(json.divisions || []);
           }
         }
       } catch {}
@@ -82,10 +85,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
         const { data: p } = await supabase.from("prefectures").select("id,name,slug,region_id,order_index").order("order_index", { ascending: true });
         if (!cancelled && p && p.length && prefectures.length === 0) setPrefectures(p);
       } catch {}
-      try {
-        const { data: d } = await supabase.from("divisions").select("id,name,slug,prefecture_id,order_index").order("order_index", { ascending: true });
-        if (!cancelled && d && d.length && divisions.length === 0) setDivisions(d);
-      } catch {}
+      // Division options are loaded via RPC per destination; no general divisions fetch here.
       try {
         const { data: dst } = await supabase
           .from("destinations")
@@ -105,6 +105,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
     setBody(initial?.body_richtext || null);
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setDestinationId(initial?.destination_id || "");
+    setDivisionId(initial?.division_id || "");
     setStatus(initial?.status || "draft");
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
@@ -119,26 +120,47 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
     setExceptions(Array.isArray(initial?.exceptions) ? initial.exceptions : []);
   }, [initial]);
 
-  // Derive geo scope
+  // Derive geo scope (region/pref) from destination
   useEffect(() => {
-    if (!destinationId) return;
     const d = destinations.find((x) => x.id === destinationId);
-    if (!d) return;
+    if (!d) {
+      setPrefectureId("");
+      setRegionId("");
+      return;
+    }
     setPrefectureId(d.prefecture_id || "");
-    setDivisionId(d.division_id || "");
     const pref = prefectures.find((p) => p.id === d.prefecture_id);
     setRegionId(pref?.region_id || "");
   }, [destinationId, destinations, prefectures]);
 
+  // On destination change, fetch divisions via RPC and clear division only after initial mount
+  const prevDestIdRef = useRef(null);
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchDivs() {
+      if (!destinationId) { setDivisionsForDest([]); return; }
+      try {
+        const { data } = await supabase.rpc('get_divisions_for_destination', { dst_id: destinationId });
+        if (!cancelled) setDivisionsForDest(Array.isArray(data) ? data : []);
+      } catch {
+        if (!cancelled) setDivisionsForDest([]);
+      }
+    }
+    if (prevDestIdRef.current !== null && prevDestIdRef.current !== destinationId) {
+      setDivisionId("");
+    }
+    fetchDivs();
+    prevDestIdRef.current = destinationId;
+    return () => { cancelled = true; };
+  }, [destinationId, supabase]);
+
   const prefecturesForRegion = useMemo(() => prefectures.filter((p) => p.region_id === regionId), [prefectures, regionId]);
-  const divisionsForPref = useMemo(() => divisions.filter((d) => d.prefecture_id === prefectureId), [divisions, prefectureId]);
   const destinationsForScope = useMemo(() => {
     return destinations.filter((d) => {
       if (prefectureId && d.prefecture_id !== prefectureId) return false;
-      if (divisionId && d.division_id && d.division_id !== divisionId) return false;
       return true;
     });
-  }, [destinations, prefectureId, divisionId]);
+  }, [destinations, prefectureId]);
 
   const destSlugForUpload = useMemo(() => {
     const d = destinations.find((x) => x.id === destinationId);
@@ -179,6 +201,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
         body_richtext: body,
         images: Array.isArray(images) ? images : [],
         destination_id: destinationId,
+        division_id: divisionId || null,
         status,
         lat: lat === "" ? null : Number(lat),
         lng: lng === "" ? null : Number(lng),
@@ -219,7 +242,6 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
   async function handleDelete() {
     if (!isEditing) return;
-    if (!confirm("Delete this tour? This cannot be undone.")) return;
     const res = await fetch(`/api/admin/tours/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
@@ -230,14 +252,20 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
   }
 
   return (
-    <div className="space-y-4 border rounded-lg p-4">
+    <Card className="space-y-4">
+      <CardContent>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">Status</label>
-          <select className="w-full rounded border p-2" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="draft">draft</option>
-            <option value="published">published</option>
-          </select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">draft</SelectItem>
+              <SelectItem value="published">published</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="md:col-span-2">
@@ -262,39 +290,61 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
         <div>
           <label className="block text-sm font-medium">Region</label>
-          <select className="w-full rounded border p-2" value={regionId} onChange={(e) => { setRegionId(e.target.value); setPrefectureId(""); setDivisionId(""); }}>
-            <option value="">All regions…</option>
-            {regions.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
+          <Select value={regionId || "__EMPTY__"} onValueChange={(v) => { const val = v === "__EMPTY__" ? "" : v; setRegionId(val); setPrefectureId(""); setDivisionId(""); }}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All regions…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">All regions…</SelectItem>
+              {regions.map((r) => (
+                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="block text-sm font-medium">Prefecture</label>
-          <select className="w-full rounded border p-2" value={prefectureId} onChange={(e) => { setPrefectureId(e.target.value); setDivisionId(""); }}>
-            <option value="">All prefectures…</option>
-            {prefecturesForRegion.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <Select value={prefectureId || "__EMPTY__"} onValueChange={(v) => { const val = v === "__EMPTY__" ? "" : v; setPrefectureId(val); setDivisionId(""); }}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All prefectures…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">All prefectures…</SelectItem>
+              {prefecturesForRegion.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div>
-          <label className="block text-sm font-medium">Division (optional)</label>
-          <select className="w-full rounded border p-2" value={divisionId} onChange={(e) => setDivisionId(e.target.value)} disabled={prefectureId === ""}>
-            <option value="">All divisions…</option>
-            {divisionsForPref.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
-        </div>
+        {/* Division selection depends on destination and is provided below */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium">Destination</label>
-          <select className="w-full rounded border p-2" value={destinationId} onChange={(e) => setDestinationId(e.target.value)}>
-            <option value="">Select a destination…</option>
-            {destinationsForScope.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+          <Select value={destinationId || "__EMPTY__"} onValueChange={(v) => setDestinationId(v === "__EMPTY__" ? "" : v)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a destination…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">Select a destination…</SelectItem>
+              {destinationsForScope.map((d) => (
+                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">Division (optional)</label>
+          <Select value={divisionId || "__EMPTY__"} onValueChange={(v) => setDivisionId(v === "__EMPTY__" ? "" : v)}>
+            <SelectTrigger className="w-full" disabled={!destinationId}>
+              <SelectValue placeholder="No division (entire destination)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">No division (entire destination)</SelectItem>
+              {divisionsForDest.map((d) => (
+                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
@@ -351,7 +401,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
       <div className="space-y-2">
         <div className="text-sm font-medium">Availability rules</div>
-        <button type="button" className="rounded border px-3 py-1 text-sm" onClick={addRule}>Add rule</button>
+        <Button type="button" variant="outline" size="sm" onClick={addRule}>Add rule</Button>
         {Array.isArray(rules) && rules.length > 0 ? (
           <ul className="space-y-2 mt-2">
             {rules.map((r, idx) => (
@@ -361,7 +411,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
                 <input type="date" className="rounded border p-2" placeholder="Valid from" value={r.valid_from || ""} onChange={(e) => updRule(idx, { valid_from: e.target.value })} />
                 <input type="date" className="rounded border p-2" placeholder="Valid to" value={r.valid_to || ""} onChange={(e) => updRule(idx, { valid_to: e.target.value })} />
                 <input className="rounded border p-2" placeholder="Timezone" value={r.timezone || "Asia/Tokyo"} onChange={(e) => updRule(idx, { timezone: e.target.value })} />
-                <button type="button" className="rounded border px-2 py-1 text-xs text-red-700" onClick={() => delRule(idx)}>Remove</button>
+                <Button type="button" variant="destructive" size="sm" className="h-8 px-2 text-xs" onClick={() => delRule(idx)}>Remove</Button>
               </li>
             ))}
           </ul>
@@ -370,20 +420,25 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
       <div className="space-y-2">
         <div className="text-sm font-medium">Exceptions</div>
-        <button type="button" className="rounded border px-3 py-1 text-sm" onClick={addException}>Add exception</button>
+        <Button type="button" variant="outline" size="sm" onClick={addException}>Add exception</Button>
         {Array.isArray(exceptions) && exceptions.length > 0 ? (
           <ul className="space-y-2 mt-2">
             {exceptions.map((e, idx) => (
               <li key={idx} className="grid grid-cols-2 md:grid-cols-5 gap-2 items-center">
                 <input type="date" className="rounded border p-2" placeholder="Date" value={e.date || ""} onChange={(ev) => updException(idx, { date: ev.target.value })} />
-                <select className="rounded border p-2" value={e.action || "cancel"} onChange={(ev) => updException(idx, { action: ev.target.value })}>
-                  <option value="cancel">cancel</option>
-                  <option value="add">add</option>
-                  <option value="modify">modify</option>
-                </select>
+                <Select value={e.action || "cancel"} onValueChange={(v) => updException(idx, { action: v })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cancel">cancel</SelectItem>
+                    <SelectItem value="add">add</SelectItem>
+                    <SelectItem value="modify">modify</SelectItem>
+                  </SelectContent>
+                </Select>
                 <input type="time" className="rounded border p-2" placeholder="Start time" value={e.start_time || ""} onChange={(ev) => updException(idx, { start_time: ev.target.value })} />
                 <input className="rounded border p-2" placeholder="Note (optional)" value={e.note || ""} onChange={(ev) => updException(idx, { note: ev.target.value })} />
-                <button type="button" className="rounded border px-2 py-1 text-xs text-red-700" onClick={() => delException(idx)}>Remove</button>
+                <Button type="button" variant="destructive" size="sm" className="h-8 px-2 text-xs" onClick={() => delException(idx)}>Remove</Button>
               </li>
             ))}
           </ul>
@@ -391,12 +446,18 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
       </div>
 
       <div className="flex items-center gap-3">
-        <button onClick={save} className="rounded bg-black text-white px-4 py-2">Save</button>
-        <button onClick={onCancel} className="rounded border px-4 py-2">Cancel</button>
+        <Button onClick={save}>Save</Button>
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
         {isEditing ? (
-          <button onClick={handleDelete} className="ml-auto rounded bg-red-600 text-white px-4 py-2">Delete</button>
+          <ConfirmDeleteButton
+            title="Delete this tour?"
+            description="This action cannot be undone. This will permanently delete the item and remove any associated data."
+            triggerClassName="ml-auto"
+            onConfirm={handleDelete}
+          />
         ) : null}
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

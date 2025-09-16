@@ -1,9 +1,9 @@
 export default function FaqPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="border-t-2 border-border pt-2">
         <h1 className="text-3xl md:text-4xl font-medium">FAQ</h1>
-        <div className="border-b-2 border-black/10 mt-3" />
+        <div className="border-b-2 border-border mt-3" />
       </div>
 
       <section className="mt-8 divide-y divide-black/10">

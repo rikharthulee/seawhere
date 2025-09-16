@@ -1,8 +1,12 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import MultiImageUpload from "./MultiImageUpload";
 import RichTextEditor from "./RichTextEditor";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function SightsForm({ id, initial, onSaved, onCancel }) {
   const supabase = createClientComponentClient();
@@ -28,7 +32,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
 
   const [regions, setRegions] = useState([]);
   const [prefectures, setPrefectures] = useState([]);
-  const [divisions, setDivisions] = useState([]);
+  const [divisionsForDest, setDivisionsForDest] = useState([]);
   const [destinations, setDestinations] = useState([]);
 
   const [regionId, setRegionId] = useState("");
@@ -66,7 +70,6 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
           if (!cancelled) {
             setRegions(json.regions || []);
             setPrefectures(json.prefectures || []);
-            setDivisions(json.divisions || []);
           }
         }
       } catch {}
@@ -86,10 +89,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         const { data: p } = await supabase.from("prefectures").select("id,name,slug,region_id,order_index").order("order_index", { ascending: true });
         if (!cancelled && p && p.length && prefectures.length === 0) setPrefectures(p);
       } catch {}
-      try {
-        const { data: d } = await supabase.from("divisions").select("id,name,slug,prefecture_id,order_index").order("order_index", { ascending: true });
-        if (!cancelled && d && d.length && divisions.length === 0) setDivisions(d);
-      } catch {}
+      // Division options are loaded via RPC per destination; no general divisions fetch here.
       try {
         const { data: dst } = await supabase
           .from("destinations")
@@ -109,6 +109,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
     setBody(initial?.body_richtext || null);
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setDestinationId(initial?.destination_id || "");
+    setDivisionId(initial?.division_id || "");
     setStatus(initial?.status || "draft");
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
@@ -137,26 +138,47 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
     })) : []);
   }, [initial]);
 
-  // Derive geo scope
+  // Derive geo scope (region/pref) from destination
   useEffect(() => {
-    if (!destinationId) return;
     const d = destinations.find((x) => x.id === destinationId);
-    if (!d) return;
+    if (!d) {
+      setPrefectureId("");
+      setRegionId("");
+      return;
+    }
     setPrefectureId(d.prefecture_id || "");
-    setDivisionId(d.division_id || "");
     const pref = prefectures.find((p) => p.id === d.prefecture_id);
     setRegionId(pref?.region_id || "");
   }, [destinationId, destinations, prefectures]);
 
+  // On destination change, fetch divisions via RPC and clear division only after initial mount
+  const prevDestIdRef = useRef(null);
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchDivs() {
+      if (!destinationId) { setDivisionsForDest([]); return; }
+      try {
+        const { data } = await supabase.rpc('get_divisions_for_destination', { dst_id: destinationId });
+        if (!cancelled) setDivisionsForDest(Array.isArray(data) ? data : []);
+      } catch {
+        if (!cancelled) setDivisionsForDest([]);
+      }
+    }
+    if (prevDestIdRef.current !== null && prevDestIdRef.current !== destinationId) {
+      setDivisionId("");
+    }
+    fetchDivs();
+    prevDestIdRef.current = destinationId;
+    return () => { cancelled = true; };
+  }, [destinationId, supabase]);
+
   const prefecturesForRegion = useMemo(() => prefectures.filter((p) => p.region_id === regionId), [prefectures, regionId]);
-  const divisionsForPref = useMemo(() => divisions.filter((d) => d.prefecture_id === prefectureId), [divisions, prefectureId]);
   const destinationsForScope = useMemo(() => {
     return destinations.filter((d) => {
       if (prefectureId && d.prefecture_id !== prefectureId) return false;
-      if (divisionId && d.division_id && d.division_id !== divisionId) return false;
       return true;
     });
-  }, [destinations, prefectureId, divisionId]);
+  }, [destinations, prefectureId]);
 
   const destSlugForUpload = useMemo(() => {
     const d = destinations.find((x) => x.id === destinationId);
@@ -223,6 +245,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         body_richtext: body,
         images: Array.isArray(images) ? images : [],
         destination_id: destinationId,
+        division_id: divisionId || null,
         status,
         lat: lat === "" ? null : Number(lat),
         lng: lng === "" ? null : Number(lng),
@@ -267,7 +290,6 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
 
   async function handleDelete() {
     if (!isEditing) return;
-    if (!confirm("Delete this sight? This cannot be undone.")) return;
     const res = await fetch(`/api/admin/sights/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
@@ -278,7 +300,8 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
   }
 
   return (
-    <div className="space-y-4 border rounded-lg p-4">
+    <Card className="space-y-4">
+      <CardContent>
       {formError ? (
         <div className="rounded border border-red-200 bg-red-50 text-red-800 px-3 py-2 text-sm">{formError}</div>
       ) : null}
@@ -286,10 +309,15 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">Status</label>
-          <select className="w-full rounded border p-2" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="draft">draft</option>
-            <option value="published">published</option>
-          </select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">draft</SelectItem>
+              <SelectItem value="published">published</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="md:col-span-2">
@@ -314,39 +342,61 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
 
         <div>
           <label className="block text-sm font-medium">Region</label>
-          <select className="w-full rounded border p-2" value={regionId} onChange={(e) => { setRegionId(e.target.value); setPrefectureId(""); setDivisionId(""); }}>
-            <option value="">All regions…</option>
-            {regions.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
+          <Select value={regionId || "__EMPTY__"} onValueChange={(v) => { const val = v === "__EMPTY__" ? "" : v; setRegionId(val); setPrefectureId(""); setDivisionId(""); }}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All regions…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">All regions…</SelectItem>
+              {regions.map((r) => (
+                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="block text-sm font-medium">Prefecture</label>
-          <select className="w-full rounded border p-2" value={prefectureId} onChange={(e) => { setPrefectureId(e.target.value); setDivisionId(""); }}>
-            <option value="">All prefectures…</option>
-            {prefecturesForRegion.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <Select value={prefectureId || "__EMPTY__"} onValueChange={(v) => { const val = v === "__EMPTY__" ? "" : v; setPrefectureId(val); setDivisionId(""); }}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All prefectures…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">All prefectures…</SelectItem>
+              {prefecturesForRegion.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div>
-          <label className="block text-sm font-medium">Division (optional)</label>
-          <select className="w-full rounded border p-2" value={divisionId} onChange={(e) => setDivisionId(e.target.value)} disabled={prefectureId === ""}>
-            <option value="">All divisions…</option>
-            {divisionsForPref.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
-        </div>
+        {/* Division is chosen within destination context below */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium">Destination</label>
-          <select className="w-full rounded border p-2" value={destinationId} onChange={(e) => setDestinationId(e.target.value)}>
-            <option value="">Select a destination…</option>
-            {destinationsForScope.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+          <Select value={destinationId || "__EMPTY__"} onValueChange={(v) => setDestinationId(v === "__EMPTY__" ? "" : v)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a destination…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">Select a destination…</SelectItem>
+              {destinationsForScope.map((d) => (
+                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">Division (optional)</label>
+          <Select value={divisionId || "__EMPTY__"} onValueChange={(v) => setDivisionId(v === "__EMPTY__" ? "" : v)}>
+            <SelectTrigger className="w-full" disabled={!destinationId}>
+              <SelectValue placeholder="No division (entire destination)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__EMPTY__">No division (entire destination)</SelectItem>
+              {divisionsForDest.map((d) => (
+                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
@@ -363,11 +413,16 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         </div>
         <div>
           <label className="block text-sm font-medium">Provider</label>
-          <select className="w-full rounded border p-2" value={provider} onChange={(e) => setProvider(e.target.value)}>
-            <option value="internal">internal</option>
-            <option value="gyg">gyg</option>
-            <option value="dekitabi">dekitabi</option>
-          </select>
+          <Select value={provider} onValueChange={setProvider}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Provider" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="internal">internal</SelectItem>
+              <SelectItem value="gyg">gyg</SelectItem>
+              <SelectItem value="dekitabi">dekitabi</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="block text-sm font-medium">Deeplink</label>
@@ -384,11 +439,16 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         </div>
         <div>
           <label className="block text-sm font-medium">Price Currency</label>
-          <select className="w-full rounded border p-2" value={priceCurrency} onChange={(e) => setPriceCurrency(e.target.value)}>
-            <option value="JPY">JPY</option>
-            <option value="GBP">GBP</option>
-            <option value="USD">USD</option>
-          </select>
+          <Select value={priceCurrency} onValueChange={setPriceCurrency}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Currency" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="JPY">JPY</SelectItem>
+              <SelectItem value="GBP">GBP</SelectItem>
+              <SelectItem value="USD">USD</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -414,7 +474,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
 
       <div className="space-y-2">
         <div className="text-sm font-medium">Opening hours</div>
-        <button type="button" className="rounded border px-3 py-1 text-sm" onClick={addHour}>Add row</button>
+        <Button type="button" variant="outline" size="sm" onClick={addHour}>Add row</Button>
         {Array.isArray(hours) && hours.length > 0 ? (
           <ul className="space-y-2 mt-2">
             {hours.map((h, idx) => (
@@ -427,15 +487,20 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
                 onDrop={() => { moveHour(dragHourIdx, idx); setDragHourIdx(null); }}
                 title="Drag to reorder"
               >
-                <select className="rounded border p-2" value={h.weekday ?? 0} onChange={(e) => updHour(idx, { weekday: Number(e.target.value) })}>
-                  <option value={0}>Mon</option>
-                  <option value={1}>Tue</option>
-                  <option value={2}>Wed</option>
-                  <option value={3}>Thu</option>
-                  <option value={4}>Fri</option>
-                  <option value={5}>Sat</option>
-                  <option value={6}>Sun</option>
-                </select>
+                <Select value={String(h.weekday ?? 0)} onValueChange={(v) => updHour(idx, { weekday: Number(v) })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Mon</SelectItem>
+                    <SelectItem value="1">Tue</SelectItem>
+                    <SelectItem value="2">Wed</SelectItem>
+                    <SelectItem value="3">Thu</SelectItem>
+                    <SelectItem value="4">Fri</SelectItem>
+                    <SelectItem value="5">Sat</SelectItem>
+                    <SelectItem value="6">Sun</SelectItem>
+                  </SelectContent>
+                </Select>
                 <label className="inline-flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={!!h.is_closed} onChange={(e) => updHour(idx, { is_closed: e.target.checked })} />
                   Closed
@@ -445,7 +510,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
                 <input type="date" className="rounded border p-2" placeholder="Valid from" value={h.valid_from || ""} onChange={(e) => updHour(idx, { valid_from: e.target.value })} />
                 <input type="date" className="rounded border p-2" placeholder="Valid to" value={h.valid_to || ""} onChange={(e) => updHour(idx, { valid_to: e.target.value })} />
                 <span className="text-xs text-neutral-500">☰</span>
-                <button type="button" className="rounded border px-2 py-1 text-xs text-red-700" onClick={() => delHour(idx)}>Remove</button>
+                <Button type="button" variant="destructive" size="sm" className="h-8 px-2 text-xs" onClick={() => delHour(idx)}>Remove</Button>
               </li>
             ))}
           </ul>
@@ -454,7 +519,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
 
       <div className="space-y-2">
         <div className="text-sm font-medium">Opening exceptions</div>
-        <button type="button" className="rounded border px-3 py-1 text-sm" onClick={addException}>Add exception</button>
+        <Button type="button" variant="outline" size="sm" onClick={addException}>Add exception</Button>
         {Array.isArray(exceptions) && exceptions.length > 0 ? (
           <ul className="space-y-2 mt-2">
             {exceptions.map((e, idx) => (
@@ -467,7 +532,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
                 <input type="time" className="rounded border p-2" placeholder="Open" value={e.open_time || ""} onChange={(ev) => updException(idx, { open_time: ev.target.value })} />
                 <input type="time" className="rounded border p-2" placeholder="Close" value={e.close_time || ""} onChange={(ev) => updException(idx, { close_time: ev.target.value })} />
                 <input className="rounded border p-2" placeholder="Note (optional)" value={e.note || ""} onChange={(ev) => updException(idx, { note: ev.target.value })} />
-                <button type="button" className="rounded border px-2 py-1 text-xs text-red-700" onClick={() => delException(idx)}>Remove</button>
+                <Button type="button" variant="destructive" size="sm" className="h-8 px-2 text-xs" onClick={() => delException(idx)}>Remove</Button>
               </li>
             ))}
           </ul>
@@ -475,14 +540,20 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
       </div>
 
       <div className="flex items-center gap-3">
-        <button onClick={save} disabled={saving} className="rounded bg-black text-white px-4 py-2 disabled:opacity-60">
+        <Button onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save"}
-        </button>
-        <button onClick={onCancel} className="rounded border px-4 py-2">Cancel</button>
+        </Button>
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
         {isEditing ? (
-          <button onClick={handleDelete} className="ml-auto rounded bg-red-600 text-white px-4 py-2">Delete</button>
+          <ConfirmDeleteButton
+            title="Delete this sight?"
+            description="This action cannot be undone. This will permanently delete the item and remove any associated data."
+            triggerClassName="ml-auto rounded bg-red-600 text-white px-4 py-2"
+            onConfirm={handleDelete}
+          />
         ) : null}
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

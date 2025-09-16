@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 import { getPrefectureBySlug, getDestinationsByPrefecture } from "@/lib/data/geo";
 import { getExperiencesByDestinationIds } from "@/lib/data/experiences";
 
@@ -49,12 +50,9 @@ export default async function ExperiencesByPrefecturePage({ params }) {
             const Tag = canLink ? Link : 'div';
             const linkProps = canLink ? { href: `/experiences/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
             return (
-              <Tag
-                key={p.id}
-                {...linkProps}
-                className="block rounded-lg border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black/40"
-              >
-                <div className="aspect-[4/3] relative bg-black/5">
+              <Card asChild className="overflow-hidden transition-shadow hover:shadow-md">
+                <Tag key={p.id} {...linkProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+                <div className="aspect-[4/3] relative bg-muted">
                   {img ? (
                     <SafeImage
                       src={img}
@@ -65,13 +63,14 @@ export default async function ExperiencesByPrefecturePage({ params }) {
                     />
                   ) : null}
                 </div>
-                <div className="p-3">
+                <CardContent className="p-4">
                   <div className="font-medium">{p.title || p.name}</div>
                   {p.summary ? (
-                    <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}
-                </div>
-              </Tag>
+                </CardContent>
+                </Tag>
+              </Card>
             );
           })
         ) : (

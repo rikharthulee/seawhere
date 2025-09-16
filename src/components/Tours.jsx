@@ -1,6 +1,7 @@
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Tile } from "@/components/ui/tile";
 
 export default function Tours({ items = [] }) {
   const sorted = Array.isArray(items)
@@ -11,11 +12,11 @@ export default function Tours({ items = [] }) {
 
   return (
     <section id="tours">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="border-t-2 border-border pt-2">
         <div className="flex items-end justify-between">
           <h2 className="text-3xl md:text-4xl font-medium">Tours</h2>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
+        <div className="border-b-2 border-border mt-3" />
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -34,19 +35,10 @@ export default function Tours({ items = [] }) {
           const img = resolveImageUrl(imgPath);
           const destSlug = p?.destinations?.slug || p?.destination?.slug || null;
           const canLink = !!(p.slug && destSlug);
-          const CardTag = canLink ? Link : "div";
-          const cardProps = canLink
-            ? {
-                href: `/tours/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}`,
-              }
-            : {};
+          const href = canLink ? `/tours/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` : null;
           return (
-            <CardTag
-              key={p.id}
-              {...cardProps}
-              className="group block relative overflow-hidden rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/40"
-            >
-              <div className="relative h-64 w-full bg-black/5">
+            <Tile.Link key={p.id} href={href || "#"}>
+              <Tile.Image>
                 {img ? (
                   <SafeImage
                     src={img}
@@ -57,20 +49,20 @@ export default function Tours({ items = [] }) {
                   />
                 ) : null}
                 {p.deeplink ? (
-                  <span className="absolute right-2 top-2 rounded bg-blue-600 text-white text-xs px-2 py-0.5">
+                  <span className="absolute right-2 top-2 rounded bg-primary text-primary-foreground text-xs px-2 py-0.5">
                     Book
                   </span>
                 ) : null}
-              </div>
-              <div className="p-3">
-                <div className="font-medium">{p.title || p.name}</div>
-                {p.summary ? (
-                  <p className="text-sm text-black/70 mt-1 line-clamp-3">
-                    {p.summary}
-                  </p>
-                ) : null}
-              </div>
-            </CardTag>
+              </Tile.Image>
+               <Tile.Content>
+                 <div className="font-medium">{p.title || p.name}</div>
+                 {p.summary ? (
+                   <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                     {p.summary}
+                   </p>
+                 ) : null}
+               </Tile.Content>
+            </Tile.Link>
           );
         })}
       </div>

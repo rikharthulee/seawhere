@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 import { getRegionBySlug, getPrefecturesByRegion, getDestinationsByPrefectureIds } from "@/lib/data/geo";
 import { getToursByDestinationIds } from "@/lib/data/tours";
 
@@ -20,7 +21,7 @@ export default async function ToursByRegionPage({ params }) {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
             Tours in {region.name}
@@ -29,7 +30,7 @@ export default async function ToursByRegionPage({ params }) {
             Back
           </Link>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
+        <div className="border-b-2 border-border mt-3" />
       </div>
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -50,12 +51,9 @@ export default async function ToursByRegionPage({ params }) {
             const Tag = canLink ? Link : 'div';
             const linkProps = canLink ? { href: `/tours/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
             return (
-              <Tag
-                key={p.id}
-                {...linkProps}
-                className="block rounded-lg border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black/40"
-              >
-                <div className="aspect-[4/3] relative bg-black/5">
+              <Card asChild className="overflow-hidden transition-shadow hover:shadow-md">
+                <Tag key={p.id} {...linkProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+                <div className="aspect-[4/3] relative bg-muted">
                   {img ? (
                     <SafeImage
                       src={img}
@@ -66,13 +64,14 @@ export default async function ToursByRegionPage({ params }) {
                     />
                   ) : null}
                 </div>
-                <div className="p-3">
+                <CardContent className="p-4">
                   <div className="font-medium">{p.title || p.name}</div>
                   {p.summary ? (
-                    <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}
-                </div>
-              </Tag>
+                </CardContent>
+                </Tag>
+              </Card>
             );
           })
         ) : (

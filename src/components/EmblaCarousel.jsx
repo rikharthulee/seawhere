@@ -1,88 +1,94 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import useEmblaCarousel from "embla-carousel-react";
+import { useEffect, useState, useCallback } from "react";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
+/**
+ * Shadcn-powered Embla carousel wrapper
+ * - Keeps your existing API: images, options(opts), className, slideClass
+ * - Uses shadcn/ui Carousel (Embla under the hood)
+ * - Custom white round prev/next + dots retained
+ */
 export default function EmblaCarousel({
   images = [],
   options = { loop: true, align: "start" },
   className = "",
   slideClass = "h-[60vh] min-h-[380px]",
 }) {
-  const [viewportRef, embla] = useEmblaCarousel(options);
+  const [api, setApi] = useState(null); // Embla API from shadcn Carousel
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState([]);
 
-  const onSelect = useCallback(() => {
-    if (!embla) return;
-    setSelectedIndex(embla.selectedScrollSnap());
-  }, [embla]);
-
-  const scrollTo = useCallback(
-    (index) => {
-      if (!embla) return;
-      embla.scrollTo(index);
-    },
-    [embla]
-  );
-
-  const scrollPrev = useCallback(() => embla && embla.scrollPrev(), [embla]);
-  const scrollNext = useCallback(() => embla && embla.scrollNext(), [embla]);
-
+  // Keep selected index and snaps in sync
   useEffect(() => {
-    if (!embla) return;
-    setScrollSnaps(embla.scrollSnapList());
-    embla.on("select", onSelect);
-    embla.on("reInit", () => {
-      setScrollSnaps(embla.scrollSnapList());
+    if (!api) return;
+
+    const onSelect = () => setSelectedIndex(api.selectedScrollSnap());
+    const onReInit = () => {
+      setScrollSnaps(api.scrollSnapList());
       onSelect();
-    });
+    };
+
+    setScrollSnaps(api.scrollSnapList());
     onSelect();
-  }, [embla, onSelect]);
+
+    api.on("select", onSelect);
+    api.on("reInit", onReInit);
+
+    return () => {
+      api.off("select", onSelect);
+      api.off("reInit", onReInit);
+    };
+  }, [api]);
+
+  const scrollTo = useCallback((i) => api && api.scrollTo(i), [api]);
 
   return (
     <div className={`relative ${className}`}>
-      {/* viewport */}
-      <div className="overflow-hidden" ref={viewportRef}>
-        <div className="flex">
+      <Carousel opts={options} setApi={setApi} className="w-full">
+        <CarouselContent>
           {images.map((src, i) => (
-            <div key={i} className={`flex-[0_0_100%] relative ${slideClass}`}>
-              <div className="absolute inset-0">
-                <SafeImage
-                  src={resolveImageUrl(src)}
-                  alt={`Slide ${i + 1}`}
-                  fill
-                  sizes="100vw"
-                  className="object-cover"
-                  priority={i === 0}
-                />
+            <CarouselItem key={i} className="p-0">
+              <div className={`relative flex-[0_0_100%] ${slideClass}`}>
+                <div className="absolute inset-0">
+                  <SafeImage
+                    src={resolveImageUrl(src)}
+                    alt={`Slide ${i + 1}`}
+                    fill
+                    sizes="100vw"
+                    className="object-cover"
+                    priority={i === 0}
+                  />
+                </div>
+                {/* optional dark overlay for hero text readability */}
+                {/* <div className='absolute inset-0 bg-black/20' /> */}
               </div>
-              {/* optional dark overlay for hero text readability */}
-              {/* <div className='absolute inset-0 bg-black/20' /> */}
-            </div>
+            </CarouselItem>
           ))}
-        </div>
-      </div>
+        </CarouselContent>
 
-      {/* prev/next buttons */}
-      <button
-        type="button"
-        aria-label="Previous slide"
-        onClick={scrollPrev}
-        className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/80 backdrop-blur px-3 py-2 ring-1 ring-black/10 hover:bg-white"
-      >
-        ‹
-      </button>
-      <button
-        type="button"
-        aria-label="Next slide"
-        onClick={scrollNext}
-        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/80 backdrop-blur px-3 py-2 ring-1 ring-black/10 hover:bg-white"
-      >
-        ›
-      </button>
+        {/* Prev/Next with your preferred look (override shadcn defaults) */}
+        <CarouselPrevious
+          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur px-3 py-2 ring-1 ring-border hover:bg-card"
+          aria-label="Previous slide"
+        >
+          ‹
+        </CarouselPrevious>
+        <CarouselNext
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur px-3 py-2 ring-1 ring-border hover:bg-card"
+          aria-label="Next slide"
+        >
+          ›
+        </CarouselNext>
+      </Carousel>
 
       {/* dots */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
@@ -91,8 +97,8 @@ export default function EmblaCarousel({
             key={i}
             aria-label={`Go to slide ${i + 1}`}
             onClick={() => scrollTo(i)}
-            className={`h-2.5 w-2.5 rounded-full ring-1 ring-white/60 transition ${
-              i === selectedIndex ? "bg-white" : "bg-white/40 hover:bg-white/70"
+            className={`h-2.5 w-2.5 rounded-full ring-1 ring-primary-foreground/60 transition ${
+              i === selectedIndex ? "bg-primary-foreground" : "bg-primary-foreground/40 hover:bg-primary-foreground/70"
             }`}
           />
         ))}

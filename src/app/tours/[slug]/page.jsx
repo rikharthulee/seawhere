@@ -4,19 +4,21 @@ import { getToursForDestination } from "@/lib/data/tours";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const revalidate = 300;
 export const runtime = 'nodejs';
 
-export default async function ToursByDestinationPage({ params }) {
+export default async function ToursByDestinationPage({ params, searchParams }) {
   const { slug } = await params;
+  const divisionSlug = searchParams?.division || null;
   let dst = await getDestinationBySlugLoose(slug).catch(() => null);
   if (!dst) notFound();
-  const tours = await getToursForDestination(dst.id).catch(() => []);
+  const tours = await getToursForDestination(dst.id, divisionSlug).catch(() => []);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
             Tours in {dst.name}
@@ -25,7 +27,7 @@ export default async function ToursByDestinationPage({ params }) {
             Back
           </Link>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
+        <div className="border-b-2 border-border mt-3" />
       </div>
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -47,12 +49,13 @@ export default async function ToursByDestinationPage({ params }) {
             const CardTag = canLink ? Link : 'div';
             const cardProps = canLink ? { href: `/tours/${encodeURIComponent(dst.slug)}/${encodeURIComponent(p.slug)}` } : {};
             return (
-              <CardTag
-                key={p.id}
-                {...cardProps}
-                className="block rounded-lg border overflow-hidden focus:outline-none focus:ring-2 focus:ring-black/40"
-              >
-                <div className="aspect-[4/3] relative bg-black/5">
+              <Card asChild className="overflow-hidden transition-shadow hover:shadow-md">
+                <CardTag
+                  key={p.id}
+                  {...cardProps}
+                  className="block focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                <div className="aspect-[4/3] relative bg-muted">
                   {img ? (
                     <SafeImage
                       src={img}
@@ -63,17 +66,18 @@ export default async function ToursByDestinationPage({ params }) {
                     />
                   ) : null}
                 </div>
-                <div className="p-3">
+                <CardContent className="p-4">
                   <div className="font-medium">{p.title || p.name}</div>
                   {p.summary ? (
-                    <p className="text-sm text-black/70 mt-1 line-clamp-3">{p.summary}</p>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{p.summary}</p>
                   ) : null}
-                </div>
-              </CardTag>
+                </CardContent>
+                </CardTag>
+              </Card>
             );
           })
         ) : (
-          <div className="col-span-full text-black/60">No tours yet for this destination.</div>
+          <div className="col-span-full text-muted-foreground">No tours yet for this destination.</div>
         )}
       </section>
     </main>

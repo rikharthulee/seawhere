@@ -1,11 +1,11 @@
 import "./globals.css";
 import Navbar from "../components/Navbar";
 import GygAnalytics from "@/components/GygAnalytics";
-import { Playfair_Display } from "next/font/google";
 import { Suspense } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Inter } from "next/font/google";
 
-const playfair = Playfair_Display({
+const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
@@ -36,15 +36,20 @@ export default function RootLayout({ children }) {
       <head>
         {/* GYG widget script is now loaded only where used (GygWidget) */}
         {preconnects.map((href) => (
-          <link key={`${href}-pc`} rel="preconnect" href={href} crossOrigin="" />
+          <link
+            key={`${href}-pc`}
+            rel="preconnect"
+            href={href}
+            crossOrigin=""
+          />
         ))}
         {preconnects.map((href) => (
           <link key={`${href}-dns`} rel="dns-prefetch" href={href} />
         ))}
       </head>
-      <body className={playfair.className}>
+      <body className={inter.className}>
         <Navbar />
-        <div className="antialiased bg-white text-neutral-900">{children}</div>
+        <div className="site-root antialiased bg-background text-foreground">{children}</div>
         <Suspense fallback={null}>
           <GygAnalytics />
         </Suspense>

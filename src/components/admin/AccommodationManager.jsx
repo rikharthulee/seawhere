@@ -2,6 +2,10 @@
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import AccommodationForm from "./AccommodationForm";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import StatusBadge from "@/components/admin/StatusBadge";
 
 export default function AccommodationsManager() {
   const supabase = createClientComponentClient();
@@ -14,7 +18,9 @@ export default function AccommodationsManager() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/accommodation", { cache: "no-store" });
+      const res = await fetch("/api/admin/accommodation", {
+        cache: "no-store",
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       setItems(json.items || []);
@@ -29,7 +35,9 @@ export default function AccommodationsManager() {
   useEffect(() => {
     const t = setTimeout(() => {
       if (loading) {
-        setError("Request timed out. Check RLS policies on public.accommodation and your Supabase URL/key.");
+        setError(
+          "Request timed out. Check RLS policies on public.accommodation and your Supabase URL/key."
+        );
         setLoading(false);
       }
     }, 10000);
@@ -41,9 +49,7 @@ export default function AccommodationsManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Accommodation</h2>
-        <button className="rounded bg-black text-white px-3 py-2" onClick={() => setEditing({})}>
-          + New Accommodation
-        </button>
+        <Button onClick={() => setEditing({})}>+ New Accommodation</Button>
       </div>
 
       {editing ? (
@@ -57,69 +63,82 @@ export default function AccommodationsManager() {
         />
       ) : null}
 
-      <div className="overflow-auto rounded border">
-        <table className="min-w-full text-sm">
-          <thead className="bg-black text-white">
-            <tr>
-              <th className="text-left px-3 py-2">Name</th>
-              <th className="text-left px-3 py-2">Slug</th>
-              <th className="text-left px-3 py-2">Status</th>
-              <th className="text-left px-3 py-2 hidden md:table-cell">Summary</th>
-              <th className="text-right px-3 py-2 sm:min-w-[280px]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Table>
+        <TableHeader variant="secondary">
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Slug</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="hidden md:table-cell">Summary</TableHead>
+            <TableHead className="text-right sm:min-w-[280px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
             {loading ? (
-              <tr>
-                <td className="px-3 py-3" colSpan={5}>Loading…</td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={5}>Loading…</TableCell>
+              </TableRow>
             ) : error ? (
-              <tr>
-                <td className="px-3 py-3 text-red-700" colSpan={5}>
+              <TableRow>
+                <TableCell className="text-red-700" colSpan={5}>
                   {error}
-                  <button className="ml-3 rounded border px-2 py-1" onClick={load}>Retry</button>
-                </td>
-              </tr>
+                  <Button variant="outline" size="sm" className="ml-3" onClick={load}>Retry</Button>
+                </TableCell>
+              </TableRow>
             ) : items.length === 0 ? (
-              <tr>
-                <td className="px-3 py-3" colSpan={5}>No accommodation items. Click “New Accommodation” to create your first one.</td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={5}>No accommodation items. Click “New Accommodation” to create your first one.</TableCell>
+              </TableRow>
             ) : (
               items.map((it) => (
-                <tr key={it.id} className="border-t">
-                  <td className="px-3 py-2">{it.name}</td>
-                  <td className="px-3 py-2">{it.slug}</td>
-                  <td className="px-3 py-2">{it.status}</td>
-                  <td className="px-3 py-2 hidden md:table-cell align-top">{it.summary}</td>
-                  <td className="px-3 py-2 text-center sm:text-right sm:min-w-[280px]">
+                <TableRow key={it.id}>
+                  <TableCell>{it.name}</TableCell>
+                  <TableCell>{it.slug}</TableCell>
+                  <TableCell><StatusBadge status={it.status} /></TableCell>
+                  <TableCell className="hidden md:table-cell align-top">{it.summary}</TableCell>
+                  <TableCell className="text-center sm:text-right sm:min-w-[280px]">
                     <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-nowrap sm:justify-end">
-                      <button className="rounded border px-2 py-1" onClick={() => setEditing(it)}>Edit</button>
+                      <Button variant="outline" size="sm" className="h-8 w-20" onClick={() => setEditing(it)}>
+                        Edit
+                      </Button>
                       {it.slug ? (
-                        <a
-                          className="rounded border px-2 py-1 inline-block"
-                          href={`/accommodation/${encodeURIComponent(it.slug)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View
-                        </a>
+                        <Button asChild variant="outline" size="sm" className="h-8 w-20">
+                          <a
+                            href={`/accommodation/${encodeURIComponent(it.slug)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View
+                          </a>
+                        </Button>
                       ) : null}
-                      <button
-                        className="rounded bg-red-600 text-white px-2 py-1"
-                        onClick={async () => {
-                          if (!confirm("Delete this accommodation?")) return;
+                      <ConfirmDeleteButton
+                        title="Delete this accommodation?"
+                        description="This action cannot be undone. This will permanently delete the accommodation and attempt to revalidate related pages."
+                        triggerClassName="w-20"
+                        onConfirm={async () => {
                           try {
-                            const res = await fetch(`/api/admin/accommodation/${it.id}`, { method: "DELETE" });
+                            const res = await fetch(
+                              `/api/admin/accommodation/${it.id}`,
+                              { method: "DELETE" }
+                            );
                             if (!res.ok) {
                               const json = await res.json().catch(() => ({}));
-                              alert(json?.error || `Delete failed (${res.status})`);
+                              alert(
+                                json?.error || `Delete failed (${res.status})`
+                              );
                               return;
                             }
                             try {
                               await fetch(`/api/revalidate`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ tags: ["accommodation", `accommodation:${it.slug}`] }),
+                                body: JSON.stringify({
+                                  tags: [
+                                    "accommodation",
+                                    `accommodation:${it.slug}`,
+                                  ],
+                                }),
                               });
                             } catch {}
                             load();
@@ -127,17 +146,14 @@ export default function AccommodationsManager() {
                             alert(e?.message || "Delete failed");
                           }
                         }}
-                      >
-                        Delete
-                      </button>
+                      />
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+        </TableBody>
+      </Table>
     </div>
   );
 }

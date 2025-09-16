@@ -1,10 +1,127 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+/* Stone-inspired shadcn tokens (light) */
 :root {
-  --radius: 16px;
+  --radius: 0.75rem;
+
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(24 10% 10%);
+
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(24 10% 10%);
+
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(24 10% 10%);
+
+  --primary: hsl(24 10% 10%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  --secondary: hsl(24 6% 90%);
+  --secondary-foreground: hsl(24 10% 10%);
+
+  --muted: hsl(24 6% 90%);
+  --muted-foreground: hsl(24 5% 35%);
+
+  --accent: hsl(24 6% 90%);
+  --accent-foreground: hsl(24 10% 10%);
+
+  --destructive: hsl(0 84% 45%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  /* semantic utility tokens */
+  --success: hsl(142 76% 90%);
+  --success-foreground: hsl(142 43% 25%);
+  --warning: hsl(48 97% 88%);
+  --warning-foreground: hsl(32 74% 25%);
+
+  --border: hsl(24 6% 83%);
+  --input: hsl(24 6% 83%);
+  --ring: hsl(24 5% 35%);
 }
 
-/* Prevent layout shift when some pages have a scrollbar and others don't */
-/* Reserve vertical scrollbar space on all pages to prevent horizontal shift */
-html { overflow-y: scroll; }
-/* For modern browsers that support gutter reservation, this helps too */
-html { scrollbar-gutter: stable; }
+/* Keep default scrollbar behavior; no forced overflow or compensation. */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+.dark {
+  --background: hsl(24 10% 10%);
+  --foreground: hsl(24 5% 90%);
+
+  --card: hsl(24 10% 10%);
+  --card-foreground: hsl(24 5% 90%);
+
+  --popover: hsl(24 10% 10%);
+  --popover-foreground: hsl(24 5% 90%);
+
+  --primary: hsl(0 0% 100%);
+  --primary-foreground: hsl(24 10% 10%);
+
+  --secondary: hsl(24 6% 16%);
+  --secondary-foreground: hsl(24 5% 90%);
+
+  --muted: hsl(24 6% 16%);
+  --muted-foreground: hsl(24 5% 65%);
+
+  --accent: hsl(24 6% 16%);
+  --accent-foreground: hsl(24 5% 90%);
+
+  --destructive: hsl(0 62% 45%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  /* semantic utility tokens */
+  --success: hsl(142 30% 18%);
+  --success-foreground: hsl(142 60% 80%);
+  --warning: hsl(48 30% 16%);
+  --warning-foreground: hsl(48 80% 80%);
+
+  --border: hsl(24 6% 20%);
+  --input: hsl(24 6% 20%);
+  --ring: hsl(24 5% 65%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

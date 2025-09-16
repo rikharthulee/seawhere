@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import ImageUpload from "./ImageUpload";
 import MultiImageUpload from "@/components/admin/MultiImageUpload";
 import ParagraphEditor from "./ParagraphEditor";
@@ -200,7 +204,6 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
 
   async function handleDelete() {
     if (!isEditing) return;
-    if (!confirm("Delete this destination? This cannot be undone.")) return;
     const res = await fetch(`/api/admin/destinations/${initial.id}`, { method: "DELETE" });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
@@ -218,7 +221,8 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
   }
 
   return (
-    <div className="space-y-4 border rounded-lg p-4">
+    <Card className="space-y-4">
+      <CardContent>
       {formError ? (
         <div className="rounded border border-red-200 bg-red-50 text-red-800 px-3 py-2 text-sm">{formError}</div>
       ) : null}
@@ -277,45 +281,48 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
             {assignTo === "prefecture" ? (
               <div>
                 <label className="block text-sm text-black/70">Prefecture</label>
-                <select
-                  className="w-full rounded border p-2"
-                  value={prefectureId}
-                  onChange={(e) => setPrefectureId(e.target.value)}
-                >
-                  <option value="">Select a prefecture…</option>
-                  {prefectures.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                    <Select value={prefectureId || "__EMPTY__"} onValueChange={(v) => setPrefectureId(v === "__EMPTY__" ? "" : v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a prefecture…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="__EMPTY__">Select a prefecture…</SelectItem>
+                    {prefectures.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             ) : (
               <>
                 <div>
                   <label className="block text-sm text-black/70">Prefecture</label>
-                  <select
-                    className="w-full rounded border p-2"
-                    value={prefectureId}
-                    onChange={(e) => setPrefectureId(e.target.value)}
-                  >
-                    <option value="">All prefectures…</option>
-                    {prefectures.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                  <Select value={prefectureId || "__EMPTY__"} onValueChange={(v) => setPrefectureId(v === "__EMPTY__" ? "" : v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All prefectures…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__EMPTY__">All prefectures…</SelectItem>
+                      {prefectures.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 {hasDivisionsForPref ? (
                   <div>
                     <label className="block text-sm text-black/70">Division</label>
-                    <select
-                      className="w-full rounded border p-2"
-                      value={divisionId}
-                      onChange={(e) => setDivisionId(e.target.value)}
-                    >
-                      <option value="">Select a division…</option>
-                      {divisionsForPref.map((d) => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
+                    <Select value={divisionId || "__EMPTY__"} onValueChange={(v) => setDivisionId(v === "__EMPTY__" ? "" : v)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a division…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__EMPTY__">Select a division…</SelectItem>
+                        {divisionsForPref.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 ) : (
                   <div className="text-sm text-black/60 self-end">
@@ -352,14 +359,15 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
         </div>
         <div>
           <label className="block text-sm font-medium">Status</label>
-          <select
-            className="w-full rounded border p-2"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="draft">draft</option>
-            <option value="published">published</option>
-          </select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">draft</SelectItem>
+              <SelectItem value="published">published</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="block text-sm font-medium">Credit</label>
@@ -384,25 +392,22 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
       <ParagraphEditor value={body} onChange={setBody} label="Body (paragraphs)" />
 
       <div className="flex items-center gap-3">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="rounded bg-black text-white px-4 py-2 disabled:opacity-60"
-        >
+        <Button onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save"}
-        </button>
-        <button onClick={onCancel} className="rounded border px-4 py-2">
+        </Button>
+        <Button variant="outline" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
         {isEditing ? (
-          <button
-            onClick={handleDelete}
-            className="ml-auto rounded bg-red-600 text-white px-4 py-2"
-          >
-            Delete
-          </button>
+         <ConfirmDeleteButton
+            title="Delete this destination?"
+            description="This action cannot be undone. This will permanently delete the destination and attempt to revalidate related pages."
+            triggerClassName="ml-auto"
+            onConfirm={handleDelete}
+          />
         ) : null}
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -2,6 +2,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SightsForm from "./SightsForm";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
+import StatusBadge from "@/components/admin/StatusBadge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 
 export default function SightsManager() {
   const [items, setItems] = useState([]);
@@ -46,7 +50,7 @@ export default function SightsManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Sights</h2>
-        <button className="rounded bg-black text-white px-3 py-2" onClick={() => setEditing({})}>+ New Sight</button>
+        <Button onClick={() => setEditing({})}>+ New Sight</Button>
       </div>
 
       {editing ? (
@@ -58,41 +62,40 @@ export default function SightsManager() {
         />
       ) : null}
 
-      <div className="overflow-auto rounded border">
-        <table className="min-w-full text-sm">
-          <thead className="bg-black text-white">
-            <tr>
-              <th className="text-left px-3 py-2">Name</th>
-              <th className="text-left px-3 py-2">Status</th>
-              <th className="text-left px-3 py-2">Destination</th>
-              <th className="text-right px-3 py-2 sm:min-w-[280px] md:w-[320px]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Table>
+        <TableHeader variant="secondary">
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Destination</TableHead>
+            <TableHead className="text-right sm:min-w-[280px] md:w-[320px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
             {loading ? (
-              <tr>
-                <td className="px-3 py-3" colSpan={4}>Loading…</td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={4}>Loading…</TableCell>
+              </TableRow>
             ) : error ? (
-              <tr>
-                <td className="px-3 py-3 text-red-700" colSpan={4}>
+              <TableRow>
+                <TableCell className="text-red-700" colSpan={4}>
                   {error}
-                  <button className="ml-3 rounded border px-2 py-1" onClick={load}>Retry</button>
-                </td>
-              </tr>
+                  <Button variant="outline" size="sm" className="ml-3" onClick={load}>Retry</Button>
+                </TableCell>
+              </TableRow>
             ) : items.length === 0 ? (
-              <tr>
-                <td className="px-3 py-3" colSpan={4}>No sights yet.</td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={4}>No sights yet.</TableCell>
+              </TableRow>
             ) : (
               items.map((it) => (
-                <tr key={it.id} className="border-t">
-                  <td className="px-3 py-2">{it.name}</td>
-                  <td className="px-3 py-2">{it.status}</td>
-                  <td className="px-3 py-2">{destMap[it.destination_id]?.name || it.destination_id || "—"}</td>
-                  <td className="px-3 py-2 text-center sm:text-right sm:min-w-[280px] md:w-[320px]">
+                <TableRow key={it.id}>
+                  <TableCell>{it.name}</TableCell>
+                  <TableCell><StatusBadge status={it.status} /></TableCell>
+                  <TableCell>{destMap[it.destination_id]?.name || it.destination_id || "—"}</TableCell>
+                  <TableCell className="text-center sm:text-right sm:min-w-[280px] md:w-[320px]">
                     <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-nowrap sm:justify-end">
-                      <button className="rounded border px-2 py-1" onClick={async () => {
+                      <Button variant="outline" size="sm" className="h-8 w-20" onClick={async () => {
                       try {
                         const res = await fetch(`/api/admin/sights/${it.id}`, { cache: "no-store" });
                         const json = await res.json();
@@ -120,43 +123,43 @@ export default function SightsManager() {
                       } catch (e) {
                         alert(e?.message || "Failed to load sight");
                       }
-                      }}>Edit</button>
+                      }}>Edit</Button>
                       {destMap[it.destination_id]?.slug && it.slug ? (
-                        <Link
-                          className="rounded border px-2 py-1 inline-block"
-                          href={`/sights/${encodeURIComponent(destMap[it.destination_id].slug)}/${encodeURIComponent(it.slug)}`}
-                          target="_blank"
-                        >
-                          View
-                        </Link>
+                        <Button asChild variant="outline" size="sm" className="h-8 w-20">
+                          <Link
+                            href={`/sights/${encodeURIComponent(destMap[it.destination_id].slug)}/${encodeURIComponent(it.slug)}`}
+                            target="_blank"
+                          >
+                            View
+                          </Link>
+                        </Button>
                       ) : null}
-                      <button
-                        className="rounded bg-red-600 text-white px-2 py-1"
-                        onClick={async () => {
-                        if (!confirm("Delete this sight? This cannot be undone.")) return;
-                        try {
-                          const res = await fetch(`/api/admin/sights/${it.id}`, { method: "DELETE" });
-                          if (!res.ok) {
-                            const json = await res.json().catch(() => ({}));
-                            alert(json?.error || `Delete failed (${res.status})`);
-                            return;
+                      <ConfirmDeleteButton
+                        title="Delete this sight?"
+                        description="This action cannot be undone. This will permanently delete the item and remove any associated data."
+                        triggerClassName="w-20"
+                        
+                        onConfirm={async () => {
+                          try {
+                            const res = await fetch(`/api/admin/sights/${it.id}`, { method: "DELETE" });
+                            if (!res.ok) {
+                              const json = await res.json().catch(() => ({}));
+                              alert(json?.error || `Delete failed (${res.status})`);
+                              return;
+                            }
+                            load();
+                          } catch (e) {
+                            alert(e?.message || "Delete failed");
                           }
-                          load();
-                        } catch (e) {
-                          alert(e?.message || "Delete failed");
-                        }
-                      }}
-                        >
-                          Delete
-                        </button>
+                        }}
+                      />
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+        </TableBody>
+      </Table>
     </div>
   );
 }

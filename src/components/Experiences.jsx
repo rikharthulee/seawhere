@@ -1,6 +1,7 @@
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Experiences({ items = [] }) {
   const sorted = Array.isArray(items)
@@ -11,11 +12,11 @@ export default function Experiences({ items = [] }) {
 
   return (
     <section id="experiences">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="border-t-2 border-border pt-2">
         <div className="flex items-end justify-between">
           <h2 className="text-3xl md:text-4xl font-medium">Experiences</h2>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
+        <div className="border-b-2 border-border mt-3" />
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -35,20 +36,11 @@ export default function Experiences({ items = [] }) {
           const destSlug = p?.destinations?.slug || p?.destination?.slug || null;
           const canLink = !!(p.slug && destSlug);
           const CardTag = canLink ? Link : "div";
-          const cardProps = canLink
-            ? {
-                href: `/experiences/${encodeURIComponent(
-                  destSlug
-                )}/${encodeURIComponent(p.slug)}`,
-              }
-            : {};
+          const cardProps = canLink ? { href: `/experiences/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
           return (
-            <CardTag
-              key={p.id}
-              {...cardProps}
-              className="group block relative overflow-hidden rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/40"
-            >
-              <div className="relative h-64 w-full bg-black/5">
+            <Card asChild className="group overflow-hidden transition-shadow hover:shadow-md">
+              <CardTag key={p.id} {...cardProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+              <div className="relative h-64 w-full bg-muted">
                 {img ? (
                   <SafeImage
                     src={img}
@@ -59,15 +51,16 @@ export default function Experiences({ items = [] }) {
                   />
                 ) : null}
               </div>
-              <div className="p-3">
+              <CardContent className="p-4">
                 <div className="font-medium">{p.title || p.name}</div>
                 {p.summary ? (
-                  <p className="text-sm text-black/70 mt-1 line-clamp-3">
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
                     {p.summary}
                   </p>
                 ) : null}
-              </div>
-            </CardTag>
+              </CardContent>
+              </CardTag>
+            </Card>
           );
         })}
       </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRegionBySlug, getPrefectureBySlug, getDivisionBySlugLoose, getDestinationsByDivision } from "@/lib/data/geo";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function DivisionPage({ params }) {
   const { region, prefecture, division } = await params;
@@ -32,16 +33,14 @@ export default async function DivisionPage({ params }) {
 
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {destinations.map((dst) => (
-          <Link
-            key={dst.id}
-            href={`/destinations/${dst.slug}`}
-            className="block rounded-lg border overflow-hidden hover:shadow-sm"
-          >
-            <div className="aspect-[4/3] bg-black/5" style={{backgroundImage: dst.thumbnail_image ? `url(${resolveImageUrl(dst.thumbnail_image)})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center'}} />
-            <div className="p-3">
-              <div className="font-medium">{dst.name}</div>
-            </div>
-          </Link>
+          <Card key={dst.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
+            <Link href={`/destinations/${dst.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+              <div className="aspect-[4/3] bg-black/5" style={{backgroundImage: dst.thumbnail_image ? `url(${resolveImageUrl(dst.thumbnail_image)})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center'}} />
+              <CardContent className="p-4">
+                <div className="font-medium">{dst.name}</div>
+              </CardContent>
+            </Link>
+          </Card>
         ))}
       </section>
     </main>

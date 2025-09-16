@@ -2,6 +2,10 @@
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import DestinationForm from "./DestinationForm";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import StatusBadge from "@/components/admin/StatusBadge";
 
 export default function DestinationsManager() {
   const supabase = createClientComponentClient();
@@ -44,12 +48,7 @@ export default function DestinationsManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Destinations</h2>
-        <button
-          className="rounded bg-black text-white px-3 py-2"
-          onClick={() => setEditing({})}
-        >
-          + New Destination
-        </button>
+        <Button onClick={() => setEditing({})}>+ New Destination</Button>
       </div>
 
       {editing ? (
@@ -63,105 +62,86 @@ export default function DestinationsManager() {
         />
       ) : null}
 
-      <div className="overflow-auto rounded border">
-        <table className="min-w-full text-sm">
-          <thead className="bg-black text-white">
-            <tr>
-              <th className="text-left px-3 py-2">Name</th>
-              <th className="text-left px-3 py-2">Slug</th>
-              <th className="text-left px-3 py-2">Status</th>
-              <th className="text-left px-3 py-2 hidden md:table-cell">Summary</th>
-              <th className="text-right px-3 py-2 sm:min-w-[280px]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Table>
+        <TableHeader variant="secondary">
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Slug</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="hidden md:table-cell">Summary</TableHead>
+            <TableHead className="text-right sm:min-w-[280px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
             {loading ? (
-              <tr>
-                <td className="px-3 py-3" colSpan={5}>
-                  Loading…
-                </td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={5}>Loading…</TableCell>
+              </TableRow>
             ) : error ? (
-              <tr>
-                <td className="px-3 py-3 text-red-700" colSpan={5}>
+              <TableRow>
+                <TableCell className="text-red-700" colSpan={5}>
                   {error}
-                  <button
-                    className="ml-3 rounded border px-2 py-1"
-                    onClick={load}
-                  >
-                    Retry
-                  </button>
-                </td>
-              </tr>
+                  <Button variant="outline" size="sm" className="ml-3" onClick={load}>Retry</Button>
+                </TableCell>
+              </TableRow>
             ) : items.length === 0 ? (
-              <tr>
-                <td className="px-3 py-3" colSpan={5}>
-                  No destinations. Click “New Destination” to create your first one.
-                </td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={5}>No destinations. Click “New Destination” to create your first one.</TableCell>
+              </TableRow>
             ) : (
               items.map((it) => (
-                <tr key={it.id} className="border-t">
-                  <td className="px-3 py-2">{it.name}</td>
-                  <td className="px-3 py-2">{it.slug}</td>
-                  <td className="px-3 py-2">
-                    {it.status === "draft" ? (
-                      <span className="inline-block text-xs rounded-full bg-yellow-100 text-yellow-800 px-2 py-0.5">Draft</span>
-                    ) : (
-                      <span className="inline-block text-xs rounded-full bg-green-100 text-green-800 px-2 py-0.5">Published</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 hidden md:table-cell align-top">{it.summary}</td>
-                  <td className="px-3 py-2 text-center sm:text-right sm:min-w-[280px]">
+                <TableRow key={it.id}>
+                  <TableCell>{it.name}</TableCell>
+                  <TableCell>{it.slug}</TableCell>
+                  <TableCell><StatusBadge status={it.status} /></TableCell>
+                  <TableCell className="hidden md:table-cell align-top">{it.summary}</TableCell>
+                  <TableCell className="text-center sm:text-right sm:min-w-[280px]">
                     <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-nowrap sm:justify-end">
-                      <button
-                        className="rounded border px-2 py-1"
-                        onClick={() => setEditing(it)}
-                      >
+                      <Button variant="outline" size="sm" className="h-8 w-20" onClick={() => setEditing(it)}>
                         Edit
-                      </button>
-                      <a
-                        className="rounded border px-2 py-1 inline-block"
-                        href={`/destinations/${encodeURIComponent(it.slug)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        View
-                      </a>
-                      <button
-                        className="rounded bg-red-600 text-white px-2 py-1"
-                        onClick={async () => {
-                         if (!confirm("Delete this destination?")) return;
-                         try {
-                         const res = await fetch(`/api/admin/destinations/${it.id}`, { method: "DELETE" });
-                           if (!res.ok) {
-                             const json = await res.json().catch(() => ({}));
-                             alert(json?.error || `Delete failed (${res.status})`);
-                             return;
-                           }
-                           try {
-                             await fetch(`/api/revalidate`, {
-                               method: "POST",
-                               headers: { "Content-Type": "application/json" },
-                               body: JSON.stringify({ tags: ["destinations", `destinations:${it.slug}`] }),
-                             });
-                           } catch {}
-                           load();
-                         } catch (e) {
-                           alert(e?.message || "Delete failed");
-                         }
+                      </Button>
+                      <Button asChild variant="outline" size="sm" className="h-8 w-20">
+                        <a
+                          href={`/destinations/${encodeURIComponent(it.slug)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View
+                        </a>
+                      </Button>
+                      <ConfirmDeleteButton
+                        title="Delete this destination?"
+                        description="This action cannot be undone. This will permanently delete the destination and attempt to revalidate related pages."
+                        triggerClassName="w-20"
+                        
+                        onConfirm={async () => {
+                          try {
+                            const res = await fetch(`/api/admin/destinations/${it.id}`, { method: "DELETE" });
+                            if (!res.ok) {
+                              const json = await res.json().catch(() => ({}));
+                              alert(json?.error || `Delete failed (${res.status})`);
+                              return;
+                            }
+                            try {
+                              await fetch(`/api/revalidate`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ tags: ["destinations", `destinations:${it.slug}`] }),
+                              });
+                            } catch {}
+                            load();
+                          } catch (e) {
+                            alert(e?.message || "Delete failed");
+                          }
                         }}
-                      >
-                        Delete
-                      </button>
+                      />
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+        </TableBody>
+      </Table>
     </div>
   );
 }
