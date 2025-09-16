@@ -49,9 +49,8 @@ export default async function ToursByDestinationPage({ params, searchParams }) {
             const CardTag = canLink ? Link : 'div';
             const cardProps = canLink ? { href: `/tours/${encodeURIComponent(dst.slug)}/${encodeURIComponent(p.slug)}` } : {};
             return (
-              <Card asChild className="overflow-hidden transition-shadow hover:shadow-md">
+              <Card key={p.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
                 <CardTag
-                  key={p.id}
                   {...cardProps}
                   className="block focus:outline-none focus:ring-2 focus:ring-ring"
                 >

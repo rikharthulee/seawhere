@@ -48,8 +48,8 @@ export default async function SightsByDestinationPage({ params, searchParams }) 
             const CardTag = canLink ? Link : 'div';
             const cardProps = canLink ? { href: `/sights/${encodeURIComponent(dst.slug)}/${encodeURIComponent(p.slug)}` } : {};
             return (
-              <Card asChild className="overflow-hidden transition-shadow hover:shadow-md">
-                <CardTag key={p.id} {...cardProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+              <Card key={p.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
+                <CardTag {...cardProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">
                 <div className="aspect-[4/3] relative bg-muted">
                   {img ? (
                     <SafeImage
