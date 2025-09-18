@@ -89,14 +89,13 @@ export default function AdminHome() {
         <article className="p-5 rounded-xl ring-1 ring-black/10">
           <h2 className="text-xl font-semibold">🗺️ Excursions</h2>
           <p className="mt-2 text-gray-700">
-            Curated bundles of sights, experiences, and tours that make up a day
-            or half-day plan.
+            Curate day plans by combining sights, experiences, tours, transport, and notes.
           </p>
           <Link
-            href="/admin/products"
+            href="/admin/excursions/builder"
             className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
           >
-            Go to Products
+            Open Excursions Builder
           </Link>
         </article>
 

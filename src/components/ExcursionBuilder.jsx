@@ -404,7 +404,7 @@ export default function ExcursionsBuilderJS() {
         const json = await res.json();
         if (!res.ok) throw new Error(json?.error || `Save failed (${res.status})`);
         setSavedId(json.id);
-        router.replace(`/excursions/builder?id=${encodeURIComponent(json.id)}`, {
+        router.replace(`/admin/excursions/builder?id=${encodeURIComponent(json.id)}`, {
           scroll: false,
         });
         await refreshList();
@@ -642,7 +642,7 @@ export default function ExcursionsBuilderJS() {
     setError("");
     if (options.clearLoadError) setLoadError("");
     setDraggingId(null);
-    router.replace(`/excursions/builder`, { scroll: false });
+    router.replace(`/admin/excursions/builder`, { scroll: false });
   }, [router]);
 
   async function deleteExcursion(id) {
@@ -754,7 +754,7 @@ export default function ExcursionsBuilderJS() {
                       variant={active ? "default" : "outline"}
                       onClick={() => {
                         if (active) return;
-                        router.replace(`/excursions/builder?id=${encodeURIComponent(item.id)}`, {
+                        router.replace(`/admin/excursions/builder?id=${encodeURIComponent(item.id)}`, {
                           scroll: false,
                         });
                       }}
