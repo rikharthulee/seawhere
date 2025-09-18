@@ -64,7 +64,7 @@ CREATE TABLE public.destination_links (
   to_location_id uuid NOT NULL,
   relation text NOT NULL CHECK (relation = ANY (ARRAY['nearby'::text, 'day_trip'::text, 'gateway'::text, 'sister_area'::text])),
   weight integer DEFAULT 0,
-  CONSTRAINT destination_links_pkey PRIMARY KEY (to_location_id, from_location_id, relation)
+  CONSTRAINT destination_links_pkey PRIMARY KEY (from_location_id, to_location_id, relation)
 );
 CREATE TABLE public.destinations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -105,24 +105,24 @@ CREATE TABLE public.exchange_rates (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT exchange_rates_pkey PRIMARY KEY (currency)
 );
-CREATE TABLE public.excursion_blocks (
+CREATE TABLE public.excursion_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   excursion_id uuid,
-  title text NOT NULL,
-  body text,
-  sort_order integer NOT NULL DEFAULT 0,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT excursion_blocks_pkey PRIMARY KEY (id),
-  CONSTRAINT excursion_blocks_excursion_id_fkey FOREIGN KEY (excursion_id) REFERENCES public.excursion_templates(id)
+  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['sight'::text, 'experience'::text, 'tour'::text])),
+  ref_id uuid NOT NULL,
+  sort_order integer DEFAULT 0,
+  CONSTRAINT excursion_items_pkey PRIMARY KEY (id),
+  CONSTRAINT excursion_items_excursion_id_fkey FOREIGN KEY (excursion_id) REFERENCES public.excursions(id)
 );
-CREATE TABLE public.excursion_templates (
+CREATE TABLE public.excursions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  destination_id uuid,
   name text NOT NULL,
-  description text,
+  description jsonb,
+  transport jsonb,
+  maps_url text,
+  status text DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'published'::text])),
   created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT excursion_templates_pkey PRIMARY KEY (id),
-  CONSTRAINT excursion_templates_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
+  CONSTRAINT excursions_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.experience_availability_rules (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

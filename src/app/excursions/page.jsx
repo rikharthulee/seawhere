@@ -1,17 +1,20 @@
+"use client";
 import Excursions from "@/components/Excursions";
-import { getPublishedExcursions } from "@/lib/data/excursions";
 
-export default async function ExcursionsPage() {
-  let items = [];
-  try {
-    items = await getPublishedExcursions();
-  } catch {}
-  return (
-    <main className="mx-auto max-w-4xl px-4 py-10">
-      <Excursions items={items} />
-    </main>
-  );
-}
-export const revalidate = 300;
-export const runtime = 'nodejs';
+<Excursions />;
 
+import POIPickerSheet from "@/components/ExcursionBuilder";
+
+<POIPickerSheet
+  open={open}
+  onOpenChange={setOpen}
+  onAdd={(poi) => {
+    // Insert into excursion_items with next sort_order
+    // { item_type: poi.kind, ref_id: poi.id, name: poi.name }
+  }}
+  searchPois={async (q) => {
+    // Replace with Supabase search over sights/experiences/tours/food_drink/hotels
+    // Return a flat array: [{id, name, kind, destination}]
+    return fetch(`/api/pois?q=${encodeURIComponent(q)}`).then((r) => r.json());
+  }}
+/>;

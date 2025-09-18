@@ -25,34 +25,61 @@ export default function Hero() {
             Tailor-made journeys, crafted by experts
           </h1>
           <p className="mt-4 text-white/90 drop-shadow text-lg max-w-2xl font-medium">
-            Bespoke itineraries to Japan's most extraordinary places.
+            Bespoke itineraries to Japan&apos;s most extraordinary places.
           </p>
         </div>
       </section>
 
       {/* PITCH SECTION BELOW HERO */}
       <section className="bg-white py-12 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-left">
           <p className="text-lg leading-relaxed text-gray-800">
-            With fifteen years designing Japan holidays for some of the UK’s
-            leading travel agencies — and three years living in Japan — our
-            expert, David, is the person to speak to about making your trip
-            truly special.
+            After fifteen years designing Japan holidays for some of the UK’s
+            leading travel agencies — and three years living in Tokyo — our
+            expert, David, has created JapanMan. It&apos;s not your average
+            travel site. Interactive, customisable and drawn mostly from
+            on-the-ground personal experience, this is the place to build your
+            dream Japan holiday.
           </p>
-          <p className="mt-4 text-lg leading-relaxed text-gray-800">
-            We offer a <strong>30-minute, no-obligation consultation</strong>,
-            then a flat fee of <strong>£125</strong> for a comprehensive
-            tailored itinerary and <strong>unlimited email support</strong> on
-            the build-up to your holiday. Because we're based in South-East
-            Asia, we can provide{" "}
-            <strong>real-time, on-the-ground assistance</strong> while you
-            travel.
+
+          <p className="mt-6 text-lg leading-relaxed text-gray-800 font-semibold">
+            JapanMan members receive:
           </p>
-          <p className="mt-4 text-lg leading-relaxed text-gray-800">
-            What you choose to book is entirely up to you — but with us as your
-            trusted advisor, you're bound to enjoy a richer, more cost-effective
-            Japan experience.
+
+          <ul className="mt-3 list-disc pl-6 space-y-2 text-lg leading-relaxed text-gray-800">
+            <li>
+              Dozens of sample itineraries covering every corner of the country,
+              all fully customisable using JapanMan&apos;s exclusive itinerary
+              builder. Like, add, swap out and browse until you&apos;ve made the
+              perfect holiday.
+            </li>
+            <li>
+              Hundreds of curated excursions combining sights, transport info
+              and maps to minimise hassle and maximise your time in Japan.
+            </li>
+            <li>
+              Hundreds of hand-picked accommodation, restaurants, experiences,
+              tours and guides with direct booking links.
+            </li>
+            <li>
+              All the little details like opening times, closing days, entry
+              fees and advance ticket info — covered for you.
+            </li>
+            <li>
+              A comprehensive toolkit of everything you need to know before you
+              go: Japan Rail Pass, luggage, driving in Japan, family options,
+              food allergies, and more.
+            </li>
+            <li>Helpdesk email support.</li>
+          </ul>
+
+          <p className="mt-6 text-lg leading-relaxed text-gray-800">
+            What you choose to book is ultimately up to you, but with JapanMan
+            you&apos;re bound to enjoy a richer and more cost-effective Japan
+            experience. Become a member for the one-off cost of just £50 and
+            gain unlimited access to our service.
           </p>
+
           <Button asChild className="mt-8 rounded-full">
             <Link href="/contact">Contact Us</Link>
           </Button>
