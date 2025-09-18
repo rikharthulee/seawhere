@@ -1,9 +1,14 @@
-import React, { useMemo, useState, useEffect } from "react";
+"use client";
+
+import React, { useMemo, useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import {
   Sheet,
   SheetContent,
@@ -26,6 +31,7 @@ import {
   Footprints,
   Ship,
   Plane,
+  AlertTriangle,
 } from "lucide-react";
 
 // ----------------------------------------------------------------------
@@ -294,20 +300,37 @@ function bgByType(t) {
 
 // ----------------------------------------------------------------------
 // Main Builder (JS) – wired to Sheet + Timeline
-export default function ExcursionsBuilderJS() {
-  const [openPoi, setOpenPoi] = useState(false);
-  const [openTransport, setOpenTransport] = useState(false);
-  const [excursion, setExcursion] = useState({
+function newExcursionDraft() {
+  return {
     id: uid(),
     name: "Kamikōchi Riverside Walk",
     status: "draft",
     description: "Flat riverside walk via Kappa Bridge & Taishō Pond.",
     maps_url: "",
     items: [],
-  });
+  };
+}
+
+export default function ExcursionsBuilderJS() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [openPoi, setOpenPoi] = useState(false);
+  const [openTransport, setOpenTransport] = useState(false);
+  const [excursion, setExcursion] = useState(() => newExcursionDraft());
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState(null);
   const [error, setError] = useState("");
+  const [draggingId, setDraggingId] = useState(null);
+  const [loadingExcursion, setLoadingExcursion] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [existingExcursions, setExistingExcursions] = useState([]);
+  const [listLoading, setListLoading] = useState(false);
+  const [listError, setListError] = useState("");
+
+  const errorMessages = useMemo(
+    () => [listError, loadError, error].filter(Boolean),
+    [listError, loadError, error]
+  );
 
   async function searchPoisApi(q) {
     try {
@@ -346,6 +369,27 @@ export default function ExcursionsBuilderJS() {
     };
   }
 
+  const refreshList = useCallback(async () => {
+    setListLoading(true);
+    setListError("");
+    try {
+      const res = await fetch(`/api/admin/excursions?limit=100`, {
+        cache: "no-store",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || `List failed (${res.status})`);
+      setExistingExcursions(Array.isArray(json.items) ? json.items : []);
+    } catch (e) {
+      setListError(e?.message || "Failed to load excursions list");
+    } finally {
+      setListLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshList();
+  }, [refreshList]);
+
   async function save(statusOverride) {
     setSaving(true);
     setError("");
@@ -360,6 +404,10 @@ export default function ExcursionsBuilderJS() {
         const json = await res.json();
         if (!res.ok) throw new Error(json?.error || `Save failed (${res.status})`);
         setSavedId(json.id);
+        router.replace(`/excursions/builder?id=${encodeURIComponent(json.id)}`, {
+          scroll: false,
+        });
+        await refreshList();
       } else {
         const res = await fetch(`/api/admin/excursions/${savedId}`, {
           method: "PUT",
@@ -369,6 +417,7 @@ export default function ExcursionsBuilderJS() {
         const json = await res.json();
         if (!res.ok) throw new Error(json?.error || `Update failed (${res.status})`);
       }
+      if (savedId) await refreshList();
     } catch (e) {
       setError(e?.message || "Save failed");
     } finally {
@@ -436,6 +485,52 @@ export default function ExcursionsBuilderJS() {
     }));
   }
 
+  function moveBefore(sourceId, targetId) {
+    if (!sourceId || sourceId === targetId) return;
+    setExcursion((prev) => {
+      const list = sortByOrder(prev.items);
+      const fromIndex = list.findIndex((item) => item.id === sourceId);
+      const targetIndex = list.findIndex((item) => item.id === targetId);
+      if (fromIndex === -1 || targetIndex === -1) return prev;
+      if (fromIndex === targetIndex) {
+        return prev;
+      }
+      if (fromIndex < targetIndex && fromIndex === targetIndex - 1) {
+        return prev;
+      }
+
+      const moving = list[fromIndex];
+      const without = list.filter((_, idx) => idx !== fromIndex);
+      const newTargetIndex = without.findIndex((item) => item.id === targetId);
+      if (newTargetIndex === -1) return prev;
+
+      const next = [...without];
+      next.splice(newTargetIndex, 0, moving);
+      const withOrder = next.map((item, idx) => ({
+        ...item,
+        sort_order: (idx + 1) * 10,
+      }));
+      return { ...prev, items: withOrder };
+    });
+  }
+
+  function moveToEnd(id) {
+    if (!id) return;
+    setExcursion((prev) => {
+      const list = sortByOrder(prev.items);
+      if (list[list.length - 1]?.id === id) return prev;
+      const moving = list.find((item) => item.id === id);
+      if (!moving) return prev;
+      const next = list.filter((item) => item.id !== id);
+      next.push(moving);
+      const withOrder = next.map((item, idx) => ({
+        ...item,
+        sort_order: (idx + 1) * 10,
+      }));
+      return { ...prev, items: withOrder };
+    });
+  }
+
   function moveItem(id, dir) {
     const items = sortByOrder(excursion.items);
     const idx = items.findIndex((i) => i.id === id);
@@ -455,6 +550,159 @@ export default function ExcursionsBuilderJS() {
     [excursion.items]
   );
 
+  function handleDragStart(event, id) {
+    setDraggingId(id);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", id);
+  }
+
+  function handleDragOver(event, overId) {
+    if (!draggingId) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (draggingId === overId) return;
+    moveBefore(draggingId, overId);
+  }
+
+  function handleDrop(event, overId) {
+    event.preventDefault();
+    const sourceId = draggingId || event.dataTransfer.getData("text/plain");
+    if (sourceId && sourceId !== overId) {
+      moveBefore(sourceId, overId);
+    }
+    setDraggingId(null);
+  }
+
+  function handleDragEnd() {
+    setDraggingId(null);
+  }
+
+  function hydrateExcursion(data) {
+    const descriptionField =
+      data?.description && typeof data.description === "object"
+        ? data.description.text || ""
+        : data?.description || "";
+    const notesFromDescription =
+      data?.description && typeof data.description === "object"
+        ? Array.isArray(data.description.notes)
+          ? data.description.notes
+          : []
+        : [];
+
+    const curated = Array.isArray(data?.items)
+      ? data.items.map((it, idx) => ({
+          id:
+            typeof it.id === "string" || typeof it.id === "number"
+              ? `cur-${it.id}`
+              : `cur-${it.item_type}-${it.ref_id}-${idx}`,
+          item_type: it.item_type,
+          ref_id: it.ref_id,
+          sort_order: Number(it.sort_order) || (idx + 1) * 10,
+          name: it.name || "",
+          destination: it.destination || null,
+        }))
+      : [];
+
+    const transportItems = Array.isArray(data?.transport)
+      ? data.transport.map((t, idx) => ({
+          ...t,
+          id: t.id || `transport-${idx}-${uid()}`,
+          item_type: "transport",
+          sort_order: Number(t.sort_order) || (curated.length + idx + 1) * 10,
+        }))
+      : [];
+
+    const noteItems = notesFromDescription.map((n, idx) => ({
+      ...n,
+      id: n.id || `note-${idx}-${uid()}`,
+      item_type: "note",
+      sort_order:
+        Number(n.sort_order) ||
+        (curated.length + transportItems.length + idx + 1) * 10,
+    }));
+
+    setExcursion({
+      id: data?.id,
+      name: data?.name || "",
+      status: data?.status || "draft",
+      description: descriptionField,
+      maps_url: data?.maps_url || "",
+      items: sortByOrder([...curated, ...transportItems, ...noteItems]),
+    });
+    setSavedId(data?.id || null);
+    setDraggingId(null);
+  }
+
+  const excursionIdParam = searchParams?.get("id") || null;
+
+  const resetToNewExcursion = useCallback((options = { clearLoadError: true }) => {
+    const draft = newExcursionDraft();
+    setExcursion(draft);
+    setSavedId(null);
+    setError("");
+    if (options.clearLoadError) setLoadError("");
+    setDraggingId(null);
+    router.replace(`/excursions/builder`, { scroll: false });
+  }, [router]);
+
+  async function deleteExcursion(id) {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/admin/excursions/${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || `Delete failed (${res.status})`);
+      setError("");
+      await refreshList();
+      if (id === savedId) {
+        resetToNewExcursion();
+      }
+    } catch (e) {
+      setError(e?.message || "Delete failed");
+    }
+  }
+
+  useEffect(() => {
+    if (!excursionIdParam) return;
+    let ignore = false;
+    async function load() {
+      setLoadingExcursion(true);
+      setLoadError("");
+      try {
+        const res = await fetch(`/api/admin/excursions/${excursionIdParam}`, {
+          cache: "no-store",
+        });
+        const json = await res.json();
+        if (res.status === 404) {
+          if (!ignore) {
+            resetToNewExcursion({ clearLoadError: false });
+            setLoadError("Excursion not found – showing a new draft instead.");
+            await refreshList();
+          }
+          return;
+        }
+        if (!res.ok) throw new Error(json?.error || `Load failed (${res.status})`);
+        if (!ignore) {
+          hydrateExcursion(json);
+        }
+      } catch (e) {
+        if (!ignore) {
+          setLoadError(e?.message || "Failed to load excursion");
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingExcursion(false);
+        }
+      }
+    }
+    load();
+    return () => {
+      ignore = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [excursionIdParam, refreshList, resetToNewExcursion]);
+
   return (
     <div className="mx-auto max-w-5xl p-4 space-y-6">
       <div className="flex items-center justify-between">
@@ -464,6 +712,72 @@ export default function ExcursionsBuilderJS() {
           <Button disabled={saving} onClick={() => save("published")}>Publish</Button>
         </div>
       </div>
+
+      {errorMessages.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Heads up</AlertTitle>
+          <AlertDescription>
+            {errorMessages.map((msg, idx) => (
+              <p key={idx}>{msg}</p>
+            ))}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {(listLoading || loadingExcursion) && (
+        <div className="rounded border border-muted bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          {listLoading ? "Loading excursions…" : "Loading excursion…"}
+        </div>
+      )}
+
+      <Card className="shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Saved excursions</CardTitle>
+          <Button size="sm" variant="secondary" onClick={resetToNewExcursion}>
+            Start new
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {existingExcursions.length === 0 ? (
+            <div className="text-sm text-muted-foreground">
+              No excursions saved yet.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {existingExcursions.map((item) => {
+                const active = item.id === (savedId || excursionIdParam);
+                return (
+                  <div key={item.id} className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant={active ? "default" : "outline"}
+                      onClick={() => {
+                        if (active) return;
+                        router.replace(`/excursions/builder?id=${encodeURIComponent(item.id)}`, {
+                          scroll: false,
+                        });
+                      }}
+                    >
+                      {item.name || "(untitled)"}
+                    </Button>
+                    <ConfirmDeleteButton
+                      onConfirm={() => deleteExcursion(item.id)}
+                      title="Delete this excursion?"
+                      description={`This action cannot be undone. The excursion "${item.name || "Untitled"}" will be permanently deleted.`}
+                      triggerVariant="ghost"
+                      triggerSize="icon"
+                      triggerClassName="text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </ConfirmDeleteButton>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="shadow-sm">
         <CardHeader>
@@ -685,10 +999,19 @@ export default function ExcursionsBuilderJS() {
 
               {/* Simple controls */}
               <div className="space-y-2">
-                {timelineItems.map((i, idx) => (
+                {timelineItems.map((i) => (
                   <div
                     key={i.id}
-                    className="flex items-center justify-between rounded-lg border p-2"
+                    className={
+                      "flex items-center justify-between rounded-lg border p-2 cursor-grab" +
+                      (draggingId === i.id ? " opacity-50" : "")
+                    }
+                    draggable
+                    aria-grabbed={draggingId === i.id}
+                    onDragStart={(event) => handleDragStart(event, i.id)}
+                    onDragOver={(event) => handleDragOver(event, i.id)}
+                    onDrop={(event) => handleDrop(event, i.id)}
+                    onDragEnd={handleDragEnd}
                   >
                     <div className="flex items-center gap-2">
                       <GripVertical className="h-4 w-4 text-muted-foreground" />
@@ -735,6 +1058,23 @@ export default function ExcursionsBuilderJS() {
                     </div>
                   </div>
                 ))}
+                <div
+                  className={
+                    "h-6 rounded border border-dashed border-transparent transition-colors" +
+                    (draggingId ? " border-muted" : "")
+                  }
+                  onDragOver={(event) => {
+                    if (!draggingId) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const sourceId = draggingId || event.dataTransfer.getData("text/plain");
+                    if (sourceId) moveToEnd(sourceId);
+                    setDraggingId(null);
+                  }}
+                />
               </div>
             </div>
           )}

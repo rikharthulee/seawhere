@@ -51,3 +51,41 @@ export async function POST(request) {
   }
 }
 
+export async function GET(request) {
+  try {
+    const client = await getClient();
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(Number(searchParams.get("limit") || 50), 200);
+    const q = (searchParams.get("q") || "").trim();
+    let query = client
+      .from("excursions")
+      .select("id, name, status, updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+    if (q) {
+      query = query.ilike("name", `%${q}%`);
+    }
+    const { data, error } = await query;
+    if (error) {
+      if (error.code === "42703") {
+        let fallback = client
+          .from("excursions")
+          .select("id, name, status")
+          .order("name", { ascending: true })
+          .limit(limit);
+        if (q) {
+          fallback = fallback.ilike("name", `%${q}%`);
+        }
+        const { data: fallbackData, error: fallbackError } = await fallback;
+        if (fallbackError) {
+          return NextResponse.json({ error: fallbackError.message }, { status: 400 });
+        }
+        return NextResponse.json({ items: fallbackData || [] });
+      }
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    return NextResponse.json({ items: data || [] });
+  } catch (e) {
+    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+  }
+}

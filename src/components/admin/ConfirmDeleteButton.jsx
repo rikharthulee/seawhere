@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export default function ConfirmDeleteButton({
@@ -7,6 +8,8 @@ export default function ConfirmDeleteButton({
   title = "Delete this item?",
   description = "This action cannot be undone. This will permanently delete the item and remove any associated data.",
   triggerClassName = "",
+  triggerVariant = "destructive",
+  triggerSize = "sm",
   children = "Delete",
 }) {
   const [pending, setPending] = useState(false);
@@ -33,9 +36,12 @@ export default function ConfirmDeleteButton({
   return (
     <>
       <Button
-        variant="destructive"
-        size="sm"
-        className={`h-8 rounded-md ${triggerClassName}`}
+        variant={triggerVariant}
+        size={triggerSize}
+        className={cn(
+          triggerSize === "icon" ? "" : "h-8 rounded-md",
+          triggerClassName
+        )}
         disabled={pending}
         onClick={() => setOpen(true)}
       >
