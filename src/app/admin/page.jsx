@@ -89,7 +89,8 @@ export default function AdminHome() {
         <article className="p-5 rounded-xl ring-1 ring-black/10">
           <h2 className="text-xl font-semibold">🗺️ Excursions</h2>
           <p className="mt-2 text-gray-700">
-            Curate day plans by combining sights, experiences, tours, transport, and notes.
+            Curate day plans by combining sights, experiences, tours, transport,
+            and notes.
           </p>
           <Link
             href="/admin/excursions/builder"
@@ -107,6 +108,8 @@ export default function AdminHome() {
           </p>
           <Link
             href="/"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-block mt-4 rounded border border-border px-4 py-2 hover:bg-accent"
           >
             Go to Home

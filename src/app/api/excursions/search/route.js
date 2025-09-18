@@ -37,16 +37,20 @@ export async function GET(request) {
       }));
     }
 
-    const [sights, experiences, tours] = await Promise.all([
+    const [sights, experiences, tours, accommodation, foodDrink] = await Promise.all([
       run("sight", "sights"),
       run("experience", "experiences"),
       run("tour", "tours"),
+      run("accommodation", "accommodation"),
+      run("food_drink", "food_drink"),
     ]);
 
-    const items = [...sights, ...experiences, ...tours].slice(0, limit * 3);
+    const items = [...sights, ...experiences, ...tours, ...accommodation, ...foodDrink].slice(
+      0,
+      limit * 5
+    );
     return NextResponse.json({ items });
   } catch (e) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
   }
 }
-

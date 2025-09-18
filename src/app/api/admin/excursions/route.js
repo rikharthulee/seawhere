@@ -57,25 +57,40 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const limit = Math.min(Number(searchParams.get("limit") || 50), 200);
     const q = (searchParams.get("q") || "").trim();
+    const baseSelect = [
+      "id",
+      "name",
+      "status",
+      "updated_at",
+      "summary",
+      "destination_id",
+    ];
+
     let query = client
       .from("excursions")
-      .select("id, name, status, updated_at")
+      .select(baseSelect.join(","))
       .order("updated_at", { ascending: false })
       .limit(limit);
+
     if (q) {
       query = query.ilike("name", `%${q}%`);
     }
+
     const { data, error } = await query;
+
     if (error) {
       if (error.code === "42703") {
+        const fallbackSelect = baseSelect.filter((field) => field !== "updated_at").join(",");
         let fallback = client
           .from("excursions")
-          .select("id, name, status")
+          .select(fallbackSelect)
           .order("name", { ascending: true })
           .limit(limit);
+
         if (q) {
           fallback = fallback.ilike("name", `%${q}%`);
         }
+
         const { data: fallbackData, error: fallbackError } = await fallback;
         if (fallbackError) {
           return NextResponse.json({ error: fallbackError.message }, { status: 400 });
@@ -84,6 +99,7 @@ export async function GET(request) {
       }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+
     return NextResponse.json({ items: data || [] });
   } catch (e) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });

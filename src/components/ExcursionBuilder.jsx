@@ -34,8 +34,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-// ----------------------------------------------------------------------
-// Small helpers (no TS)
 const uid = () => Math.random().toString(36).slice(2);
 
 function minsToLabel(mins) {
@@ -65,37 +63,6 @@ function modeIcon(m) {
       return <Car className={cl + " opacity-50"} />;
   }
 }
-
-// ----------------------------------------------------------------------
-// POI Picker Sheet (JS)
-const MOCK_POIS = [
-  { id: "s1", name: "Sensō-ji Temple", kind: "sight", destination: "Tokyo" },
-  {
-    id: "s2",
-    name: "Yomeimon Gate (Toshogu)",
-    kind: "sight",
-    destination: "Nikkō",
-  },
-  {
-    id: "e1",
-    name: "Tea Ceremony in Gion",
-    kind: "experience",
-    destination: "Kyoto",
-  },
-  { id: "t1", name: "Nikkō Day Tour", kind: "tour", destination: "Tokyo" },
-  {
-    id: "f1",
-    name: "Takoyaki Alley",
-    kind: "food_drink",
-    destination: "Osaka",
-  },
-  {
-    id: "h1",
-    name: "Ryokan Yama-no-Ie",
-    kind: "hotel",
-    destination: "Kamikōchi",
-  },
-];
 
 function defaultSearch(query) {
   if (!query) return Promise.resolve(MOCK_POIS);
@@ -129,7 +96,7 @@ function POIPickerSheet({
       .finally(() => setLoading(false));
   }, [open, query, searchPois]);
 
-  const kinds = ["sight", "experience", "tour", "food_drink", "hotel"];
+  const kinds = ["sight", "experience", "tour", "accommodation", "food_drink"];
 
   const grouped = useMemo(() => {
     const g = Object.fromEntries(kinds.map((k) => [k, []]));
@@ -146,7 +113,7 @@ function POIPickerSheet({
           <SheetTitle>Add POIs</SheetTitle>
         </SheetHeader>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-2 space-y-4 px-4">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -168,10 +135,14 @@ function POIPickerSheet({
             {kinds.map((k) => (
               <TabsContent key={k} value={k} className="pt-3">
                 {loading && (
-                  <div className="text-sm text-muted-foreground">Searching…</div>
+                  <div className="text-sm text-muted-foreground">
+                    Searching…
+                  </div>
                 )}
                 {!loading && grouped[k].length === 0 && (
-                  <div className="text-sm text-muted-foreground">No results</div>
+                  <div className="text-sm text-muted-foreground">
+                    No results
+                  </div>
                 )}
                 {!loading && grouped[k].length > 0 ? (
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -179,8 +150,16 @@ function POIPickerSheet({
                       <li key={p.id}>
                         <div className="flex items-center justify-between rounded-lg border p-3">
                           <div className="min-w-0">
-                            <div className="font-medium truncate" title={p.name}>{p.name}</div>
-                            <div className="text-xs text-muted-foreground truncate" title={`${p.destination || "—"} · ${p.kind}`}>
+                            <div
+                              className="font-medium truncate"
+                              title={p.name}
+                            >
+                              {p.name}
+                            </div>
+                            <div
+                              className="text-xs text-muted-foreground truncate"
+                              title={`${p.destination || "—"} · ${p.kind}`}
+                            >
                               {p.destination || "—"} · {p.kind}
                             </div>
                           </div>
@@ -214,13 +193,13 @@ function ExcursionTimeline({
   items,
   minutesPerUnit = 30,
   unitRowPx = 16, // larger base row height to avoid visual overlap
-  hotelFixedUnits = 6,
+  accommodationFixedUnits = 6,
 }) {
   const minRows = 6; // ensure enough vertical space for badges/title
   const computed = (items || []).map((it) => {
-    const isHotel = it.item_type === "hotel";
-    const base = isHotel
-      ? minutesPerUnit * hotelFixedUnits
+    const isAccommodation = it.item_type === "accommodation";
+    const base = isAccommodation
+      ? minutesPerUnit * accommodationFixedUnits
       : it.duration_minutes || minutesPerUnit;
     const span = Math.max(minRows, Math.ceil(base / minutesPerUnit));
     return { ...it, _rowSpan: span };
@@ -287,7 +266,7 @@ function bgByType(t) {
       return "bg-cyan-50/60 dark:bg-cyan-900/20";
     case "food_drink":
       return "bg-rose-50/60 dark:bg-rose-900/20";
-    case "hotel":
+    case "accommodation":
       return "bg-amber-50/60 dark:bg-amber-900/20";
     case "transport":
       return "bg-slate-50/60 dark:bg-slate-800/40";
@@ -334,7 +313,10 @@ export default function ExcursionsBuilderJS() {
 
   async function searchPoisApi(q) {
     try {
-      const res = await fetch(`/api/excursions/search?q=${encodeURIComponent(q || "")}`, { cache: "no-store" });
+      const res = await fetch(
+        `/api/excursions/search?q=${encodeURIComponent(q || "")}`,
+        { cache: "no-store" }
+      );
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       return Array.isArray(json.items) ? json.items : [];
@@ -349,11 +331,13 @@ export default function ExcursionsBuilderJS() {
       ...it,
       sort_order: Number(it.sort_order) || 0,
     }));
-    const dbItems = items.filter((it) => allowed.has(it.item_type)).map((it) => ({
-      item_type: it.item_type,
-      ref_id: it.ref_id,
-      sort_order: it.sort_order,
-    }));
+    const dbItems = items
+      .filter((it) => allowed.has(it.item_type))
+      .map((it) => ({
+        item_type: it.item_type,
+        ref_id: it.ref_id,
+        sort_order: it.sort_order,
+      }));
 
     const transport = items.filter((it) => it.item_type === "transport");
     const notes = items.filter((it) => it.item_type === "note");
@@ -377,7 +361,8 @@ export default function ExcursionsBuilderJS() {
         cache: "no-store",
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || `List failed (${res.status})`);
+      if (!res.ok)
+        throw new Error(json?.error || `List failed (${res.status})`);
       setExistingExcursions(Array.isArray(json.items) ? json.items : []);
     } catch (e) {
       setListError(e?.message || "Failed to load excursions list");
@@ -402,11 +387,15 @@ export default function ExcursionsBuilderJS() {
           body: JSON.stringify(payload),
         });
         const json = await res.json();
-        if (!res.ok) throw new Error(json?.error || `Save failed (${res.status})`);
+        if (!res.ok)
+          throw new Error(json?.error || `Save failed (${res.status})`);
         setSavedId(json.id);
-        router.replace(`/admin/excursions/builder?id=${encodeURIComponent(json.id)}`, {
-          scroll: false,
-        });
+        router.replace(
+          `/admin/excursions/builder?id=${encodeURIComponent(json.id)}`,
+          {
+            scroll: false,
+          }
+        );
         await refreshList();
       } else {
         const res = await fetch(`/api/admin/excursions/${savedId}`, {
@@ -415,7 +404,8 @@ export default function ExcursionsBuilderJS() {
           body: JSON.stringify(payload),
         });
         const json = await res.json();
-        if (!res.ok) throw new Error(json?.error || `Update failed (${res.status})`);
+        if (!res.ok)
+          throw new Error(json?.error || `Update failed (${res.status})`);
       }
       if (savedId) await refreshList();
     } catch (e) {
@@ -635,15 +625,18 @@ export default function ExcursionsBuilderJS() {
 
   const excursionIdParam = searchParams?.get("id") || null;
 
-  const resetToNewExcursion = useCallback((options = { clearLoadError: true }) => {
-    const draft = newExcursionDraft();
-    setExcursion(draft);
-    setSavedId(null);
-    setError("");
-    if (options.clearLoadError) setLoadError("");
-    setDraggingId(null);
-    router.replace(`/admin/excursions/builder`, { scroll: false });
-  }, [router]);
+  const resetToNewExcursion = useCallback(
+    (options = { clearLoadError: true }) => {
+      const draft = newExcursionDraft();
+      setExcursion(draft);
+      setSavedId(null);
+      setError("");
+      if (options.clearLoadError) setLoadError("");
+      setDraggingId(null);
+      router.replace(`/admin/excursions/builder`, { scroll: false });
+    },
+    [router]
+  );
 
   async function deleteExcursion(id) {
     if (!id) return;
@@ -652,7 +645,8 @@ export default function ExcursionsBuilderJS() {
         method: "DELETE",
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error || `Delete failed (${res.status})`);
+      if (!res.ok)
+        throw new Error(json?.error || `Delete failed (${res.status})`);
       setError("");
       await refreshList();
       if (id === savedId) {
@@ -682,7 +676,8 @@ export default function ExcursionsBuilderJS() {
           }
           return;
         }
-        if (!res.ok) throw new Error(json?.error || `Load failed (${res.status})`);
+        if (!res.ok)
+          throw new Error(json?.error || `Load failed (${res.status})`);
         if (!ignore) {
           hydrateExcursion(json);
         }
@@ -706,10 +701,18 @@ export default function ExcursionsBuilderJS() {
   return (
     <div className="mx-auto max-w-5xl p-4 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Excursions Builder (JS)</h1>
+        <h1 className="text-2xl font-semibold">Excursions Builder</h1>
         <div className="space-x-2">
-          <Button variant="secondary" disabled={saving} onClick={() => save("draft")}>{saving ? "Saving…" : "Save draft"}</Button>
-          <Button disabled={saving} onClick={() => save("published")}>Publish</Button>
+          <Button
+            variant="secondary"
+            disabled={saving}
+            onClick={() => save("draft")}
+          >
+            {saving ? "Saving…" : "Save draft"}
+          </Button>
+          <Button disabled={saving} onClick={() => save("published")}>
+            Publish
+          </Button>
         </div>
       </div>
 
@@ -754,9 +757,14 @@ export default function ExcursionsBuilderJS() {
                       variant={active ? "default" : "outline"}
                       onClick={() => {
                         if (active) return;
-                        router.replace(`/admin/excursions/builder?id=${encodeURIComponent(item.id)}`, {
-                          scroll: false,
-                        });
+                        router.replace(
+                          `/admin/excursions/builder?id=${encodeURIComponent(
+                            item.id
+                          )}`,
+                          {
+                            scroll: false,
+                          }
+                        );
                       }}
                     >
                       {item.name || "(untitled)"}
@@ -764,7 +772,9 @@ export default function ExcursionsBuilderJS() {
                     <ConfirmDeleteButton
                       onConfirm={() => deleteExcursion(item.id)}
                       title="Delete this excursion?"
-                      description={`This action cannot be undone. The excursion "${item.name || "Untitled"}" will be permanently deleted.`}
+                      description={`This action cannot be undone. The excursion "${
+                        item.name || "Untitled"
+                      }" will be permanently deleted.`}
                       triggerVariant="ghost"
                       triggerSize="icon"
                       triggerClassName="text-destructive hover:bg-destructive/10"
@@ -1070,7 +1080,8 @@ export default function ExcursionsBuilderJS() {
                   }}
                   onDrop={(event) => {
                     event.preventDefault();
-                    const sourceId = draggingId || event.dataTransfer.getData("text/plain");
+                    const sourceId =
+                      draggingId || event.dataTransfer.getData("text/plain");
                     if (sourceId) moveToEnd(sourceId);
                     setDraggingId(null);
                   }}
@@ -1080,12 +1091,6 @@ export default function ExcursionsBuilderJS() {
           )}
         </CardContent>
       </Card>
-
-      <Separator />
-      <div className="text-xs text-muted-foreground">
-        Mock only: wire to Supabase upserts (excursions + excursion_items).
-        Timeline above sizes cards by duration; hotels are fixed height.
-      </div>
     </div>
   );
 }
