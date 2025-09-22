@@ -122,7 +122,11 @@ CREATE TABLE public.excursions (
   maps_url text,
   status text DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'published'::text])),
   created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT excursions_pkey PRIMARY KEY (id)
+  excursions.updated_at timestamp with time zone,
+  summary text,
+  destination_id uuid,
+  CONSTRAINT excursions_pkey PRIMARY KEY (id),
+  CONSTRAINT excursions_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
 );
 CREATE TABLE public.experience_availability_rules (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

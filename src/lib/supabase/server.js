@@ -14,11 +14,18 @@ export function supabaseServer() {
           return value ? value : undefined;
         },
         set(name, value, options) {
-          cookieStore.set({ name, value, ...options });
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (_) {
+            // Ignore write attempts outside Server Actions / Route Handlers
+          }
         },
         remove(name, options) {
-          // Explicitly expire the cookie to fully remove it
-          cookieStore.set({ name, value: "", ...options, maxAge: 0, path: "/" });
+          try {
+            cookieStore.set({ name, value: "", ...options, maxAge: 0, path: "/" });
+          } catch (_) {
+            // Ignore write attempts outside Server Actions / Route Handlers
+          }
         },
       },
     }

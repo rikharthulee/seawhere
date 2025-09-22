@@ -2,7 +2,7 @@
 
 ## 🎯 What we’re building
 
-Browse & manage **Sights, Experiences, Tours** and bundle them into **Excursions/Products** to place on **Itinerary Days**, all organized by **Region → Prefecture → Division → Destination**.
+Browse & manage **Sights, Experiences, Tours, Food & Drink, Accommodation** and bundle them into **Excursions/Products** to place on **Itinerary Days**, all organized by **Region → Prefecture → Division → Destination**.
 
 ---
 
@@ -13,7 +13,7 @@ Browse & manage **Sights, Experiences, Tours** and bundle them into **Excursions
 - 🏯 **Sights** — “Static places like temples, gardens, or landmarks that visitors can go and see.”
 - 🎎 **Experiences** — “Hands-on or cultural activities, like a tea ceremony, sumo try-on, or cooking class.”
 - 🚌 **Tours** — “Guided outings from A→A or A→B, such as walking tours or day trips.”
-- 🗺️ **Products/Excursions** — “Curated bundles of sights, experiences, and tours that make up a day plan.”
+- 🗺️ **Excursions** — “Curated bundles of sights, experiences, tours (plus internal notes/transport) that make up a day plan.”
 - 🍜 **Food & Drink** — “Restaurants, cafés, bars, or other places to eat and drink.”
 
 ---
@@ -23,24 +23,33 @@ Browse & manage **Sights, Experiences, Tours** and bundle them into **Excursions
 - **regions** (slug) → groups prefectures
 - **prefectures** (slug, region_id) → groups divisions
 - **divisions** (slug, prefecture_id) → groups destinations
-- **destinations** (slug, division_id, prefecture_id, status) → owns Sights/Experiences/Tours/Products
-- **sights** (destination*id, status, timings, price*\*)
-- **experiences** (destination_id, status, price, availability via rules/exceptions)
+- **destinations** (slug, division_id, prefecture_id, status) → owns Sights/Experiences/Tours/Food & Drink/Accommodation/Excursions/Products
+- **sights** (destination_id, status, timings, pricing) ⇢ optional `sight_opening_hours`, `sight_opening_exceptions`
+- **experiences** (destination_id, status, pricing, provider metadata)
   - `experience_availability_rules`, `experience_exceptions`
-- **tours** (destination_id, status, price, availability via rules/exceptions)
+- **tours** (destination_id, status, pricing, provider metadata)
   - `tour_availability_rules`, `tour_exceptions`
 - **products** (destination_id, status, body_richtext, images)
   - **product_items** (product_id, item_type, ref_id, sort_order) → links to {sight|tour|experience|food_drink|hotel}
-- **accommodation / food_drink / hotels** — supporting entities
-- **itineraries / itinerary_days / itinerary_day_items** — customer plan structure
+- **excursions** (name, description json, transport json, summary, destination_id?, status)
+  - **excursion_items** (excursion_id, item_type {sight|experience|tour}, ref_id, sort_order)
+- **accommodation** (destination/division/prefecture FKs, price band, imagery); legacy `hotels` table still present but phased out
+- **food_drink** (destination/division, type enum)
+- **categories** / **category_links** — tagging across destinations, POIs, accommodation, articles
+- **itineraries / itinerary_days / itinerary_day_items / itinerary_items / itinerary_flights** — customer plan structure referencing excursions/products/POIs/accommodation
 
 ---
 
 ## 🔗 Relationships
 
-`region (1) ──< prefecture (1) ──< division (1) ──< destination (1) ──< [sight | experience | tour | product | food_drink | accommodation]`
+`region (1) ──< prefecture (1) ──< division (1) ──< destination (1) ──< [sight | experience | tour | food_drink | accommodation | excursion | product]`
 
-- `product (1) ──< product_items (N)` referencing one of: sight/tour/experience/food_drink/hotel
+- `product (1) ──< product_items (N)` referencing one of: sight/tour/experience/food_drink/hotel (legacy naming)
+- `excursion (1) ──< excursion_items (N)` referencing sight/experience/tour → UI hydrates names/destinations client-side
+- `itinerary (1) ──< itinerary_days (N)`
+  - `itinerary_day (1) ──< itinerary_day_items (N)` referencing excursions/products/POIs
+  - `itinerary_day (1) ──< itinerary_items (N)` referencing accommodation, transport, custom blocks
+- `accommodation` linked from destination + itinerary tables (days/items)
 
 ---
 
@@ -90,6 +99,8 @@ CREATE INDEX IF NOT EXISTS idx_experiences_destination_id ON public.experiences(
 CREATE INDEX IF NOT EXISTS idx_tours_destination_id       ON public.tours(destination_id);
 CREATE INDEX IF NOT EXISTS idx_products_destination_id    ON public.products(destination_id);
 CREATE INDEX IF NOT EXISTS idx_food_drink_destination_id  ON public.food_drink(destination_id);
+CREATE INDEX IF NOT EXISTS idx_accommodation_destination_id ON public.accommodation(destination_id);
+CREATE INDEX IF NOT EXISTS idx_excursions_destination_id     ON public.excursions(destination_id);
 
 -- availability tables
 CREATE INDEX IF NOT EXISTS idx_exp_rules_experience_id ON public.experience_availability_rules(experience_id);
@@ -99,6 +110,7 @@ CREATE INDEX IF NOT EXISTS idx_tour_exc_tour_id        ON public.tour_exceptions
 
 -- product composition
 CREATE INDEX IF NOT EXISTS idx_product_items_product_id ON public.product_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_excursion_items_excursion_id ON public.excursion_items(excursion_id);
 ```
 
 ---
@@ -112,6 +124,8 @@ CREATE INDEX IF NOT EXISTS idx_product_items_product_id ON public.product_items(
 /experiences/division/[slug]              → src/app/experiences/division/[slug]/page.jsx
 /experiences/[destinationSlug]            → src/app/experiences/[slug]/page.jsx
 /experiences/[destinationSlug]/[expSlug]  → src/app/experiences/[slug]/[experience]/page.jsx
+/excursions                               → src/app/excursions/page.jsx
+/admin/excursions/builder                 → src/app/admin/excursions/builder/page.jsx
 ```
 
 ---
@@ -182,6 +196,27 @@ WHERE p.slug = $1 AND p.status='published'
 GROUP BY p.id;
 ```
 
+### Excursion with items, transport + notes split out
+
+```sql
+SELECT e.id,
+       e.name,
+       (e.description ->> 'text')       AS description_text,
+       (e.description -> 'notes')       AS description_notes,
+       e.transport,
+       json_agg(
+         json_build_object(
+           'item_type', ei.item_type,
+           'ref_id',     ei.ref_id,
+           'sort_order', ei.sort_order
+         ) ORDER BY ei.sort_order
+       ) AS items
+FROM public.excursions e
+LEFT JOIN public.excursion_items ei ON ei.excursion_id = e.id
+WHERE e.status = 'published' AND e.id = $1
+GROUP BY e.id;
+```
+
 ---
 
 ## 🧰 Admin-friendly seed/create order
@@ -225,6 +260,6 @@ WHERE (pi.item_type='sight' AND s.id IS NULL)
 - Geo derived via destination → don’t duplicate division/prefecture/region columns in experiences/tours/sights.
 - Public sees only `status='published'`; admins do everything (`is_admin()`).
 - Views (like `product_items_expanded`) inherit base table RLS — no direct policies.
-- Excursions vs Products → DB uses **products**, UI can label them “Excursions.”
+- Excursions now live in `public.excursions` (JSON description/transport + `excursion_items` for curated POIs). “Products” are legacy bundles still referenced by older itinerary tools.
 - Sights use `sight_opening_hours/_exceptions`; Experiences/Tours use `*_availability_rules/_exceptions`.
 - Food & Drink is simple: type = {restaurant, bar, café, other}.

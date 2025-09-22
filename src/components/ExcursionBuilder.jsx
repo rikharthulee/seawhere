@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import {
   Sheet,
   SheetContent,
@@ -282,9 +281,9 @@ function bgByType(t) {
 function newExcursionDraft() {
   return {
     id: uid(),
-    name: "Kamikōchi Riverside Walk",
+    name: "",
     status: "draft",
-    description: "Flat riverside walk via Kappa Bridge & Taishō Pond.",
+    description: "",
     maps_url: "",
     items: [],
   };
@@ -302,13 +301,10 @@ export default function ExcursionsBuilderJS() {
   const [draggingId, setDraggingId] = useState(null);
   const [loadingExcursion, setLoadingExcursion] = useState(false);
   const [loadError, setLoadError] = useState("");
-  const [existingExcursions, setExistingExcursions] = useState([]);
-  const [listLoading, setListLoading] = useState(false);
-  const [listError, setListError] = useState("");
 
   const errorMessages = useMemo(
-    () => [listError, loadError, error].filter(Boolean),
-    [listError, loadError, error]
+    () => [loadError, error].filter(Boolean),
+    [loadError, error]
   );
 
   async function searchPoisApi(q) {
@@ -353,28 +349,6 @@ export default function ExcursionsBuilderJS() {
     };
   }
 
-  const refreshList = useCallback(async () => {
-    setListLoading(true);
-    setListError("");
-    try {
-      const res = await fetch(`/api/admin/excursions?limit=100`, {
-        cache: "no-store",
-      });
-      const json = await res.json();
-      if (!res.ok)
-        throw new Error(json?.error || `List failed (${res.status})`);
-      setExistingExcursions(Array.isArray(json.items) ? json.items : []);
-    } catch (e) {
-      setListError(e?.message || "Failed to load excursions list");
-    } finally {
-      setListLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshList();
-  }, [refreshList]);
-
   async function save(statusOverride) {
     setSaving(true);
     setError("");
@@ -390,13 +364,13 @@ export default function ExcursionsBuilderJS() {
         if (!res.ok)
           throw new Error(json?.error || `Save failed (${res.status})`);
         setSavedId(json.id);
+        setExcursion((prev) => ({ ...prev, id: json.id }));
         router.replace(
           `/admin/excursions/builder?id=${encodeURIComponent(json.id)}`,
           {
             scroll: false,
           }
         );
-        await refreshList();
       } else {
         const res = await fetch(`/api/admin/excursions/${savedId}`, {
           method: "PUT",
@@ -407,7 +381,6 @@ export default function ExcursionsBuilderJS() {
         if (!res.ok)
           throw new Error(json?.error || `Update failed (${res.status})`);
       }
-      if (savedId) await refreshList();
     } catch (e) {
       setError(e?.message || "Save failed");
     } finally {
@@ -638,25 +611,6 @@ export default function ExcursionsBuilderJS() {
     [router]
   );
 
-  async function deleteExcursion(id) {
-    if (!id) return;
-    try {
-      const res = await fetch(`/api/admin/excursions/${id}`, {
-        method: "DELETE",
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok)
-        throw new Error(json?.error || `Delete failed (${res.status})`);
-      setError("");
-      await refreshList();
-      if (id === savedId) {
-        resetToNewExcursion();
-      }
-    } catch (e) {
-      setError(e?.message || "Delete failed");
-    }
-  }
-
   useEffect(() => {
     if (!excursionIdParam) return;
     let ignore = false;
@@ -672,7 +626,6 @@ export default function ExcursionsBuilderJS() {
           if (!ignore) {
             resetToNewExcursion({ clearLoadError: false });
             setLoadError("Excursion not found – showing a new draft instead.");
-            await refreshList();
           }
           return;
         }
@@ -696,13 +649,20 @@ export default function ExcursionsBuilderJS() {
       ignore = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [excursionIdParam, refreshList, resetToNewExcursion]);
+  }, [excursionIdParam, resetToNewExcursion]);
 
   return (
     <div className="mx-auto max-w-5xl p-4 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Excursions Builder</h1>
         <div className="space-x-2">
+          <Button
+            variant="outline"
+            disabled={saving}
+            onClick={() => resetToNewExcursion()}
+          >
+            New excursion
+          </Button>
           <Button
             variant="secondary"
             disabled={saving}
@@ -728,66 +688,11 @@ export default function ExcursionsBuilderJS() {
         </Alert>
       )}
 
-      {(listLoading || loadingExcursion) && (
+      {loadingExcursion && (
         <div className="rounded border border-muted bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          {listLoading ? "Loading excursions…" : "Loading excursion…"}
+          Loading excursion…
         </div>
       )}
-
-      <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Saved excursions</CardTitle>
-          <Button size="sm" variant="secondary" onClick={resetToNewExcursion}>
-            Start new
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {existingExcursions.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              No excursions saved yet.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {existingExcursions.map((item) => {
-                const active = item.id === (savedId || excursionIdParam);
-                return (
-                  <div key={item.id} className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant={active ? "default" : "outline"}
-                      onClick={() => {
-                        if (active) return;
-                        router.replace(
-                          `/admin/excursions/builder?id=${encodeURIComponent(
-                            item.id
-                          )}`,
-                          {
-                            scroll: false,
-                          }
-                        );
-                      }}
-                    >
-                      {item.name || "(untitled)"}
-                    </Button>
-                    <ConfirmDeleteButton
-                      onConfirm={() => deleteExcursion(item.id)}
-                      title="Delete this excursion?"
-                      description={`This action cannot be undone. The excursion "${
-                        item.name || "Untitled"
-                      }" will be permanently deleted.`}
-                      triggerVariant="ghost"
-                      triggerSize="icon"
-                      triggerClassName="text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </ConfirmDeleteButton>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       <Card className="shadow-sm">
         <CardHeader>

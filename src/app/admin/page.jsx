@@ -93,7 +93,7 @@ export default function AdminHome() {
             and notes.
           </p>
           <Link
-            href="/admin/excursions/builder"
+            href="/admin/excursions"
             className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
           >
             Open Excursions Builder
