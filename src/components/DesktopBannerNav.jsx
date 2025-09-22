@@ -1,18 +1,24 @@
 "use client";
 import Link from "next/link";
-import SafeImage from "@/components/SafeImage";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import DesktopSkylineBanner from "@/components/DesktopSkylineBanner";
 
 /**
  * Desktop-only banner + black nav bar.
  * Groups key site sections under a shadcn dropdown: “Explore Japan”
  */
-export default function DesktopBannerNav({ links, isAuthed, bannerH = 120 }) {
+export default function DesktopBannerNav({
+  links,
+  isAuthed,
+  bannerH = 120,
+  bannerScale = 1.8,
+}) {
+
   const exploreHrefs = new Set([
     "/destinations",
     "/sights",
@@ -35,36 +41,19 @@ export default function DesktopBannerNav({ links, isAuthed, bannerH = 120 }) {
   const topLevel = links.filter((l) => !exploreHrefs.has(l.href));
 
   return (
-    <div
-      className="hidden lg:block relative"
-      style={{ paddingTop: `${bannerH}px` }}
-    >
-      {/* Skyline banner */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none select-none z-10"
-        style={{ height: `${bannerH}px`, width: "100%" }}
-      >
-        <div className="relative" style={{ height: "100%", width: "100%" }}>
-          <SafeImage
-            src="/banner.svg"
-            alt="Banner"
-            fill
-            sizes="100vw"
-            className="object-contain"
-            priority
-          />
-        </div>
-      </div>
+    <>
+      <DesktopSkylineBanner bannerH={bannerH} scale={bannerScale} />
 
-      {/* Tokenized link bar */}
-      <div className="bg-primary text-primary-foreground">
-        <div className="mx-auto max-w-6xl py-2">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
-            <div />
-            <div className="flex justify-center items-center gap-6">
-              {/* Explore Japan dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center gap-1 rounded px-2 py-1 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-ring">
+      {/* Sticky tokenized link bar */}
+      <div className="hidden lg:block sticky top-0 z-30 bg-[#1C1917]">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="rounded-b-xl bg-primary text-primary-foreground shadow-sm">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6 px-6 py-2">
+              <div />
+              <div className="flex justify-center items-center gap-6">
+                {/* Explore Japan dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="inline-flex items-center gap-1 rounded px-2 py-1 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-ring">
                   Explore Japan
                   <svg
                     className="h-4 w-4"
@@ -78,22 +67,22 @@ export default function DesktopBannerNav({ links, isAuthed, bannerH = 120 }) {
                       clipRule="evenodd"
                     />
                   </svg>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="min-w-[220px]">
-                  {exploreItems.map((l) => (
-                    <DropdownMenuItem key={l.href} asChild className="py-2">
-                      <Link href={l.href} className="block">
-                        <div className="text-sm leading-tight flex items-center gap-1">
-                          <span>{l.label}</span>
-                          <span className="text-xs text-muted-foreground">
-                            - {exploreDescriptions[l.href] || "Explore more"}
-                          </span>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="min-w-[220px]">
+                    {exploreItems.map((l) => (
+                      <DropdownMenuItem key={l.href} asChild className="py-2">
+                        <Link href={l.href} className="block">
+                          <div className="text-sm leading-tight flex items-center gap-1">
+                            <span>{l.label}</span>
+                            <span className="text-xs text-muted-foreground">
+                              - {exploreDescriptions[l.href] || "Explore more"}
+                            </span>
+                          </div>
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
               {/* The rest as top-level links */}
               {topLevel.map((l) => (
@@ -108,11 +97,12 @@ export default function DesktopBannerNav({ links, isAuthed, bannerH = 120 }) {
                   Login
                 </Link>
               ) : null}
+              </div>
+              <div className="flex justify-end items-center gap-3 pr-4 pl-4 flex-nowrap min-w-0" />
             </div>
-            <div className="flex justify-end items-center gap-3 pr-4 pl-4 flex-nowrap min-w-0" />
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
