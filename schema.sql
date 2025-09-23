@@ -56,7 +56,7 @@ CREATE TABLE public.category_links (
   category_id uuid NOT NULL,
   entity_type text NOT NULL CHECK (entity_type = ANY (ARRAY['destination'::text, 'poi'::text, 'accommodation'::text, 'article'::text])),
   entity_id uuid NOT NULL,
-  CONSTRAINT category_links_pkey PRIMARY KEY (category_id, entity_id, entity_type),
+  CONSTRAINT category_links_pkey PRIMARY KEY (entity_type, category_id, entity_id),
   CONSTRAINT category_links_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
 );
 CREATE TABLE public.destination_links (
@@ -64,7 +64,7 @@ CREATE TABLE public.destination_links (
   to_location_id uuid NOT NULL,
   relation text NOT NULL CHECK (relation = ANY (ARRAY['nearby'::text, 'day_trip'::text, 'gateway'::text, 'sister_area'::text])),
   weight integer DEFAULT 0,
-  CONSTRAINT destination_links_pkey PRIMARY KEY (from_location_id, to_location_id, relation)
+  CONSTRAINT destination_links_pkey PRIMARY KEY (from_location_id, relation, to_location_id)
 );
 CREATE TABLE public.destinations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -113,6 +113,31 @@ CREATE TABLE public.excursion_items (
   sort_order integer DEFAULT 0,
   CONSTRAINT excursion_items_pkey PRIMARY KEY (id),
   CONSTRAINT excursion_items_excursion_id_fkey FOREIGN KEY (excursion_id) REFERENCES public.excursions(id)
+);
+CREATE TABLE public.excursion_transport_legs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  excursion_id uuid NOT NULL,
+  from_item_id uuid NOT NULL,
+  to_item_id uuid NOT NULL,
+  template_id uuid,
+  primary_mode text NOT NULL CHECK (primary_mode = ANY (ARRAY['WALK'::text, 'TRAIN'::text, 'SUBWAY'::text, 'BUS'::text, 'TRAM'::text, 'TAXI'::text, 'DRIVE'::text, 'FERRY'::text, 'FLY'::text, 'OTHER'::text])),
+  title text,
+  summary text,
+  steps jsonb NOT NULL,
+  est_duration_min integer,
+  est_distance_m integer,
+  est_cost_min numeric,
+  est_cost_max numeric,
+  currency text DEFAULT 'JPY'::text,
+  notes text,
+  sort_order integer,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT excursion_transport_legs_pkey PRIMARY KEY (id),
+  CONSTRAINT excursion_transport_legs_from_item_id_fkey FOREIGN KEY (from_item_id) REFERENCES public.excursion_items(id),
+  CONSTRAINT excursion_transport_legs_to_item_id_fkey FOREIGN KEY (to_item_id) REFERENCES public.excursion_items(id),
+  CONSTRAINT excursion_transport_legs_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.transport_templates(id),
+  CONSTRAINT excursion_transport_legs_excursion_id_fkey FOREIGN KEY (excursion_id) REFERENCES public.excursions(id)
 );
 CREATE TABLE public.excursions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -439,6 +464,44 @@ CREATE TABLE public.tours (
   CONSTRAINT tours_pkey PRIMARY KEY (id),
   CONSTRAINT tours_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
   CONSTRAINT tours_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id)
+);
+CREATE TABLE public.transport (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  category text NOT NULL CHECK (category = ANY (ARRAY['station'::text, 'bus_stop'::text, 'bus_terminal'::text, 'ferry_pier'::text, 'airport'::text, 'entrance'::text, 'other'::text])),
+  lat numeric,
+  lng numeric,
+  google_place_id text,
+  slug text UNIQUE,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT transport_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.transport_templates (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  from_transport_id uuid NOT NULL,
+  to_transport_id uuid NOT NULL,
+  primary_mode text NOT NULL CHECK (primary_mode = ANY (ARRAY['WALK'::text, 'TRAIN'::text, 'SUBWAY'::text, 'BUS'::text, 'TRAM'::text, 'TAXI'::text, 'DRIVE'::text, 'FERRY'::text, 'FLY'::text, 'OTHER'::text])),
+  title text,
+  summary text,
+  steps jsonb NOT NULL,
+  est_duration_min integer,
+  est_distance_m integer,
+  est_cost_min numeric,
+  est_cost_max numeric,
+  currency text DEFAULT 'JPY'::text,
+  tags ARRAY DEFAULT '{}'::text[],
+  language text DEFAULT 'en'::text,
+  version integer DEFAULT 1,
+  is_active boolean DEFAULT true,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT transport_templates_pkey PRIMARY KEY (id),
+  CONSTRAINT transport_templates_from_transport_id_fkey FOREIGN KEY (from_transport_id) REFERENCES public.transport(id),
+  CONSTRAINT transport_templates_to_transport_id_fkey FOREIGN KEY (to_transport_id) REFERENCES public.transport(id),
+  CONSTRAINT transport_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.user_roles (
   user_id uuid NOT NULL,

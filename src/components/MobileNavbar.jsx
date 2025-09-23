@@ -26,6 +26,7 @@ export default function MobileNavbar({
     "/tours": "Guided tours & tickets",
     "/accommodation": "Hotels, ryokan and boutiques",
     "/experiences": "Classes, shows & activities",
+    "/transportation": "Stations, hubs & travel links",
     "/fooddrink": "Eat & drink: ramen to kaiseki",
   };
 
@@ -36,6 +37,7 @@ export default function MobileNavbar({
       "/tours",
       "/accommodation",
       "/experiences",
+      "/transportation",
       "/fooddrink",
     ]);
     return {

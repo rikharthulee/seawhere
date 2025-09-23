@@ -55,7 +55,7 @@ export async function PUT(request, { params }) {
 
     await client.from("excursion_items").delete().eq("excursion_id", id);
     const rows = (Array.isArray(body.items) ? body.items : [])
-      .filter((it) => ["sight", "experience", "tour"].includes(it.item_type))
+      .filter((it) => ["sight", "experience", "tour", "accommodation"].includes(it.item_type))
       .map((it) => ({
         excursion_id: id,
         item_type: it.item_type,
@@ -97,6 +97,7 @@ const TABLE_BY_KIND = {
   sight: "sights",
   experience: "experiences",
   tour: "tours",
+  accommodation: "accommodation",
 };
 
 async function enrichItems(client, items) {
@@ -113,6 +114,7 @@ async function enrichItems(client, items) {
       sight: new Set(),
       experience: new Set(),
       tour: new Set(),
+      accommodation: new Set(),
     }
   );
 

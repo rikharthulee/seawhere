@@ -1,8 +1,8 @@
 // lib/queries.js
-import { supabaseServer } from "@/lib/supabase/server";
+import { getServerSupabase } from "@/lib/supabase";
 
 export async function getDestinations() {
-  const supabase = supabaseServer();
+  const supabase = getServerSupabase();
   return supabase
     .from("destinations")
     .select("id, slug, name, summary, hero_image")
@@ -11,7 +11,7 @@ export async function getDestinations() {
 }
 
 export async function getDestination(slug) {
-  const supabase = supabaseServer();
+  const supabase = getServerSupabase();
   return supabase
     .from("destinations")
     .select("*")
@@ -21,7 +21,7 @@ export async function getDestination(slug) {
 }
 
 export async function getDestinationWithAreas(slug) {
-  const supabase = supabaseServer();
+  const supabase = getServerSupabase();
 
   const { data: destination, error: dErr } = await supabase
     .from("destinations")

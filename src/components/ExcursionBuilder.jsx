@@ -322,7 +322,7 @@ export default function ExcursionsBuilderJS() {
   }
 
   function toDbPayload(statusOverride) {
-    const allowed = new Set(["sight", "experience", "tour"]);
+    const allowed = new Set(["sight", "experience", "tour", "accommodation"]);
     const items = (excursion.items || []).map((it) => ({
       ...it,
       sort_order: Number(it.sort_order) || 0,

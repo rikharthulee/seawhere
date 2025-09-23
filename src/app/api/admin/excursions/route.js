@@ -33,7 +33,7 @@ export async function POST(request) {
 
     const excursionId = data.id;
     const rows = (Array.isArray(body.items) ? body.items : [])
-      .filter((it) => ["sight", "experience", "tour"].includes(it.item_type))
+      .filter((it) => ["sight", "experience", "tour", "accommodation"].includes(it.item_type))
       .map((it) => ({
         excursion_id: excursionId,
         item_type: it.item_type,

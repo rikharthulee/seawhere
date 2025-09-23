@@ -1,15 +1,20 @@
-import Excursions from "@/components/Excursions";
-import { getPublishedExcursions } from "@/lib/data/excursions";
+import { getServiceSupabase } from "@/lib/supabase";
 
-export const runtime = "nodejs";
-export const revalidate = 300;
+export default async function Page() {
+  const supa = getServiceSupabase();
 
-export default async function ExcursionsPage() {
-  const items = await getPublishedExcursions();
+  const { data, error } = await supa
+    .from("excursions")
+    .select("*") // grab everything
+    .limit(5);
 
-  return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <Excursions items={items} />
-    </main>
-  );
+  if (error) {
+    return <pre>Query error: {error.message}</pre>;
+  }
+
+  if (!data || !data.length) {
+    return <p>No rows at all in excursions table.</p>;
+  }
+
+  return <pre>{JSON.stringify(data, null, 2)}</pre>;
 }

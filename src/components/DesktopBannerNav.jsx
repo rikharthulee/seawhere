@@ -25,6 +25,7 @@ export default function DesktopBannerNav({
     "/tours",
     "/accommodation",
     "/experiences",
+    "/transportation",
     "/fooddrink",
   ]);
 
@@ -34,6 +35,7 @@ export default function DesktopBannerNav({
     "/tours": "Guided tours & tickets",
     "/accommodation": "Hotels, ryokan and boutiques",
     "/experiences": "Classes, shows & activities",
+    "/transportation": "Stations, hubs & travel links",
     "/fooddrink": "Eat & drink: ramen to kaiseki",
   };
 

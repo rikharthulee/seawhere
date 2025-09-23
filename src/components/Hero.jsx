@@ -70,7 +70,10 @@ export default function Hero() {
               go: Japan Rail Pass, luggage, driving in Japan, family options,
               food allergies, and more.
             </li>
-            <li>Helpdesk email support.</li>
+            <li>
+              Helpdesk email support including itinerary reviews to ensure it
+              all runs smoothly.
+            </li>
           </ul>
 
           <p className="mt-6 text-lg leading-relaxed text-gray-800">

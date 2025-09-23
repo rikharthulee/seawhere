@@ -85,6 +85,34 @@ export default function AdminHome() {
           </Link>
         </article>
 
+        {/* Food & Drink */}
+        <article className="p-5 rounded-xl ring-1 ring-black/10">
+          <h2 className="text-xl font-semibold">🍣 Food &amp; Drink</h2>
+          <p className="mt-2 text-gray-700">
+            Manage restaurants, bars, and cafés featured in itineraries.
+          </p>
+          <Link
+            href="/admin/fooddrink"
+            className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
+          >
+            Go to Food &amp; Drink
+          </Link>
+        </article>
+
+        {/* Transportation */}
+        <article className="p-5 rounded-xl ring-1 ring-black/10">
+          <h2 className="text-xl font-semibold">🚉 Transportation</h2>
+          <p className="mt-2 text-gray-700">
+            Manage stations, terminals, and other transit points for itineraries.
+          </p>
+          <Link
+            href="/admin/transportation"
+            className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
+          >
+            Go to Transportation
+          </Link>
+        </article>
+
         {/* Excursions */}
         <article className="p-5 rounded-xl ring-1 ring-black/10">
           <h2 className="text-xl font-semibold">🗺️ Excursions</h2>

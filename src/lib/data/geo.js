@@ -1,7 +1,7 @@
-import { supabaseAdmin } from "@/lib/supabaseServer";
+import { getServiceSupabase } from "@/lib/supabase";
 
 export async function getRegions() {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data } = await db
     .from("regions")
     .select("id, slug, name, order_index")
@@ -10,7 +10,7 @@ export async function getRegions() {
 }
 
 export async function getPrefectures() {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data } = await db
     .from("prefectures")
     .select("id, slug, name, region_id, order_index")
@@ -19,7 +19,7 @@ export async function getPrefectures() {
 }
 
 export async function getRegionBySlug(slug) {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data } = await db
     .from("regions")
     .select("id, slug, name")
@@ -29,7 +29,7 @@ export async function getRegionBySlug(slug) {
 }
 
 export async function getPrefecturesByRegion(regionId) {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data } = await db
     .from("prefectures")
     .select("id, name, slug, region_id, order_index")
@@ -39,7 +39,7 @@ export async function getPrefecturesByRegion(regionId) {
 }
 
 export async function getPrefectureBySlug(slug, regionId) {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data, error } = await db
     .from("prefectures")
     .select("id, slug, name, region_id")
@@ -51,7 +51,7 @@ export async function getPrefectureBySlug(slug, regionId) {
 }
 
 export async function getDivisionsByPrefecture(prefId) {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data } = await db
     .from("divisions")
     .select("id, name, slug, prefecture_id, order_index")
@@ -61,7 +61,7 @@ export async function getDivisionsByPrefecture(prefId) {
 }
 
 export async function getPrefectureById(id) {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data, error } = await db
     .from("prefectures")
     .select("id, name, slug, region_id")
@@ -72,7 +72,7 @@ export async function getPrefectureById(id) {
 }
 
 export async function getDivisionById(id) {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data, error } = await db
     .from("divisions")
     .select("id, name, slug, prefecture_id")
@@ -84,7 +84,7 @@ export async function getDivisionById(id) {
 
 export async function getDestinationsByPrefectureIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data } = await db
     .from("destinations")
     .select("id, name, slug, status, prefecture_id, division_id, thumbnail_image, hero_image")
@@ -95,7 +95,7 @@ export async function getDestinationsByPrefectureIds(ids = []) {
 }
 
 export async function getDestinationsByPrefecture(prefId) {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data } = await db
     .from("destinations")
     .select("id, name, slug, status, prefecture_id, division_id, thumbnail_image, hero_image")
@@ -106,7 +106,7 @@ export async function getDestinationsByPrefecture(prefId) {
 }
 
 export async function getDivisionBySlugLoose(slug) {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data } = await db
     .from("divisions")
     .select("id, name, slug, prefecture_id")
@@ -116,7 +116,7 @@ export async function getDivisionBySlugLoose(slug) {
 }
 
 export async function getDestinationsByDivision(divId) {
-  const db = supabaseAdmin();
+  const db = getServiceSupabase();
   const { data } = await db
     .from("destinations")
     .select("id, name, slug, status, prefecture_id, division_id, thumbnail_image, hero_image")

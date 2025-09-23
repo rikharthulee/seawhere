@@ -458,7 +458,6 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         onChange={setImages}
         prefix={`destinations/${destSlugForUpload}/sights`}
       />
-      <div className="text-xs text-black/60">Tip: The first image is used as the hero/thumbnail across the site. Use the arrows to reorder.</div>
 
       <div>
         <label className="block text-sm font-medium">Tags (comma-separated)</label>

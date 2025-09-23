@@ -57,7 +57,7 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
 
   return (
     <div className="space-y-2 mb-2">
-      <label className="block text-sm font-medium">{label}</label>
+      {label ? <label className="block text-sm font-medium">{label}</label> : null}
       <div className="flex items-center gap-3">
         <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFiles} className="hidden" />
         <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
@@ -91,6 +91,9 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
       ) : (
         <div className="text-xs text-neutral-500">No gallery images</div>
       )}
+      <div className="text-xs text-muted-foreground">
+        Tip: The first image is used as the hero/thumbnail across the site. Use the arrows to reorder.
+      </div>
     </div>
   );
 }

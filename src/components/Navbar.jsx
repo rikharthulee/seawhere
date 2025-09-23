@@ -93,6 +93,7 @@ export default function Navbar() {
     { href: "/tours", label: "Tours" },
     { href: "/accommodation", label: "Accommodation" },
     { href: "/experiences", label: "Experiences" },
+    { href: "/transportation", label: "Transportation" },
     { href: "/fooddrink", label: "Food & Drink" },
     { href: "/blog", label: "Blog" },
     { href: "/about", label: "About" },

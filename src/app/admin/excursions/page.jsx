@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { headers, cookies } from "next/headers";
-import { supabaseServer } from "@/lib/supabase/server";
+import { getServiceSupabase, getServerSupabase } from "@/lib/supabase";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -165,7 +165,8 @@ export default async function AdminExcursionsIndex() {
       "localhost:3000";
     const protocol = headerStore.get("x-forwarded-proto") || "http";
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${protocol}://${host}`;
-    const cookieHeader = cookies()
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore
       .getAll()
       .map(({ name, value }) => `${name}=${value}`)
       .join("; ");
@@ -182,7 +183,7 @@ export default async function AdminExcursionsIndex() {
       }
     }
     if (rows.length === 0) {
-      const supabase = supabaseServer();
+      const supabase = getServerSupabase();
       const baseSelect = [
         "id",
         "name",
