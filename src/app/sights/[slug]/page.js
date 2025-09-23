@@ -3,7 +3,7 @@ import { getDestinationBySlugLoose } from "@/lib/data/destinations";
 import { getSightsForDestination } from "@/lib/data/sights";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
-import { resolveImageUrl } from "@/lib/imageUrl";
+import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import GygWidget from "@/components/GygWidget";
 import { getRouteParams } from "@/lib/route-params";
@@ -39,16 +39,7 @@ export default async function SightsByDestinationPage(props) {
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {Array.isArray(sights) && sights.length > 0 ? (
           sights.map((p) => {
-            let imgPath = p.image || null;
-            if (!imgPath && p.images) {
-              if (Array.isArray(p.images) && p.images.length > 0) {
-                const first = p.images[0];
-                imgPath = (first && (first.url || first.src)) || (typeof first === 'string' ? first : null);
-              } else if (typeof p.images === 'string') {
-                imgPath = p.images;
-              }
-            }
-            const img = resolveImageUrl(imgPath);
+            const img = resolveImageUrl(firstImageFromImages(p?.images));
             const canLink = !!p.slug;
             const CardTag = canLink ? Link : 'div';
             const cardProps = canLink ? { href: `/sights/${encodeURIComponent(dst.slug)}/${encodeURIComponent(p.slug)}` } : {};

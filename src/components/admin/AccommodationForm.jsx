@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import ImageUpload from "./ImageUpload";
 import MultiImageUpload from "./MultiImageUpload";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import { Button } from "@/components/ui/button";
@@ -59,8 +58,6 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
   const [slugTouched, setSlugTouched] = useState(!!initial?.id);
   const [summary, setSummary] = useState(initial?.summary || "");
   const [body, setBody] = useState(initial?.description || null);
-  const [hero, setHero] = useState(initial?.hero_image || "");
-  const [thumb, setThumb] = useState(initial?.thumbnail_image || "");
   const [images, setImages] = useState(Array.isArray(initial?.images) ? initial.images : []);
   const [status, setStatus] = useState(initial?.status || "draft");
   const [credit, setCredit] = useState(initial?.credit || "");
@@ -111,8 +108,6 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
     setSlugTouched(!!initial?.id);
     setSummary(initial?.summary || "");
     setBody(initial?.description || null);
-    setHero(initial?.hero_image || "");
-    setThumb(initial?.thumbnail_image || "");
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setStatus(initial?.status || "draft");
     setCredit(initial?.credit || "");
@@ -176,8 +171,6 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
         slug: (values.slug || slugify(values.name)),
         summary: values.summary || "",
         description: body,
-        hero_image: hero || null,
-        thumbnail_image: thumb || null,
         images: Array.isArray(images) ? images : [],
         status: values.status,
         credit: values.credit || null,
@@ -391,12 +384,6 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
               </FormItem>
             )}
           />
-        </div>
-        <div>
-          <ImageUpload label="Hero image" value={hero} onChange={setHero} prefix="accommodation" />
-        </div>
-        <div>
-          <ImageUpload label="Thumbnail image" value={thumb} onChange={setThumb} prefix="accommodation" />
         </div>
       <div className="md:col-span-2">
         <MultiImageUpload

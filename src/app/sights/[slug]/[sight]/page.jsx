@@ -2,7 +2,7 @@
 import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
-import { resolveImageUrl } from "@/lib/imageUrl";
+import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
@@ -31,16 +31,7 @@ export default async function SightDetailBySlugPage(props) {
   rules = r || [];
   exceptions = e || [];
 
-  let imgPath = null;
-  if (p.images) {
-    if (Array.isArray(p.images) && p.images.length > 0) {
-      const first = p.images[0];
-      imgPath = (first && (first.url || first.src)) || (typeof first === 'string' ? first : null);
-    } else if (typeof p.images === 'string') {
-      imgPath = p.images;
-    }
-  }
-  const img = resolveImageUrl(imgPath);
+  const img = resolveImageUrl(firstImageFromImages(p?.images));
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">

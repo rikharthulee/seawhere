@@ -1,6 +1,5 @@
 import Accommodation from "@/components/Accommodation";
 import { getPublishedAccommodation } from "@/lib/data/accommodation";
-import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default async function AccommodationPage() {
   let items = [];
@@ -9,7 +8,7 @@ export default async function AccommodationPage() {
     items = rows.map((r) => ({
       slug: r.slug,
       title: r.name,
-      image: resolveImageUrl(r.thumbnail_image || r.hero_image),
+      images: Array.isArray(r.images) ? r.images : [],
       credit: r.credit || null,
     }));
   } catch {}

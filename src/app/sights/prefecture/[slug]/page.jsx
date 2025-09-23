@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
-import { resolveImageUrl } from "@/lib/imageUrl";
+import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import { getPrefectureBySlug, getDestinationsByPrefecture } from "@/lib/data/geo";
 import { getSightsByDestinationIds } from "@/lib/data/sights";
@@ -37,16 +37,7 @@ export default async function SightsByPrefecturePage(props) {
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {Array.isArray(pois) && pois.length > 0 ? (
           pois.map((p) => {
-            let imgPath = p.image || null;
-            if (!imgPath && p.images) {
-              if (Array.isArray(p.images) && p.images.length > 0) {
-                const first = p.images[0];
-                imgPath = (first && (first.url || first.src)) || (typeof first === 'string' ? first : null);
-              } else if (typeof p.images === 'string') {
-                imgPath = p.images;
-              }
-            }
-            const img = resolveImageUrl(imgPath);
+            const img = resolveImageUrl(firstImageFromImages(p?.images));
             const destSlug = p?.destinations?.slug || null;
             const canLink = !!(destSlug && p.slug);
             const Tag = canLink ? Link : 'div';

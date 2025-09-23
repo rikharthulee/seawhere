@@ -4,7 +4,7 @@ import EmblaCarousel from "@/components/EmblaCarousel";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import RichText from "@/components/RichText";
-import { resolveImageUrl } from "@/lib/imageUrl";
+import { firstImageFromImages, imagesToGallery, resolveImageUrl } from "@/lib/imageUrl";
 import { getPublishedAccommodation, getAccommodationBySlug } from "@/lib/data/accommodation";
 import { getDestinationById } from "@/lib/data/destinations";
 import { getPrefectureById, getDivisionById } from "@/lib/data/geo";
@@ -26,7 +26,8 @@ export default async function AccommodationDetailPage(props) {
   try {
     const row = await getAccommodationBySlug(slug);
     if (row) {
-      const gallery = Array.isArray(row.images) ? row.images : [];
+      const gallery = imagesToGallery(row.images);
+      const primaryImage = resolveImageUrl(firstImageFromImages(row.images));
       // Fetch related geo labels in parallel (best-effort)
       const [dest, pref, div] = await Promise.all([
         getDestinationById(row.destination_id).catch(() => null),
@@ -35,8 +36,8 @@ export default async function AccommodationDetailPage(props) {
       ]);
       item = {
         title: row.name,
-        image: resolveImageUrl(row.hero_image || row.thumbnail_image),
-        images: gallery.map((k) => resolveImageUrl(k)).filter(Boolean),
+        image: primaryImage,
+        images: gallery,
         details: row.description || row.summary,
         credit: row.credit || null,
         // New fields
@@ -54,7 +55,27 @@ export default async function AccommodationDetailPage(props) {
     }
   } catch {}
   if (!item) {
-    item = accommodation.find((a) => a.slug === slug);
+    const fallback = accommodation.find((a) => a.slug === slug);
+    if (fallback) {
+      const gallery = imagesToGallery(fallback.images);
+      item = {
+        title: fallback.title,
+        image: resolveImageUrl(firstImageFromImages(fallback.images)),
+        images: gallery,
+        details: fallback.details || fallback.summary || null,
+        credit: fallback.credit || null,
+        priceBand: fallback.priceBand || null,
+        rating: fallback.rating || null,
+        websiteUrl: fallback.websiteUrl || null,
+        affiliateUrl: fallback.affiliateUrl || null,
+        lat: fallback.lat ?? null,
+        lng: fallback.lng ?? null,
+        address: fallback.address || null,
+        destination: fallback.destination || null,
+        prefecture: fallback.prefecture || null,
+        division: fallback.division || null,
+      };
+    }
   }
 
   if (!item) {
