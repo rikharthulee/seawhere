@@ -314,6 +314,17 @@ export default function ExcursionsBuilderJS() {
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [coverImage, setCoverImage] = useState("");
+  // Option A: new state for selected item and patching
+  const [selectedItemId, setSelectedItemId] = useState(null);
+  const selectedItem = useMemo(
+    () =>
+      selectedItemId
+        ? excursion.items.find((i) => i.id === selectedItemId)
+        : null,
+    [selectedItemId, excursion.items]
+  );
+  // patchItem is a local draft for editing
+  const [patchItem, setPatchItem] = useState(null);
 
   const errorMessages = useMemo(
     () => [loadError, error].filter(Boolean),
@@ -646,14 +657,14 @@ export default function ExcursionsBuilderJS() {
           }
           return;
         }
-      if (!res.ok)
-        throw new Error(json?.error || `Load failed (${res.status})`);
-      if (!ignore) {
-        hydrateExcursion(json);
-    setSlug(json.slug || slugify(json.name || ""));
-    setCoverImage(json.cover_image || "");
-    setSlugTouched(Boolean(json.slug));
-  }
+        if (!res.ok)
+          throw new Error(json?.error || `Load failed (${res.status})`);
+        if (!ignore) {
+          hydrateExcursion(json);
+          setSlug(json.slug || slugify(json.name || ""));
+          setCoverImage(json.cover_image || "");
+          setSlugTouched(Boolean(json.slug));
+        }
       } catch (e) {
         if (!ignore) {
           setLoadError(e?.message || "Failed to load excursion");
@@ -671,9 +682,11 @@ export default function ExcursionsBuilderJS() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [excursionIdParam, resetToNewExcursion]);
 
+  // Option A: sticky header, 2-pane grid, persistent preview, inline inspector
   return (
     <div className="mx-auto max-w-5xl p-4 space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Sticky top bar */}
+      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur border-b border-muted mb-4 pb-2 pt-3 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Excursions Builder</h1>
         <div className="space-x-2">
           <Button
@@ -784,10 +797,12 @@ export default function ExcursionsBuilderJS() {
         </CardContent>
       </Card>
 
+      {/* Editor (Items) first; Preview stacked below */}
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Items</CardTitle>
           <div className="space-x-2">
+            {/* keep the existing Add POI / Add Transport / Add Note controls exactly as they were */}
             <Sheet open={openPoi} onOpenChange={setOpenPoi}>
               <SheetTrigger asChild>
                 <Button size="sm" variant="secondary">
@@ -801,7 +816,6 @@ export default function ExcursionsBuilderJS() {
                 searchPois={searchPoisApi}
               />
             </Sheet>
-
             <Sheet open={openTransport} onOpenChange={setOpenTransport}>
               <SheetTrigger asChild>
                 <Button size="sm" variant="secondary">
@@ -925,7 +939,6 @@ export default function ExcursionsBuilderJS() {
                 </div>
               </SheetContent>
             </Sheet>
-
             <Button
               size="sm"
               variant="secondary"
@@ -952,28 +965,26 @@ export default function ExcursionsBuilderJS() {
           </div>
         </CardHeader>
         <CardContent>
+          {/* keep the existing list + inline inspector block EXACTLY as before */}
           {timelineItems.length === 0 ? (
             <div className="text-sm text-muted-foreground">
               No items yet. Use the buttons above to add POIs, transport, or
               notes.
             </div>
           ) : (
-            <div className="space-y-3">
-              {/* Timeline preview */}
-              <ExcursionTimeline
-                items={timelineItems}
-                minutesPerUnit={30}
-                unitRowPx={12}
-              />
-
-              {/* Simple controls */}
-              <div className="space-y-2">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Left: list */}
+              <div className="flex-1 min-w-0 space-y-2">
                 {timelineItems.map((i) => (
                   <div
                     key={i.id}
                     className={
-                      "flex items-center justify-between rounded-lg border p-2 cursor-grab" +
-                      (draggingId === i.id ? " opacity-50" : "")
+                      "flex items-center justify-between rounded-lg border p-2 cursor-pointer select-none transition-colors" +
+                      (draggingId === i.id
+                        ? " opacity-50"
+                        : selectedItemId === i.id
+                        ? " bg-muted"
+                        : "")
                     }
                     draggable
                     aria-grabbed={draggingId === i.id}
@@ -981,13 +992,14 @@ export default function ExcursionsBuilderJS() {
                     onDragOver={(event) => handleDragOver(event, i.id)}
                     onDrop={(event) => handleDrop(event, i.id)}
                     onDragEnd={handleDragEnd}
+                    onClick={() => setSelectedItemId(i.id)}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <GripVertical className="h-4 w-4 text-muted-foreground" />
                       <Badge variant="secondary" className="capitalize">
                         {i.item_type.replace("_", " ")}
                       </Badge>
-                      <span className="font-medium">
+                      <span className="font-medium truncate">
                         {i.title || i.name || "(untitled)"}
                       </span>
                       {i.item_type === "transport" && (
@@ -1003,7 +1015,10 @@ export default function ExcursionsBuilderJS() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => moveItem(i.id, -1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveItem(i.id, -1);
+                        }}
                         aria-label="Move up"
                       >
                         ▲
@@ -1011,7 +1026,10 @@ export default function ExcursionsBuilderJS() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => moveItem(i.id, 1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveItem(i.id, 1);
+                        }}
                         aria-label="Move down"
                       >
                         ▼
@@ -1019,7 +1037,10 @@ export default function ExcursionsBuilderJS() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => removeItem(i.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeItem(i.id);
+                        }}
                         aria-label="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -1027,6 +1048,7 @@ export default function ExcursionsBuilderJS() {
                     </div>
                   </div>
                 ))}
+                {/* Drag target for end-of-list */}
                 <div
                   className={
                     "h-6 rounded border border-dashed border-transparent transition-colors" +
@@ -1046,8 +1068,124 @@ export default function ExcursionsBuilderJS() {
                   }}
                 />
               </div>
+              {/* Right: Inline inspector */}
+              <div className="flex-1 min-w-0">
+                {selectedItem ? (
+                  <Card className="border shadow-none">
+                    <CardHeader>
+                      <CardTitle>
+                        Edit:{" "}
+                        {selectedItem.title ||
+                          selectedItem.name ||
+                          "(untitled)"}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Inspector fields (minimal for demo, can expand) */}
+                      <div className="space-y-2">
+                        {/* Title / Name */}
+                        {[
+                          "sight",
+                          "experience",
+                          "tour",
+                          "accommodation",
+                          "food_drink",
+                        ].includes(selectedItem.item_type) ? (
+                          <>
+                            <Label>Name (from POI)</Label>
+                            <Input
+                              value={
+                                selectedItem.name || selectedItem.title || ""
+                              }
+                              disabled
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <Label>Title</Label>
+                            <Input
+                              value={selectedItem.title || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setExcursion((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) =>
+                                    it.id === selectedItem.id
+                                      ? { ...it, title: val }
+                                      : it
+                                  ),
+                                }));
+                              }}
+                            />
+                          </>
+                        )}
+                        <Label>Details</Label>
+                        <Textarea
+                          rows={3}
+                          value={selectedItem.details || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExcursion((prev) => ({
+                              ...prev,
+                              items: prev.items.map((it) =>
+                                it.id === selectedItem.id
+                                  ? { ...it, details: val }
+                                  : it
+                              ),
+                            }));
+                          }}
+                        />
+                        <Label>Duration (min)</Label>
+                        <Input
+                          type="number"
+                          value={selectedItem.duration_minutes || ""}
+                          onChange={(e) => {
+                            const val = e.target.value
+                              ? Number(e.target.value)
+                              : "";
+                            setExcursion((prev) => ({
+                              ...prev,
+                              items: prev.items.map((it) =>
+                                it.id === selectedItem.id
+                                  ? { ...it, duration_minutes: val }
+                                  : it
+                              ),
+                            }));
+                          }}
+                        />
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setSelectedItemId(null)}
+                          >
+                            Close
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="text-sm text-muted-foreground pt-4">
+                    Select an item to edit.
+                  </div>
+                )}
+              </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+      {/* Stacked Preview below the editor to avoid clipping */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Preview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ExcursionTimeline
+            items={timelineItems}
+            minutesPerUnit={30}
+            unitRowPx={14}
+          />
         </CardContent>
       </Card>
     </div>

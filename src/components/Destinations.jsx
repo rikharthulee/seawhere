@@ -1,7 +1,7 @@
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import destinationsData from "@/data/destinations";
-import { resolveImageUrl } from "@/lib/imageUrl";
+import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 
 export default function Destinations({ items, basePath = "/destinations" }) {
   const source =
@@ -29,12 +29,8 @@ export default function Destinations({ items, basePath = "/destinations" }) {
               <div className="relative h-64 w-full">
                 <SafeImage
                   src={
-                    resolveImageUrl(
-                      (Array.isArray(d.images) && d.images.length > 0
-                        ? d.images[0]
-                        : d.image || d.thumbnail_image || d.hero_image) ||
-                        "/images/destinations/tokyo/tokyo1.jpg"
-                    )
+                    resolveImageUrl(firstImageFromImages(d.images)) ||
+                    "/images/destinations/tokyo/tokyo1.jpg"
                   }
                   alt={`${d.title || d.name}`}
                   fill

@@ -1,6 +1,5 @@
 import Destinations from "@/components/Destinations";
 import { getPublishedDestinations } from "@/lib/data/destinations";
-import { resolveImageUrl } from "@/lib/imageUrl";
 
 export default async function DestinationsPage() {
   let items = [];
@@ -9,7 +8,7 @@ export default async function DestinationsPage() {
     items = rows.map((r) => ({
       slug: r.slug,
       title: r.name,
-      image: resolveImageUrl(r.thumbnail_image || r.hero_image),
+      images: Array.isArray(r.images) ? r.images : [],
       credit: r.credit || null,
     }));
   } catch (e) {

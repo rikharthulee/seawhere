@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import SafeImage from "@/components/SafeImage";
 import { getRegionBySlug, getPrefectureBySlug, getDivisionBySlugLoose, getDestinationsByDivision } from "@/lib/data/geo";
-import { resolveImageUrl } from "@/lib/imageUrl";
+import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRouteParams } from "@/lib/route-params";
 
@@ -34,16 +35,29 @@ export default async function DivisionPage(props) {
       </div>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {destinations.map((dst) => (
-          <Card key={dst.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
-            <Link href={`/destinations/${dst.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring">
-              <div className="aspect-[4/3] bg-black/5" style={{backgroundImage: dst.thumbnail_image ? `url(${resolveImageUrl(dst.thumbnail_image)})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center'}} />
-              <CardContent className="p-4">
-                <div className="font-medium">{dst.name}</div>
-              </CardContent>
-            </Link>
-          </Card>
-        ))}
+        {destinations.map((dst) => {
+          const img = resolveImageUrl(firstImageFromImages(dst.images));
+          return (
+            <Card key={dst.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
+              <Link href={`/destinations/${dst.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+                <div className="aspect-[4/3] relative bg-black/5">
+                  {img ? (
+                    <SafeImage
+                      src={img}
+                      alt={dst.name}
+                      fill
+                      className="object-cover"
+                      sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    />
+                  ) : null}
+                </div>
+                <CardContent className="p-4">
+                  <div className="font-medium">{dst.name}</div>
+                </CardContent>
+              </Link>
+            </Card>
+          );
+        })}
       </section>
     </main>
   );

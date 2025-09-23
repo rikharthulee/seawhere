@@ -4,7 +4,7 @@ export async function getPublishedDestinations() {
   const db = getServiceSupabase();
   const { data, error } = await db
     .from("destinations")
-    .select("id, slug, name, summary, hero_image, thumbnail_image, credit")
+    .select("id, slug, name, summary, images, credit")
     .eq("status", "published")
     .order("name", { ascending: true });
   if (error) return [];
@@ -15,7 +15,7 @@ export async function getDestinationBySlug(slug) {
   const db = getServiceSupabase();
   const { data, error } = await db
     .from("destinations")
-    .select("id, name, slug, status, prefecture_id, division_id, hero_image, thumbnail_image, images, body_richtext, credit, lat, lng, published_at, created_at, gyg_location_id")
+    .select("id, name, slug, status, prefecture_id, division_id, images, body_richtext, credit, lat, lng, published_at, created_at, gyg_location_id")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();

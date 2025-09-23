@@ -70,3 +70,34 @@ export function resolveImageProps(input, opts = {}) {
     priority,
   };
 }
+
+export function firstImageFromImages(images) {
+  if (!Array.isArray(images) || images.length === 0) return null;
+  for (const entry of images) {
+    if (!entry) continue;
+    if (typeof entry === "string") {
+      const resolved = resolveImageUrl(entry);
+      if (resolved) return resolved;
+    } else if (typeof entry === "object") {
+      const candidate = entry.url || entry.src || entry.path || entry.image || null;
+      const resolved = candidate ? resolveImageUrl(candidate) : null;
+      if (resolved) return resolved;
+    }
+  }
+  return null;
+}
+
+export function imagesToGallery(images) {
+  if (!Array.isArray(images)) return [];
+  return images
+    .map((entry) => {
+      if (!entry) return null;
+      if (typeof entry === "string") return resolveImageUrl(entry);
+      if (typeof entry === "object") {
+        const candidate = entry.url || entry.src || entry.path || entry.image || null;
+        return candidate ? resolveImageUrl(candidate) : null;
+      }
+      return null;
+    })
+    .filter(Boolean);
+}

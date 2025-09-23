@@ -6,7 +6,7 @@ import EmblaCarousel from "@/components/EmblaCarousel";
 import Link from "next/link";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
-import { resolveImageUrl } from "@/lib/imageUrl";
+import { resolveImageUrl, firstImageFromImages, imagesToGallery } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRouteParams } from "@/lib/route-params";
 
@@ -19,8 +19,8 @@ export default async function DestinationPage(props) {
   const dst = await getDestinationBySlug(slug).catch(() => null);
   if (!dst) notFound();
 
-  const hero = resolveImageUrl(dst.hero_image || dst.thumbnail_image);
-  const gallery = Array.isArray(dst.images) ? dst.images.map((k) => resolveImageUrl(k)).filter(Boolean) : [];
+  const hero = resolveImageUrl(firstImageFromImages(dst.images));
+  const gallery = imagesToGallery(dst.images).slice(1);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">

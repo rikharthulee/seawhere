@@ -87,7 +87,7 @@ export async function getDestinationsByPrefectureIds(ids = []) {
   const db = getServiceSupabase();
   const { data } = await db
     .from("destinations")
-    .select("id, name, slug, status, prefecture_id, division_id, thumbnail_image, hero_image")
+    .select("id, slug, name, summary, images, prefecture_id, division_id")
     .in("prefecture_id", ids)
     .eq("status", "published")
     .order("name", { ascending: true });
@@ -98,7 +98,7 @@ export async function getDestinationsByPrefecture(prefId) {
   const db = getServiceSupabase();
   const { data } = await db
     .from("destinations")
-    .select("id, name, slug, status, prefecture_id, division_id, thumbnail_image, hero_image")
+    .select("id, slug, name, summary, images, prefecture_id, division_id")
     .eq("prefecture_id", prefId)
     .eq("status", "published")
     .order("name", { ascending: true });
@@ -119,7 +119,7 @@ export async function getDestinationsByDivision(divId) {
   const db = getServiceSupabase();
   const { data } = await db
     .from("destinations")
-    .select("id, name, slug, status, prefecture_id, division_id, thumbnail_image, hero_image")
+    .select("id, slug, name, summary, images, prefecture_id, division_id")
     .eq("division_id", divId)
     .eq("status", "published")
     .order("name", { ascending: true });
