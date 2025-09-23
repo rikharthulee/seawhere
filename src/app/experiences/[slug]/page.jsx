@@ -5,13 +5,18 @@ import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
+import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
 export const runtime = 'nodejs';
 
-export default async function ExperiencesByDestinationPage({ params, searchParams }) {
-  const { slug } = await params;
-  const divisionSlug = searchParams?.division || null;
+export default async function ExperiencesByDestinationPage(props) {
+  const { params, searchParams } = await getRouteParams(props);
+  const { slug } = params || {};
+  const divisionSlug =
+    searchParams && typeof searchParams === "object"
+      ? searchParams.division || null
+      : null;
   let dst = await getDestinationBySlugLoose(slug).catch(() => null);
   if (!dst) notFound();
   const exps = await getExperiencesForDestination(dst.id, divisionSlug).catch(() => []);

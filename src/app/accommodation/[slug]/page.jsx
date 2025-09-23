@@ -8,6 +8,7 @@ import { resolveImageUrl } from "@/lib/imageUrl";
 import { getPublishedAccommodation, getAccommodationBySlug } from "@/lib/data/accommodation";
 import { getDestinationById } from "@/lib/data/destinations";
 import { getPrefectureById, getDivisionById } from "@/lib/data/geo";
+import { getRouteParams } from "@/lib/route-params";
 
 export async function generateStaticParams() {
   try {
@@ -18,8 +19,9 @@ export async function generateStaticParams() {
   }
 }
 
-export default async function AccommodationDetailPage({ params }) {
-  const { slug } = await params;
+export default async function AccommodationDetailPage(props) {
+  const { params } = await getRouteParams(props);
+  const { slug } = params || {};
   let item = null;
   try {
     const row = await getAccommodationBySlug(slug);

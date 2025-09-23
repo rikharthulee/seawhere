@@ -5,12 +5,14 @@ import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRegionBySlug, getPrefecturesByRegion, getDestinationsByPrefectureIds } from "@/lib/data/geo";
 import { getExperiencesByDestinationIds } from "@/lib/data/experiences";
+import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
 export const runtime = 'nodejs';
 
-export default async function ExperiencesByRegionPage({ params }) {
-  const { slug } = await params;
+export default async function ExperiencesByRegionPage(props) {
+  const { params } = await getRouteParams(props);
+  const { slug } = params || {};
   const region = await getRegionBySlug(slug).catch(() => null);
   if (!region) notFound();
   const prefs = await getPrefecturesByRegion(region.id).catch(() => []);

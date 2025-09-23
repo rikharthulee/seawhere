@@ -7,6 +7,7 @@ import RichTextReadOnly from "@/components/RichTextReadOnly";
 import { getExperienceBySlugs, getExperienceAvailabilityRules, getExperienceExceptions } from "@/lib/data/experiences";
 import { fmtJPY } from "@/lib/format";
 import GygWidget from "@/components/GygWidget";
+import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
 export const runtime = 'nodejs';
@@ -21,8 +22,9 @@ function fmtDays(days) {
     .join(", ");
 }
 
-export default async function ExperienceDetailBySlugPage({ params }) {
-  const { slug, experience } = await params;
+export default async function ExperienceDetailBySlugPage(props) {
+  const { params } = await getRouteParams(props);
+  const { slug, experience } = params || {};
   const result = await getExperienceBySlugs(slug, experience).catch(() => null);
   if (!result?.experience || !result?.destination) notFound();
   const { experience: p, destination: dest } = result;

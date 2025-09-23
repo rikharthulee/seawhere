@@ -1,20 +1,46 @@
+import ExcursionsGallery from "@/components/ExcursionsGallery";
 import { getServiceSupabase } from "@/lib/supabase";
 
-export default async function Page() {
-  const supa = getServiceSupabase();
+export const runtime = "nodejs";
+export const revalidate = 300;
 
-  const { data, error } = await supa
+async function getPublishedExcursions() {
+  const supabase = getServiceSupabase();
+  const selectWithSlug =
+    "id, slug, name, description, summary, transport, maps_url, updated_at, status";
+  const selectWithoutSlug =
+    "id, name, description, summary, transport, maps_url, updated_at, status";
+
+  const { data, error } = await supabase
     .from("excursions")
-    .select("*") // grab everything
-    .limit(5);
+    .select(selectWithSlug)
+    .eq("status", "published")
+    .order("updated_at", { ascending: false })
+    .limit(60);
 
   if (error) {
-    return <pre>Query error: {error.message}</pre>;
+    if (error.code === "42703") {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from("excursions")
+        .select(selectWithoutSlug)
+        .eq("status", "published")
+        .order("updated_at", { ascending: false })
+        .limit(60);
+      if (fallbackError) throw fallbackError;
+      return fallbackData || [];
+    }
+    throw error;
   }
 
-  if (!data || !data.length) {
-    return <p>No rows at all in excursions table.</p>;
-  }
+  return data || [];
+}
 
-  return <pre>{JSON.stringify(data, null, 2)}</pre>;
+export default async function ExcursionsPage() {
+  const rows = await getPublishedExcursions();
+
+  return (
+    <main className="mx-auto w-full max-w-5xl px-4 py-10">
+      <ExcursionsGallery rows={rows} />
+    </main>
+  );
 }

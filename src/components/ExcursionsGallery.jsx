@@ -1,6 +1,17 @@
+import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { resolveImageUrl } from "@/lib/imageUrl";
+import { Tile } from "@/components/ui/tile";
+
+function slugify(input) {
+  return (
+    String(input || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "") || "excursion"
+  );
+}
 
 function initialsFrom(title = "?") {
   const parts = String(title).trim().split(/\s+/).slice(0, 2);
@@ -35,121 +46,60 @@ function placeholderDataUrl(title = "Untitled") {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
-function normalize(rows = []) {
-  return rows
-    .filter((row) => row && row.id)
-    .map((row) => {
-      const desc =
-        (typeof row.description === "object" && row.description?.text) ||
-        (typeof row.description === "string" && row.description) ||
-        row.summary ||
-        null;
-      return {
-        id: row.id,
-        slug: row.slug || row.id,
-        title: row.name || row.title || "Untitled excursion",
-        summary: desc,
-        status: row.status || null,
-        updatedAt: row.updated_at || row.updatedAt || row.modified_at || null,
-        hasTransport: Array.isArray(row.transport) && row.transport.length > 0,
-        hasMap: Boolean(row.maps_url),
-      };
-    });
-}
-
-export default function ExcursionsGallery({ rows = [] }) {
-  const excursions = normalize(rows);
-
-  if (!excursions.length) {
-    return (
-      <section className="space-y-8">
-        <header className="max-w-3xl space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Curated Excursions
-          </h1>
-          <p className="text-base text-muted-foreground sm:text-lg">
-            Explore saved itineraries assembled by our travel specialists—great
-            starting points for your own plans.
-          </p>
-        </header>
-        <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-10 text-center text-sm text-muted-foreground">
-          No excursions published yet.
-        </div>
-      </section>
-    );
-  }
+export default function ExcursionsGallery({ rows = [], basePath = "/excursions" }) {
+  const sorted = Array.isArray(rows)
+    ? [...rows].sort((a, b) =>
+        (a.name || a.title || "").localeCompare(b.name || b.title || "")
+      )
+    : [];
 
   return (
-    <section className="space-y-8">
-      <header className="max-w-3xl space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Curated Excursions
-        </h1>
-        <p className="text-base text-muted-foreground sm:text-lg">
-          Explore saved itineraries assembled by our travel specialists—great
-          starting points for your own plans.
-        </p>
-      </header>
-
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {excursions.map((x) => {
-          const meta = [];
-          if (x.hasTransport) meta.push("Includes transport");
-          if (x.hasMap) meta.push("Map link");
-          const href = `/excursions/${x.slug}`;
-
-          return (
-            <Card key={x.id} className="group h-full overflow-hidden border-border/70">
-              <CardHeader className="p-0">
-                <Link href={href} className="block">
-                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
-                    <img
-                      src={placeholderDataUrl(x.title)}
-                      alt={x.title}
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </div>
-                </Link>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-3 p-5">
-                <CardTitle className="text-lg font-semibold leading-tight">
-                  <Link href={href} className="hover:underline">
-                    {x.title}
-                  </Link>
-                </CardTitle>
-                {x.summary ? (
-                  <p className="line-clamp-3 text-sm text-muted-foreground">
-                    {x.summary}
-                  </p>
-                ) : null}
-                <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex flex-wrap gap-1">
-                    {meta.map((label) => (
-                      <Badge
-                        key={`${x.id}-${label}`}
-                        variant="secondary"
-                        className="text-[11px] font-normal"
-                      >
-                        {label}
-                      </Badge>
-                    ))}
-                  </div>
-                  {x.updatedAt ? (
-                    <time dateTime={x.updatedAt}>
-                      {new Date(x.updatedAt).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </time>
-                  ) : null}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+    <section id="excursions">
+      <div className="border-t-2 border-border pt-2">
+        <div className="flex items-end justify-between">
+          <h2 className="text-3xl md:text-4xl font-medium">Excursions</h2>
+        </div>
+        <div className="border-b-2 border-border mt-3" />
       </div>
+
+      {sorted.length === 0 ? (
+        <div className="mt-8 rounded-lg border border-dashed border-border/70 bg-muted/20 p-10 text-center text-sm text-muted-foreground">
+          No excursions published yet.
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {sorted.map((excursion) => {
+            const slug = excursion.slug || slugify(excursion.name || excursion.title) || excursion.id;
+            const imageSrc =
+              resolveImageUrl(excursion.cover_image) ||
+              placeholderDataUrl(excursion.name || excursion.title);
+            return (
+              <Tile.Link
+                key={excursion.id}
+                href={`${basePath}/${encodeURIComponent(slug)}`}
+              >
+                <Tile.Image>
+                  <SafeImage
+                    src={imageSrc}
+                    alt={excursion.title || excursion.name}
+                    fill
+                    sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover transition duration-300 group-hover:scale-105"
+                  />
+                </Tile.Image>
+                <Tile.Content>
+                  <div className="font-medium">{excursion.title || excursion.name}</div>
+                  {excursion.summary ? (
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                      {excursion.summary}
+                    </p>
+                  ) : null}
+                </Tile.Content>
+              </Tile.Link>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }

@@ -35,6 +35,16 @@ import {
 
 const uid = () => Math.random().toString(36).slice(2);
 
+function slugify(input) {
+  return (
+    String(input || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "") || "excursion"
+  );
+}
+
 function minsToLabel(mins) {
   if (!mins || mins <= 0) return "";
   if (mins < 60) return `${mins} min`;
@@ -301,6 +311,9 @@ export default function ExcursionsBuilderJS() {
   const [draggingId, setDraggingId] = useState(null);
   const [loadingExcursion, setLoadingExcursion] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [coverImage, setCoverImage] = useState("");
 
   const errorMessages = useMemo(
     () => [loadError, error].filter(Boolean),
@@ -365,6 +378,7 @@ export default function ExcursionsBuilderJS() {
           throw new Error(json?.error || `Save failed (${res.status})`);
         setSavedId(json.id);
         setExcursion((prev) => ({ ...prev, id: json.id }));
+        setSlugTouched(true);
         router.replace(
           `/admin/excursions/builder?id=${encodeURIComponent(json.id)}`,
           {
@@ -603,6 +617,9 @@ export default function ExcursionsBuilderJS() {
       const draft = newExcursionDraft();
       setExcursion(draft);
       setSavedId(null);
+      setSlug("");
+      setSlugTouched(false);
+      setCoverImage("");
       setError("");
       if (options.clearLoadError) setLoadError("");
       setDraggingId(null);
@@ -629,11 +646,14 @@ export default function ExcursionsBuilderJS() {
           }
           return;
         }
-        if (!res.ok)
-          throw new Error(json?.error || `Load failed (${res.status})`);
-        if (!ignore) {
-          hydrateExcursion(json);
-        }
+      if (!res.ok)
+        throw new Error(json?.error || `Load failed (${res.status})`);
+      if (!ignore) {
+        hydrateExcursion(json);
+    setSlug(json.slug || slugify(json.name || ""));
+    setCoverImage(json.cover_image || "");
+    setSlugTouched(Boolean(json.slug));
+  }
       } catch (e) {
         if (!ignore) {
           setLoadError(e?.message || "Failed to load excursion");
@@ -703,9 +723,43 @@ export default function ExcursionsBuilderJS() {
             <Label>Name</Label>
             <Input
               value={excursion.name}
-              onChange={(e) =>
-                setExcursion({ ...excursion, name: e.target.value })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+                setExcursion({ ...excursion, name: value });
+                if (!slugTouched) {
+                  const auto = value
+                    .toLowerCase()
+                    .trim()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/(^-|-$)+/g, "");
+                  setSlug(auto);
+                }
+              }}
+            />
+          </div>
+          <div>
+            <Label>Slug</Label>
+            <Input
+              value={slug}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const sanitized = raw
+                  .toLowerCase()
+                  .trim()
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .replace(/(^-|-$)+/g, "");
+                setSlug(sanitized);
+                setSlugTouched(raw.length > 0);
+              }}
+              placeholder="tokyo-nightlife"
+            />
+          </div>
+          <div>
+            <Label>Cover image</Label>
+            <Input
+              value={coverImage}
+              onChange={(e) => setCoverImage(e.target.value)}
+              placeholder="https://..."
             />
           </div>
           <div>

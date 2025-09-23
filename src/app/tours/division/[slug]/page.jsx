@@ -5,12 +5,14 @@ import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card } from "@/components/ui/card";
 import { getDivisionBySlugLoose, getDestinationsByDivision } from "@/lib/data/geo";
 import { getToursByDestinationIds } from "@/lib/data/tours";
+import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
 export const runtime = 'nodejs';
 
-export default async function ToursByDivisionPage({ params }) {
-  const { slug } = await params;
+export default async function ToursByDivisionPage(props) {
+  const { params } = await getRouteParams(props);
+  const { slug } = params || {};
   const div = await getDivisionBySlugLoose(slug).catch(() => null);
   if (!div) notFound();
   const destinations = await getDestinationsByDivision(div.id).catch(() => []);

@@ -7,6 +7,7 @@ import RichTextReadOnly from "@/components/RichTextReadOnly";
 import { getTourBySlugs, getTourAvailabilityRules, getTourExceptions } from "@/lib/data/tours";
 import { fmtJPY } from "@/lib/format";
 import GygWidget from "@/components/GygWidget";
+import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
 export const runtime = 'nodejs';
@@ -21,8 +22,9 @@ function fmtDays(days) {
     .join(", ");
 }
 
-export default async function TourDetailBySlugPage({ params }) {
-  const { slug, tour } = await params;
+export default async function TourDetailBySlugPage(props) {
+  const { params } = await getRouteParams(props);
+  const { slug, tour } = params || {};
   const result = await getTourBySlugs(slug, tour).catch(() => null);
   if (!result?.tour || !result?.destination) notFound();
   const { tour: p, destination: dest } = result;

@@ -8,6 +8,7 @@ import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
 import { getSightBySlugs, getSightOpeningHours, getSightOpeningExceptions } from "@/lib/data/sights";
 import { fmtTime, fmtJPY } from "@/lib/format";
+import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
 export const runtime = 'nodejs';
@@ -15,8 +16,9 @@ export const runtime = 'nodejs';
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export default async function SightDetailBySlugPage({ params }) {
-  const { slug, sight } = await params;
+export default async function SightDetailBySlugPage(props) {
+  const { params } = await getRouteParams(props);
+  const { slug, sight } = params || {};
   const result = await getSightBySlugs(slug, sight).catch(() => null);
   if (!result?.sight || !result?.destination) notFound();
   const { sight: p, destination: dest } = result;

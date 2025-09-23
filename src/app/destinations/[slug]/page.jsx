@@ -8,12 +8,14 @@ import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
+import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
 export const runtime = 'nodejs';
 
-export default async function DestinationPage({ params }) {
-  const { slug } = await params;
+export default async function DestinationPage(props) {
+  const { params } = await getRouteParams(props);
+  const { slug } = params || {};
   const dst = await getDestinationBySlug(slug).catch(() => null);
   if (!dst) notFound();
 

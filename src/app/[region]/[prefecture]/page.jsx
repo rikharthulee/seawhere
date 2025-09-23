@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { getRegionBySlug, getPrefectureBySlug, getDivisionsByPrefecture, getDestinationsByPrefecture } from "@/lib/data/geo";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
+import { getRouteParams } from "@/lib/route-params";
 
-export default async function PrefecturePage({ params }) {
-  const { region, prefecture } = await params;
+export default async function PrefecturePage(props) {
+  const { params } = await getRouteParams(props);
+  const { region, prefecture } = params || {};
 
   const reg = await getRegionBySlug(region).catch(() => null);
   if (!reg) notFound();
