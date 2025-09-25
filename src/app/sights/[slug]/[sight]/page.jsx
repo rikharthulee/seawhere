@@ -6,7 +6,11 @@ import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
-import { getSightBySlugs, getSightOpeningHours, getSightOpeningExceptions } from "@/lib/data/sights";
+import {
+  getSightBySlugs,
+  getSightOpeningHours,
+  getSightOpeningExceptions,
+} from "@/lib/data/sights";
 import { fmtTime, fmtJPY } from "@/lib/format";
 import { getRouteParams } from "@/lib/route-params";
 
@@ -14,7 +18,58 @@ export const revalidate = 300;
 export const runtime = 'nodejs';
 
 
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const WEEKDAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+function formatMonthDay(month, day) {
+  if (!month) return null;
+  const name = MONTH_NAMES[(month - 1 + 12) % 12];
+  if (!day) return name;
+  return `${name} ${day}`;
+}
+
+function formatSeasonRange(season) {
+  const start = formatMonthDay(season.startMonth, season.startDay);
+  const end = formatMonthDay(season.endMonth, season.endDay);
+  if (start && end) {
+    if (start === end) return start;
+    return `${start} – ${end}`;
+  }
+  return start || end || "Season";
+}
+
+function formatDateLabel(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 export default async function SightDetailBySlugPage(props) {
   const { params } = await getRouteParams(props);
@@ -22,14 +77,33 @@ export default async function SightDetailBySlugPage(props) {
   const result = await getSightBySlugs(slug, sight).catch(() => null);
   if (!result?.sight || !result?.destination) notFound();
   const { sight: p, destination: dest } = result;
-  let rules = [];
-  let exceptions = [];
+  let seasons = [];
+  let closures = [];
   const [r, e] = await Promise.all([
     getSightOpeningHours(p.id).catch(() => []),
     getSightOpeningExceptions(p.id).catch(() => []),
   ]);
-  rules = r || [];
-  exceptions = e || [];
+  seasons = Array.isArray(r)
+    ? r.map((row) => ({
+        startMonth: row.start_month ?? null,
+        startDay: row.start_day ?? null,
+        endMonth: row.end_month ?? null,
+        endDay: row.end_day ?? null,
+        openTime: row.open_time || null,
+        closeTime: row.close_time || null,
+        lastEntryMins: row.last_entry_mins ?? 0,
+      }))
+    : [];
+  closures = Array.isArray(e)
+    ? e.map((row) => ({
+        type: row.type || "fixed",
+        startDate: row.start_date || null,
+        endDate: row.end_date || null,
+        weekday:
+          typeof row.weekday === "number" ? row.weekday : row.weekday ?? null,
+        note: row.note || null,
+      }))
+    : [];
 
   const img = resolveImageUrl(firstImageFromImages(p?.images));
 
@@ -105,42 +179,77 @@ export default async function SightDetailBySlugPage(props) {
 
       <section className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <h2 className="text-xl font-semibold mb-2">Opening Hours</h2>
-          {Array.isArray(rules) && rules.length > 0 ? (
-            <ul className="divide-y rounded-[var(--radius)] border bg-card text-card-foreground">
-              {rules.map((r, i) => {
-                const closed = !!r.is_closed;
+          <h2 className="text-xl font-semibold mb-2">Seasonal Opening Hours</h2>
+          {seasons.length > 0 ? (
+            <ul className="space-y-3">
+              {seasons.map((season, i) => {
+                const range = formatSeasonRange(season);
+                const timeLabel = `${fmtTime(season.openTime) || "—"} – ${
+                  fmtTime(season.closeTime) || "—"
+                }`;
                 return (
-                  <li key={i} className="flex items-center justify-between px-3 py-2">
-                    <span className="font-medium">{DAY_LABELS[r.weekday ?? 0] || "Day"}</span>
-                    <span className="text-muted-foreground">{closed ? "Closed" : `${fmtTime(r.open_time) || "—"} – ${fmtTime(r.close_time) || "—"}`}</span>
+                  <li
+                    key={`${season.startMonth}-${season.startDay}-${season.endMonth}-${season.endDay}-${i}`}
+                    className="rounded border px-3 py-2 bg-card text-card-foreground"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="font-medium">{range}</span>
+                        <span className="text-sm text-muted-foreground">{timeLabel}</span>
+                      </div>
+                      {season.lastEntryMins ? (
+                        <span className="text-xs text-muted-foreground">
+                          Last entry {season.lastEntryMins} mins before close
+                        </span>
+                      ) : null}
+                    </div>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="text-muted-foreground">See provider for details.</p>
+            <p className="text-muted-foreground">Seasonal hours not available.</p>
           )}
         </div>
         <div>
-          <h2 className="text-xl font-semibold mb-2">Exceptions</h2>
-          {Array.isArray(exceptions) && exceptions.length > 0 ? (
-            <ul className="divide-y rounded-[var(--radius)] border bg-card text-card-foreground">
-              {exceptions.map((e, i) => {
-                const closed = !!e.is_closed;
+          <h2 className="text-xl font-semibold mb-2">Closure Notices</h2>
+          {closures.length > 0 ? (
+            <ul className="space-y-3">
+              {closures.map((closure, i) => {
+                let title = "Closure";
+                if (closure.type === "weekly" && closure.weekday !== null && closure.weekday !== undefined) {
+                  const idx = Number(closure.weekday);
+                  title = idx >= 0 && idx < WEEKDAY_NAMES.length
+                    ? `Closed every ${WEEKDAY_NAMES[idx]}`
+                    : "Recurring closure";
+                } else if (closure.type === "range" && closure.startDate && closure.endDate) {
+                  const start = formatDateLabel(closure.startDate);
+                  const end = formatDateLabel(closure.endDate);
+                  if (start && end) {
+                    title = `Closed ${start} – ${end}`;
+                  }
+                } else if (closure.startDate) {
+                  const date = formatDateLabel(closure.startDate);
+                  if (date) title = `Closed ${date}`;
+                }
+
                 return (
-                  <li key={i} className="px-3 py-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{e.date}</span>
-                      <span className="text-muted-foreground">{closed ? "Closed" : `${fmtTime(e.open_time) || "—"} – ${fmtTime(e.close_time) || "—"}`}</span>
+                  <li
+                    key={`${closure.type}-${closure.startDate}-${closure.endDate}-${closure.weekday}-${i}`}
+                    className="rounded border px-3 py-2 bg-card text-card-foreground"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium">{title}</span>
+                      {closure.note ? (
+                        <span className="text-xs text-muted-foreground">{closure.note}</span>
+                      ) : null}
                     </div>
-                    {e.note ? <div className="text-xs text-black/60 mt-1">{e.note}</div> : null}
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="text-muted-foreground">No exceptions listed.</p>
+            <p className="text-muted-foreground">No closure notices at this time.</p>
           )}
         </div>
       </section>

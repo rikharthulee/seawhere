@@ -6,6 +6,7 @@ import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function ToursManager() {
   const [items, setItems] = useState([]);
@@ -53,14 +54,23 @@ export default function ToursManager() {
         <Button onClick={() => setEditing({})}>+ New Tour</Button>
       </div>
 
-      {editing ? (
-        <ToursForm
-          id={editing.id}
-          initial={editing.id ? editing : null}
-          onSaved={() => { setEditing(null); load(); }}
-          onCancel={() => setEditing(null)}
-        />
-      ) : null}
+      <Dialog open={!!editing} onOpenChange={(open) => { if (!open) setEditing(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editing?.id ? `Edit ${editing.name || "tour"}` : "New Tour"}
+            </DialogTitle>
+          </DialogHeader>
+          {editing ? (
+            <ToursForm
+              id={editing.id}
+              initial={editing.id ? editing : null}
+              onSaved={() => { setEditing(null); load(); }}
+              onCancel={() => setEditing(null)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Table>
         <TableHeader variant="secondary">

@@ -6,6 +6,7 @@ import Link from "@tiptap/extension-link";
 import BulletList from "@tiptap/extension-bullet-list";
 import OrderedList from "@tiptap/extension-ordered-list";
 import ListItem from "@tiptap/extension-list-item";
+import Underline from "@tiptap/extension-underline";
 
 function flattenNode(node) {
   if (!node) return "";
@@ -59,6 +60,7 @@ export default function RichTextReadOnly({ value, className = "" }) {
       BulletList,
       OrderedList,
       ListItem,
+      Underline,
     ],
     editorProps: {
       attributes: { class: "outline-none" },

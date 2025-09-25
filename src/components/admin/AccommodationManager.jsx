@@ -6,6 +6,7 @@ import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/admin/StatusBadge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function AccommodationsManager() {
   const supabase = createClientComponentClient();
@@ -52,16 +53,25 @@ export default function AccommodationsManager() {
         <Button onClick={() => setEditing({})}>+ New Accommodation</Button>
       </div>
 
-      {editing ? (
-        <AccommodationForm
-          initial={editing.id ? editing : null}
-          onSaved={() => {
-            setEditing(null);
-            load();
-          }}
-          onCancel={() => setEditing(null)}
-        />
-      ) : null}
+      <Dialog open={!!editing} onOpenChange={(open) => { if (!open) setEditing(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editing?.id ? `Edit ${editing.name || "accommodation"}` : "New Accommodation"}
+            </DialogTitle>
+          </DialogHeader>
+          {editing ? (
+            <AccommodationForm
+              initial={editing.id ? editing : null}
+              onSaved={() => {
+                setEditing(null);
+                load();
+              }}
+              onCancel={() => setEditing(null)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Table>
         <TableHeader variant="secondary">

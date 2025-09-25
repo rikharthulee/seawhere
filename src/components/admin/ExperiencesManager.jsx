@@ -6,6 +6,7 @@ import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import StatusBadge from "@/components/admin/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function ExperiencesManager() {
   const [items, setItems] = useState([]);
@@ -53,14 +54,23 @@ export default function ExperiencesManager() {
         <Button onClick={() => setEditing({})}>+ New Experience</Button>
       </div>
 
-      {editing ? (
-        <ExperiencesForm
-          id={editing.id}
-          initial={editing.id ? editing : null}
-          onSaved={() => { setEditing(null); load(); }}
-          onCancel={() => setEditing(null)}
-        />
-      ) : null}
+      <Dialog open={!!editing} onOpenChange={(open) => { if (!open) setEditing(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editing?.id ? `Edit ${editing.name || "experience"}` : "New Experience"}
+            </DialogTitle>
+          </DialogHeader>
+          {editing ? (
+            <ExperiencesForm
+              id={editing.id}
+              initial={editing.id ? editing : null}
+              onSaved={() => { setEditing(null); load(); }}
+              onCancel={() => setEditing(null)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Table>
         <TableHeader variant="secondary">

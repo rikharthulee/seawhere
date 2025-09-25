@@ -71,10 +71,12 @@ export async function getSightOpeningHours(id) {
   const db = getServiceSupabase();
   const { data, error } = await db
     .from("sight_opening_hours")
-    .select("weekday, idx, open_time, close_time, is_closed, valid_from, valid_to")
+    .select(
+      "start_month, start_day, end_month, end_day, open_time, close_time, last_entry_mins"
+    )
     .eq("sight_id", id)
-    .order("weekday", { ascending: true })
-    .order("idx", { ascending: true });
+    .order("start_month", { ascending: true })
+    .order("start_day", { ascending: true });
   if (error) return [];
   return data || [];
 }
@@ -83,9 +85,9 @@ export async function getSightOpeningExceptions(id) {
   const db = getServiceSupabase();
   const { data, error } = await db
     .from("sight_opening_exceptions")
-    .select("date, is_closed, open_time, close_time, note")
+    .select("type, start_date, end_date, weekday, note")
     .eq("sight_id", id)
-    .order("date", { ascending: true });
+    .order("start_date", { ascending: true });
   if (error) return [];
   return data || [];
 }

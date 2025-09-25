@@ -3,6 +3,7 @@ import SafeImage from "@/components/SafeImage";
 import { getServiceSupabase } from "@/lib/supabase";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { getRouteParams } from "@/lib/route-params";
+import { Badge } from "@/components/ui/badge";
 
 export const runtime = "nodejs";
 export const revalidate = 300;
@@ -308,8 +309,10 @@ export default async function ExcursionDetailPage(props) {
   }
 
   const items = await fetchExcursionItems(match.id);
-
-  const detailedItems = await hydrateItemsFromRefs(items);
+  const itemsSorted = Array.isArray(items)
+    ? [...items].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    : [];
+  const detailedItems = await hydrateItemsFromRefs(itemsSorted);
 
   // Image fallbacks: cover_image -> hero_image -> images[0]
   const coverCandidate = match.cover_image;
@@ -386,16 +389,15 @@ export default async function ExcursionDetailPage(props) {
         {detailedItems.length === 0 ? (
           <p className="text-sm text-muted-foreground">No items yet.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {detailedItems
-              .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-              .map((it) => (
-                <div
-                  key={it.id}
-                  className="overflow-hidden rounded-xl border border-border bg-card/60"
-                >
+          <div className="mt-3 space-y-3">
+            {detailedItems.map((it) => (
+              <div
+                key={it.id}
+                className="overflow-hidden rounded-xl border border-border bg-card/60"
+              >
+                <div className="p-4 flex items-start gap-4">
                   {it.displayImage ? (
-                    <div className="relative h-40 w-full">
+                    <div className="relative h-16 w-16 rounded-full overflow-hidden border flex-none">
                       <SafeImage
                         src={it.displayImage}
                         alt={it.displayName}
@@ -403,25 +405,37 @@ export default async function ExcursionDetailPage(props) {
                         className="object-cover"
                       />
                     </div>
-                  ) : null}
-                  <div className="p-4 space-y-2">
-                    <p className="font-medium">{it.displayName}</p>
+                  ) : (
+                    <div className="h-16 w-16 rounded-full bg-muted border flex-none" />
+                  )}
+
+                  <div className="flex-1 space-y-2 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="capitalize">
+                        {String(it.item_type || "").replace("_", " ")}
+                      </Badge>
+                      {typeof it.duration_minutes === "number" &&
+                      it.duration_minutes > 0 ? (
+                        <span className="text-xs text-muted-foreground">
+                          {it.duration_minutes} min
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <p className="font-medium truncate">{it.displayName}</p>
+
                     {it.displaySummary ? (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground line-clamp-3">
                         {it.displaySummary}
                       </p>
                     ) : null}
-                    {/* fallback metadata if present on item */}
+
                     {it.details ? (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground line-clamp-3">
                         {it.details}
                       </p>
                     ) : null}
-                    {it.duration_minutes ? (
-                      <p className="text-xs text-muted-foreground">
-                        Duration: {it.duration_minutes} min
-                      </p>
-                    ) : null}
+
                     {it.maps_url ? (
                       <a
                         href={it.maps_url}
@@ -432,12 +446,10 @@ export default async function ExcursionDetailPage(props) {
                         Maps link
                       </a>
                     ) : null}
-                    <p className="text-[11px] text-muted-foreground/70">
-                      {it.item_type} · {it.ref_id}
-                    </p>
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
           </div>
         )}
       </section>

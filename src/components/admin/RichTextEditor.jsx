@@ -6,6 +6,7 @@ import Link from "@tiptap/extension-link";
 import BulletList from "@tiptap/extension-bullet-list";
 import OrderedList from "@tiptap/extension-ordered-list";
 import ListItem from "@tiptap/extension-list-item";
+import Underline from "@tiptap/extension-underline";
 
 function isEmptyDocJSON(json) {
   try {
@@ -34,6 +35,7 @@ export default function RichTextEditor({ value, onChange, label = "Details", war
       BulletList,
       OrderedList,
       ListItem,
+      Underline,
     ],
     editorProps: {
       attributes: {},
@@ -89,6 +91,7 @@ export default function RichTextEditor({ value, onChange, label = "Details", war
   const can = {
     bold: !!editor?.can().chain().focus().toggleBold().run(),
     italic: !!editor?.can().chain().focus().toggleItalic().run(),
+    underline: !!editor?.can().chain().focus().toggleUnderline().run(),
     h2: !!editor?.can().chain().focus().toggleHeading({ level: 2 }).run(),
     h3: !!editor?.can().chain().focus().toggleHeading({ level: 3 }).run(),
     bullet: !!editor?.can().chain().focus().toggleBulletList().run(),
@@ -116,6 +119,14 @@ export default function RichTextEditor({ value, onChange, label = "Details", war
             className={editor?.isActive('italic') ? 'on' : ''}
             title="Italic"
           ><i>I</i></button>
+          <span className="sep" />
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); editor?.chain().focus().toggleUnderline().run(); }}
+            disabled={!can.underline}
+            className={editor?.isActive('underline') ? 'on' : ''}
+            title="Underline"
+          ><u>U</u></button>
           <span className="sep" />
           <button
             type="button"

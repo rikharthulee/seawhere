@@ -51,6 +51,19 @@ export default function EmblaCarousel({
 
   const scrollTo = useCallback((i) => api && api.scrollTo(i), [api]);
 
+  useEffect(() => {
+    if (!api || images.length <= 1) return;
+    const timer = setInterval(() => {
+      if (!api) return;
+      if (api.canScrollNext()) {
+        api.scrollNext();
+      } else {
+        api.scrollTo(0);
+      }
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [api, images.length]);
+
   return (
     <div className={`relative ${className}`}>
       <Carousel opts={options} setApi={setApi} className="w-full">
@@ -77,17 +90,13 @@ export default function EmblaCarousel({
 
         {/* Prev/Next with your preferred look (override shadcn defaults) */}
         <CarouselPrevious
-          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur px-3 py-2 ring-1 ring-border hover:bg-card"
+          className="absolute left-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-card/80 backdrop-blur px-3 py-2 ring-1 ring-border hover:bg-card"
           aria-label="Previous slide"
-        >
-          ‹
-        </CarouselPrevious>
+        />
         <CarouselNext
-          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur px-3 py-2 ring-1 ring-border hover:bg-card"
+          className="absolute right-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-card/80 backdrop-blur px-3 py-2 ring-1 ring-border hover:bg-card"
           aria-label="Next slide"
-        >
-          ›
-        </CarouselNext>
+        />
       </Carousel>
 
       {/* dots */}
@@ -98,7 +107,9 @@ export default function EmblaCarousel({
             aria-label={`Go to slide ${i + 1}`}
             onClick={() => scrollTo(i)}
             className={`h-2.5 w-2.5 rounded-full ring-1 ring-primary-foreground/60 transition ${
-              i === selectedIndex ? "bg-primary-foreground" : "bg-primary-foreground/40 hover:bg-primary-foreground/70"
+              i === selectedIndex
+                ? "bg-primary-foreground"
+                : "bg-primary-foreground/40 hover:bg-primary-foreground/70"
             }`}
           />
         ))}
