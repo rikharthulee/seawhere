@@ -99,18 +99,20 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [officialUrl, setOfficialUrl] = useState("");
 
   useEffect(() => {
     if (!sightId) {
       setHours([]);
       setClosures([]);
+      setOfficialUrl("");
       return;
     }
     let cancelled = false;
     setLoading(true);
     setError("");
     loadOpeningTimes(sightId)
-      .then(({ hours, closures }) => {
+      .then(({ hours, closures, officialUrl }) => {
         if (cancelled) return;
         setHours(
           (hours || []).map((h) => ({
@@ -149,6 +151,7 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
           }))
         );
         setClosures(closures || []);
+        setOfficialUrl(officialUrl || "");
       })
       .catch((e) => {
         if (cancelled) return;
@@ -214,10 +217,15 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
     setLoading(true);
     setError("");
     try {
-      await saveOpeningTimes(targetId, { hours, closures });
+      await saveOpeningTimes(targetId, {
+        hours,
+        closures,
+        officialUrl: officialUrl.trim(),
+      });
       const refreshed = await loadOpeningTimes(targetId);
       setHours(refreshed.hours || []);
       setClosures(refreshed.closures || []);
+      setOfficialUrl(refreshed.officialUrl || "");
       setMessage("Opening hours saved");
     } catch (e) {
       setError(e?.message || "Failed to save opening times");
@@ -558,6 +566,22 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
             >
               {saving ? "Saving…" : "Save"}
             </Button>
+          </div>
+
+          <div className="space-y-2 border-t pt-4">
+            <Label className="text-sm font-medium">Official opening hours link</Label>
+            <Input
+              type="url"
+              value={officialUrl}
+              onChange={(event) => setOfficialUrl(event.target.value)}
+              placeholder="https://example.com/opening-times"
+              className="max-w-xl"
+              disabled={!sightId || loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Provide the venue&rsquo;s official site so travellers can confirm the latest
+              opening hours.
+            </p>
           </div>
         </CardContent>
       </Card>

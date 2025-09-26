@@ -90,6 +90,18 @@ function formatAdmissionAmount(row) {
   }
 }
 
+function groupAdmissionsBySubsection(rows = []) {
+  const map = new Map();
+  rows.forEach((row) => {
+    if (!row) return;
+    const key = row.subsection ? String(row.subsection).trim() : "";
+    const normalizedKey = key.length > 0 ? key : null;
+    if (!map.has(normalizedKey)) map.set(normalizedKey, []);
+    map.get(normalizedKey).push(row);
+  });
+  return map;
+}
+
 function formatAgeRange(row) {
   const min = row?.min_age !== undefined && row?.min_age !== null && row?.min_age !== ""
     ? Number(row.min_age)
@@ -109,6 +121,7 @@ export default async function SightDetailBySlugPage(props) {
   const result = await getSightBySlugs(slug, sight).catch(() => null);
   if (!result?.sight || !result?.destination) notFound();
   const { sight: p, destination: dest } = result;
+  const openingTimesUrl = p.opening_times_url || null;
   let seasons = [];
   let closures = [];
   const [r, e] = await Promise.all([
@@ -181,60 +194,81 @@ export default async function SightDetailBySlugPage(props) {
           <div>
             <h2 className="text-xl font-semibold mb-2">Admission Prices</h2>
             {Array.isArray(admissions) && admissions.length > 0 ? (
-              <ul className="space-y-3">
-                {admissions.map((row) => {
-                  const amountLabel = formatAdmissionAmount(row);
-                  const ages = formatAgeRange(row);
-                  const validFrom = formatDateLabel(row.valid_from);
-                  const validTo = formatDateLabel(row.valid_to);
-                  const validity = validFrom || validTo ? (
-                    <span className="text-xs text-muted-foreground">
-                      {validFrom && validTo
-                        ? `Valid ${validFrom} – ${validTo}`
-                        : validFrom
-                        ? `Valid from ${validFrom}`
-                        : `Valid until ${validTo}`}
-                    </span>
-                  ) : null;
-
-                  return (
-                    <li
-                      key={`${row.id || row.label}-${row.idx}`}
-                      className="rounded border px-3 py-2 bg-card text-card-foreground"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                          <span className="font-medium">{row.label}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {amountLabel || "See details"}
+              Array.from(groupAdmissionsBySubsection(admissions).entries()).map(
+                ([subsection, items]) => (
+                  <div key={subsection || "__DEFAULT__"} className="space-y-3">
+                    {subsection ? (
+                      <h3 className="text-lg font-semibold">{subsection}</h3>
+                    ) : null}
+                    <ul className="space-y-3">
+                      {items.map((row) => {
+                        const amountLabel = formatAdmissionAmount(row);
+                        const ages = formatAgeRange(row);
+                        const validFrom = formatDateLabel(row.valid_from);
+                        const validTo = formatDateLabel(row.valid_to);
+                        const validity = validFrom || validTo ? (
+                          <span className="text-xs text-muted-foreground">
+                            {validFrom && validTo
+                              ? `Valid ${validFrom} – ${validTo}`
+                              : validFrom
+                              ? `Valid from ${validFrom}`
+                              : `Valid until ${validTo}`}
                           </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          {ages ? <span>Age {ages}</span> : null}
-                          {row.requires_id ? <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide">ID required</span> : null}
-                        </div>
-                        {validity}
-                        {row.note ? (
-                          <span className="text-xs text-muted-foreground">{row.note}</span>
-                        ) : null}
-                        {row.external_url ? (
-                          <a
-                            href={row.external_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary underline"
+                        ) : null;
+
+                        return (
+                          <li
+                            key={`${row.id || row.label}-${row.idx}`}
+                            className="rounded border px-3 py-2 bg-card text-card-foreground"
                           >
-                            More info
-                          </a>
-                        ) : null}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                <span className="font-medium">{row.label}</span>
+                                <span className="text-sm text-muted-foreground">
+                                  {amountLabel || "See details"}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                {ages ? <span>Age {ages}</span> : null}
+                                {row.requires_id ? (
+                                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                                    ID required
+                                  </span>
+                                ) : null}
+                              </div>
+                              {validity}
+                              {row.note ? (
+                                <span className="text-xs text-muted-foreground">{row.note}</span>
+                              ) : null}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )
+              )
             ) : (
               <p className="text-muted-foreground">Admission pricing not available.</p>
             )}
+          </div>
+
+          <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Always check the official website before travelling as schedules can
+            change without notice.
+            {openingTimesUrl ? (
+              <>
+                {" "}
+                <a
+                  href={openingTimesUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium underline"
+                >
+                  Official site
+                </a>
+              </>
+            ) : null}
           </div>
 
           <div>

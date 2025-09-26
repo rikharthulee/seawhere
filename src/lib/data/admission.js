@@ -20,6 +20,10 @@ function normalizeRow(row = {}) {
   return {
     id: row.id || null,
     idx: typeof row.idx === "number" ? row.idx : coerceNumber(row.idx) ?? 0,
+    subsection:
+      typeof row.subsection === "string"
+        ? row.subsection.trim() || null
+        : row.subsection || null,
     label:
       typeof row.label === "string"
         ? row.label.trim()
@@ -36,10 +40,6 @@ function normalizeRow(row = {}) {
       typeof row.note === "string"
         ? row.note.trim() || null
         : row.note || null,
-    external_url:
-      typeof row.external_url === "string"
-        ? row.external_url.trim() || null
-        : row.external_url || null,
   };
 }
 
@@ -49,7 +49,7 @@ export async function fetchAdmissionPrices(sightId) {
   const { data, error } = await db
     .from("sight_admission_prices")
     .select(
-      "id, idx, label, min_age, max_age, requires_id, is_free, amount, currency, valid_from, valid_to, note, external_url"
+      "id, idx, label, subsection, min_age, max_age, requires_id, is_free, amount, currency, valid_from, valid_to, note"
     )
     .eq("sight_id", sightId)
     .order("idx", { ascending: true });
@@ -115,6 +115,7 @@ export async function saveAdmissionPrices(sightId, rows) {
       ...row,
       currency: currency || "JPY",
       amount: row.is_free ? null : coerceNumber(row.amount),
+      external_url: null,
     };
   });
 

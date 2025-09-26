@@ -13,7 +13,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import OpeningTimes from "@/components/admin/OpeningTimes";
+import OpeningTimes from "@/components/admin/OpeningTimesEditor";
 import AdmissionEditor from "@/components/admin/AdmissionEditor";
 
 export default function SightsForm({ id, initial, onSaved, onCancel }) {
@@ -575,10 +575,20 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
           sightId={id || initial?.id || null}
         />
         <div className="flex items-center gap-3">
-          <Button onClick={save} disabled={saving} size="sm" className="h-9 px-4">
+          <Button
+            onClick={save}
+            disabled={saving}
+            size="sm"
+            className="h-9 px-4"
+          >
             {saving ? "Saving…" : "Save"}
           </Button>
-          <Button variant="outline" onClick={onCancel} size="sm" className="h-9 px-4">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            size="sm"
+            className="h-9 px-4"
+          >
             Cancel
           </Button>
           {isEditing ? (

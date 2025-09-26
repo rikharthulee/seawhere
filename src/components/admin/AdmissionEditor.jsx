@@ -21,6 +21,7 @@ import {
 
 const EMPTY_ROW = {
   id: null,
+  subsection: "",
   label: "",
   min_age: "",
   max_age: "",
@@ -31,12 +32,12 @@ const EMPTY_ROW = {
   valid_from: "",
   valid_to: "",
   note: "",
-  external_url: "",
 };
 
 function toEditableRow(row = {}) {
   return {
     id: row.id || null,
+    subsection: row.subsection || "",
     label: row.label || "",
     min_age:
       row.min_age === 0 || row.min_age
@@ -56,7 +57,6 @@ function toEditableRow(row = {}) {
     valid_from: row.valid_from || "",
     valid_to: row.valid_to || "",
     note: row.note || "",
-    external_url: row.external_url || "",
   };
 }
 
@@ -153,18 +153,18 @@ const AdmissionEditor = forwardRef(function AdmissionEditor(
       setSaving(true);
       setError("");
       try {
-        const payload = rowList.map((row, idx) => ({
-          ...row,
-          idx,
-          label: row.label.trim(),
+      const payload = rowList.map((row, idx) => ({
+        ...row,
+        idx,
+        subsection: row.subsection?.trim() ? row.subsection.trim() : null,
+        label: row.label.trim(),
           min_age: row.min_age === "" ? null : row.min_age,
           max_age: row.max_age === "" ? null : row.max_age,
-          amount: row.amount === "" ? null : row.amount,
-          valid_from: row.valid_from || null,
-          valid_to: row.valid_to || null,
-          note: row.note?.trim() || null,
-          external_url: row.external_url?.trim() || null,
-        }));
+        amount: row.amount === "" ? null : row.amount,
+        valid_from: row.valid_from || null,
+        valid_to: row.valid_to || null,
+        note: row.note?.trim() || null,
+      }));
 
         const fresh = await saveAdmissionPrices(targetId, payload);
         setRows(toDisplayState(fresh));
@@ -227,17 +227,18 @@ const AdmissionEditor = forwardRef(function AdmissionEditor(
       ) : null}
 
       <div className="rounded-lg border border-border/60 shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="min-w-[140px]">Category</TableHead>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-36 min-w-[120px]">Sub-section</TableHead>
+            <TableHead className="min-w-[140px]">Category</TableHead>
             <TableHead className="min-w-[160px]">Age</TableHead>
             <TableHead className="w-[80px]">Free?</TableHead>
             <TableHead className="min-w-[120px]">Amount</TableHead>
             <TableHead className="w-[80px]">Cur</TableHead>
             <TableHead className="w-[80px]">ID?</TableHead>
             <TableHead className="min-w-[200px]">Valid</TableHead>
-            <TableHead className="min-w-[220px]">Note / Link</TableHead>
+            <TableHead className="min-w-[220px]">Note</TableHead>
             <TableHead className="w-[90px]">Remove</TableHead>
           </TableRow>
           </TableHeader>
@@ -251,6 +252,16 @@ const AdmissionEditor = forwardRef(function AdmissionEditor(
           ) : (
             rowList.map((row, index) => (
               <TableRow key={row.id || index}>
+                <TableCell>
+                  <input
+                    className="w-32 rounded border border-border px-2 py-1 text-sm"
+                    value={row.subsection}
+                    onChange={(event) =>
+                      updateRow(index, { subsection: event.target.value })
+                    }
+                    placeholder="Sub-section"
+                  />
+                </TableCell>
                 <TableCell>
                   <input
                     className="w-full rounded border border-border px-2 py-1 text-sm"
@@ -373,14 +384,6 @@ const AdmissionEditor = forwardRef(function AdmissionEditor(
                         updateRow(index, { note: event.target.value })
                       }
                       placeholder="Note"
-                    />
-                    <input
-                      className="w-full rounded border border-border px-2 py-1 text-sm"
-                      value={row.external_url}
-                      onChange={(event) =>
-                        updateRow(index, { external_url: event.target.value })
-                      }
-                      placeholder="https://…"
                     />
                   </div>
                 </TableCell>

@@ -33,6 +33,13 @@ export async function loadOpeningTimes(sightId) {
     .order("start_date", { ascending: true });
   if (cErr) throw cErr;
 
+  const { data: sightRow, error: sErr } = await supabase
+    .from("sights")
+    .select("opening_times_url")
+    .eq("id", sightId)
+    .maybeSingle();
+  if (sErr) throw sErr;
+
   return {
     hours: (hours || []).map((h) => ({
       id: h.id,
@@ -52,11 +59,15 @@ export async function loadOpeningTimes(sightId) {
       weekday: typeof c.weekday === "number" ? c.weekday : undefined,
       notes: c.note || "",
     })),
+    officialUrl: sightRow?.opening_times_url || "",
   };
 }
 
 // SIMPLE REPLACE STRATEGY: delete existing then insert current
-export async function saveOpeningTimes(sightId, { hours, closures }) {
+export async function saveOpeningTimes(
+  sightId,
+  { hours, closures, officialUrl }
+) {
   const supabase = createClientComponentClient();
   const hourRows = (hours || [])
     .filter((h) =>
@@ -119,5 +130,17 @@ export async function saveOpeningTimes(sightId, { hours, closures }) {
       .insert(excRows);
     if (error) throw error;
   }
+
+  const normalizedUrl =
+    typeof officialUrl === "string" && officialUrl.trim().length > 0
+      ? officialUrl.trim()
+      : null;
+
+  const { error: updateErr } = await supabase
+    .from("sights")
+    .update({ opening_times_url: normalizedUrl })
+    .eq("id", sightId);
+  if (updateErr) throw updateErr;
+
   return true;
 }
