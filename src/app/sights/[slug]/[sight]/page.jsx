@@ -11,6 +11,7 @@ import {
   getSightOpeningHours,
   getSightOpeningExceptions,
 } from "@/lib/data/sights";
+import { fetchAdmissionPrices } from "@/lib/data/admission";
 import { fmtTime, fmtJPY } from "@/lib/format";
 import { getRouteParams } from "@/lib/route-params";
 
@@ -71,6 +72,37 @@ function formatDateLabel(value) {
   });
 }
 
+function formatAdmissionAmount(row) {
+  if (row?.is_free) return "Free";
+  const raw = row?.amount;
+  if (raw === null || raw === undefined || raw === "") return null;
+  const currency = (row?.currency || "JPY").toUpperCase();
+  const amount = Number(raw);
+  if (Number.isNaN(amount)) return null;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch (_) {
+    return `${currency} ${amount.toLocaleString()}`;
+  }
+}
+
+function formatAgeRange(row) {
+  const min = row?.min_age !== undefined && row?.min_age !== null && row?.min_age !== ""
+    ? Number(row.min_age)
+    : null;
+  const max = row?.max_age !== undefined && row?.max_age !== null && row?.max_age !== ""
+    ? Number(row.max_age)
+    : null;
+  if (min === null && max === null) return null;
+  if (min !== null && max !== null) return `${min}–${max}`;
+  if (min !== null) return `${min}+`;
+  return `Up to ${max}`;
+}
+
 export default async function SightDetailBySlugPage(props) {
   const { params } = await getRouteParams(props);
   const { slug, sight } = params || {};
@@ -83,6 +115,7 @@ export default async function SightDetailBySlugPage(props) {
     getSightOpeningHours(p.id).catch(() => []),
     getSightOpeningExceptions(p.id).catch(() => []),
   ]);
+  const admissions = await fetchAdmissionPrices(p.id).catch(() => []);
   seasons = Array.isArray(r)
     ? r.map((row) => ({
         startMonth: row.start_month ?? null,
@@ -131,40 +164,6 @@ export default async function SightDetailBySlugPage(props) {
         </div>
 
         <div className="md:col-span-2">
-          <Card className="mb-4">
-            <CardContent className="p-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
-                {dest ? (
-                  <span>
-                    <span className="font-medium text-foreground">Destination:</span>{" "}
-                    <Link href={`/destinations/${dest.slug}`} className="underline">{dest.name}</Link>
-                  </span>
-                ) : null}
-                {fmtJPY(p.price_amount) ? (
-                  <span><span className="font-medium text-foreground">Price:</span> {fmtJPY(p.price_amount)}</span>
-                ) : null}
-                {p.duration_minutes ? (
-                  <span><span className="font-medium text-foreground">Duration:</span> {p.duration_minutes} min</span>
-                ) : null}
-                {p.provider ? (
-                  <span><span className="font-medium text-foreground">Provider:</span> {p.provider}</span>
-                ) : null}
-              </div>
-              {p.deeplink ? (
-                <a
-                  href={p.deeplink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 hover:opacity-90"
-                >
-                  {p.provider && String(p.provider).toLowerCase() === 'gyg' ? 'Book on GetYourGuide' : 'Book Now'}
-                </a>
-              ) : null}
-            </div>
-            </CardContent>
-          </Card>
-
           {p.summary ? <p className="text-lg leading-relaxed mb-3">{p.summary}</p> : null}
           {Array.isArray(p.tags) && p.tags.length > 0 ? (
             <div className="mb-3 flex flex-wrap gap-2">
@@ -178,38 +177,99 @@ export default async function SightDetailBySlugPage(props) {
       </section>
 
       <section className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h2 className="text-xl font-semibold mb-2">Seasonal Opening Hours</h2>
-          {seasons.length > 0 ? (
-            <ul className="space-y-3">
-              {seasons.map((season, i) => {
-                const range = formatSeasonRange(season);
-                const timeLabel = `${fmtTime(season.openTime) || "—"} – ${
-                  fmtTime(season.closeTime) || "—"
-                }`;
-                return (
-                  <li
-                    key={`${season.startMonth}-${season.startDay}-${season.endMonth}-${season.endDay}-${i}`}
-                    className="rounded border px-3 py-2 bg-card text-card-foreground"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="font-medium">{range}</span>
-                        <span className="text-sm text-muted-foreground">{timeLabel}</span>
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Admission Prices</h2>
+            {Array.isArray(admissions) && admissions.length > 0 ? (
+              <ul className="space-y-3">
+                {admissions.map((row) => {
+                  const amountLabel = formatAdmissionAmount(row);
+                  const ages = formatAgeRange(row);
+                  const validFrom = formatDateLabel(row.valid_from);
+                  const validTo = formatDateLabel(row.valid_to);
+                  const validity = validFrom || validTo ? (
+                    <span className="text-xs text-muted-foreground">
+                      {validFrom && validTo
+                        ? `Valid ${validFrom} – ${validTo}`
+                        : validFrom
+                        ? `Valid from ${validFrom}`
+                        : `Valid until ${validTo}`}
+                    </span>
+                  ) : null;
+
+                  return (
+                    <li
+                      key={`${row.id || row.label}-${row.idx}`}
+                      className="rounded border px-3 py-2 bg-card text-card-foreground"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                          <span className="font-medium">{row.label}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {amountLabel || "See details"}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          {ages ? <span>Age {ages}</span> : null}
+                          {row.requires_id ? <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide">ID required</span> : null}
+                        </div>
+                        {validity}
+                        {row.note ? (
+                          <span className="text-xs text-muted-foreground">{row.note}</span>
+                        ) : null}
+                        {row.external_url ? (
+                          <a
+                            href={row.external_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary underline"
+                          >
+                            More info
+                          </a>
+                        ) : null}
                       </div>
-                      {season.lastEntryMins ? (
-                        <span className="text-xs text-muted-foreground">
-                          Last entry {season.lastEntryMins} mins before close
-                        </span>
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground">Seasonal hours not available.</p>
-          )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground">Admission pricing not available.</p>
+            )}
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Seasonal Opening Hours</h2>
+            {seasons.length > 0 ? (
+              <ul className="space-y-3">
+                {seasons.map((season, i) => {
+                  const range = formatSeasonRange(season);
+                  const timeLabel = `${fmtTime(season.openTime) || "—"} – ${
+                    fmtTime(season.closeTime) || "—"
+                  }`;
+                  return (
+                    <li
+                      key={`${season.startMonth}-${season.startDay}-${season.endMonth}-${season.endDay}-${i}`}
+                      className="rounded border px-3 py-2 bg-card text-card-foreground"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                          <span className="font-medium">{range}</span>
+                          <span className="text-sm text-muted-foreground">{timeLabel}</span>
+                        </div>
+                        {season.lastEntryMins ? (
+                          <span className="text-xs text-muted-foreground">
+                            Last entry {season.lastEntryMins} mins before close
+                          </span>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground">Seasonal hours not available.</p>
+            )}
+          </div>
         </div>
         <div>
           <h2 className="text-xl font-semibold mb-2">Closure Notices</h2>
@@ -257,6 +317,41 @@ export default async function SightDetailBySlugPage(props) {
       <section className="mt-8">
         <h2 className="text-xl font-semibold mb-2">Popular tours</h2>
         <GygWidget tourId={p.gyg_id} />
+      </section>
+
+      <section className="mt-10">
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
+                {dest ? (
+                  <span>
+                    <span className="font-medium text-foreground">Destination:</span>{" "}
+                    <Link href={`/destinations/${dest.slug}`} className="underline">{dest.name}</Link>
+                  </span>
+                ) : null}
+                {fmtJPY(p.price_amount) ? (
+                  <span><span className="font-medium text-foreground">Price:</span> {fmtJPY(p.price_amount)}</span>
+                ) : null}
+                {p.duration_minutes ? (
+                  <span><span className="font-medium text-foreground">Duration:</span> {p.duration_minutes} min</span>
+                ) : null}
+              </div>
+              {p.deeplink ? (
+                <a
+                  href={p.deeplink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 hover:opacity-90"
+                >
+                  {p.provider && String(p.provider).toLowerCase() === "gyg"
+                    ? "Book on GetYourGuide"
+                    : "Book Now"}
+                </a>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
       </section>
     </main>
   );

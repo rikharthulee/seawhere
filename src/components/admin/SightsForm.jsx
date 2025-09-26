@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import OpeningTimes from "@/components/admin/OpeningTimes";
+import AdmissionEditor from "@/components/admin/AdmissionEditor";
 
 export default function SightsForm({ id, initial, onSaved, onCancel }) {
   const supabase = createClientComponentClient();
@@ -65,6 +66,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const openingTimesRef = useRef(null);
+  const admissionRef = useRef(null);
 
   function slugify(s) {
     return (s || "")
@@ -271,6 +273,13 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
           throw new Error("Unable to determine sight ID for opening times");
         }
         await openingTimesRef.current.save(savedSightId);
+      }
+
+      if (admissionRef.current) {
+        if (!savedSightId) {
+          throw new Error("Unable to determine sight ID for admission pricing");
+        }
+        await admissionRef.current.save(savedSightId);
       }
 
       onSaved?.(json);
@@ -538,6 +547,28 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
           label="Details"
           warnOnUnsaved={true}
         />
+
+        <Card>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold">Admission</h3>
+              <p className="text-sm text-muted-foreground">
+                Configure ticket categories, pricing, and validity windows.
+              </p>
+            </div>
+            {id || initial?.id ? (
+              <AdmissionEditor
+                ref={admissionRef}
+                sightId={id || initial?.id}
+                initialRows={initial?.admission || []}
+              />
+            ) : (
+              <div className="rounded border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
+                Save the sight first to manage admission pricing.
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <OpeningTimes
           ref={openingTimesRef}

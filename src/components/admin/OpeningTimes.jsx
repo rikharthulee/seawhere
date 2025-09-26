@@ -4,7 +4,6 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useState,
 } from "react";
 import { format } from "date-fns";
@@ -32,7 +31,6 @@ import { cn } from "@/lib/utils";
 import {
   loadOpeningTimes,
   saveOpeningTimes,
-  toISODate,
 } from "@/lib/openingTimesApi";
 
 const MONTH_OPTIONS = [
@@ -73,7 +71,7 @@ function DatePickerField({
           <Button
             variant="outline"
             className={cn(
-              "h-8 w-full justify-start px-2 text-left text-xs font-normal",
+              "h-9 w-full justify-start px-3 text-left text-sm font-normal",
               !value && "text-muted-foreground"
             )}
           >
@@ -95,11 +93,12 @@ function DatePickerField({
 }
 
 const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
-  const [hours, setHours] = useState([]); // items contain Date objects now
+  const [hours, setHours] = useState([]);
   const [closures, setClosures] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!sightId) {
@@ -191,10 +190,10 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
     setClosures([
       ...closures,
       {
-        type: "fixed", // "fixed" | "range" | "weekly"
-        startDate: null, // Date | null
-        endDate: null, // Date | null
-        weekday: undefined, // 0..6
+        type: "fixed",
+        startDate: null,
+        endDate: null,
+        weekday: undefined,
         notes: "",
       },
     ]);
@@ -219,6 +218,7 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
       const refreshed = await loadOpeningTimes(targetId);
       setHours(refreshed.hours || []);
       setClosures(refreshed.closures || []);
+      setMessage("Opening hours saved");
     } catch (e) {
       setError(e?.message || "Failed to save opening times");
       throw e;
@@ -232,32 +232,12 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
     save: persistOpeningTimes,
   }));
 
-  const debugPayload = useMemo(() => {
-    const hourRows = (hours || []).map((h) => ({
-      sight_id: sightId || null,
-      start_month: h.startMonth ?? null,
-      start_day: h.startDay ?? null,
-      end_month: h.endMonth ?? null,
-      end_day: h.endDay ?? null,
-      open_time: h.openTime || "",
-      close_time: h.closeTime || "",
-      last_entry_mins: Number(h.lastEntryMins) || 0,
-    }));
-    const excRows = (closures || []).map((c) => ({
-      sight_id: sightId || null,
-      type: c.type,
-      start_date: toISODate(c.startDate),
-      end_date: toISODate(c.endDate),
-      weekday:
-        c.weekday === undefined || c.weekday === null || c.weekday === ""
-          ? null
-          : Number(c.weekday),
-      note: c.notes || null,
-    }));
-    return { hours: hourRows, closures: excRows };
-  }, [hours, closures, sightId]);
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(""), 3000);
+    return () => clearTimeout(timer);
+  }, [message]);
 
-  // Minimal validation helpers (client-side only)
   const seasonHasError = (h) => {
     if (!h.startMonth) return "Start month required";
     if (!isValidMonthDay(h.startMonth, h.startDay)) return "Start day invalid";
@@ -278,25 +258,34 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
         </div>
       ) : null}
 
-      {/* Opening Hours */}
       <Card>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold">Opening Hours (by season)</h2>
-            <Button
-              onClick={addHour}
-              size="sm"
-              className="h-8 px-3"
-              disabled={!sightId || loading || saving}
-            >
-              + Add Season
-            </Button>
+        <CardContent className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">Opening Hours & Exceptions</h2>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={addHour}
+                size="sm"
+                className="h-9 px-3"
+                disabled={!sightId || loading || saving}
+              >
+                + Add Season
+              </Button>
+              <Button
+                onClick={addClosure}
+                size="sm"
+                className="h-9 px-3"
+                disabled={!sightId || loading || saving}
+              >
+                + Add Closure
+              </Button>
+            </div>
           </div>
 
-          {loading ? (
-            <p className="text-xs text-muted-foreground">
-              Loading opening hours…
-            </p>
+          {saving ? (
+            <p className="text-xs text-muted-foreground">Saving opening hours…</p>
+          ) : loading ? (
+            <p className="text-xs text-muted-foreground">Loading opening hours…</p>
           ) : null}
 
           {error ? (
@@ -305,276 +294,271 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
             </div>
           ) : null}
 
-          {sightId && !loading && hours.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No seasons yet. Add one to begin.
-            </p>
-          )}
+          {message ? (
+            <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              {message}
+            </div>
+          ) : null}
 
-          {hours.map((h, i) => {
-            const err = seasonHasError(h);
-            return (
-              <div
-                key={i}
-                className="grid grid-cols-[repeat(7,minmax(0,1fr))_auto] gap-2 items-end border p-3 rounded-lg text-xs"
-              >
-                <div className="flex flex-col gap-1 min-w-[120px]">
-                  <Label>Start Month</Label>
-                  <Select
-                    value={h.startMonth ? String(h.startMonth) : ""}
-                    onValueChange={(val) =>
-                      updateHour(i, "startMonth", Number(val))
-                    }
-                  >
-                    <SelectTrigger className="h-8 w-full text-xs">
-                      <SelectValue placeholder="Month" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MONTH_OPTIONS.map((m) => (
-                        <SelectItem key={m.value} value={String(m.value)}>
-                          {m.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-1 min-w-[110px]">
-                  <Label>Start Day</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={h.startDay ?? ""}
-                    onChange={(e) =>
-                      updateHour(
-                        i,
-                        "startDay",
-                        e.target.value ? Number(e.target.value) : null
-                      )
-                    }
-                    className="h-8 w-full px-2 text-xs"
-                    placeholder="Day"
-                  />
-                </div>
-                <div className="flex flex-col gap-1 min-w-[120px]">
-                  <Label>End Month</Label>
-                  <Select
-                    value={h.endMonth ? String(h.endMonth) : ""}
-                    onValueChange={(val) =>
-                      updateHour(i, "endMonth", Number(val))
-                    }
-                  >
-                    <SelectTrigger className="h-8 w-full text-xs">
-                      <SelectValue placeholder="Month" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MONTH_OPTIONS.map((m) => (
-                        <SelectItem key={m.value} value={String(m.value)}>
-                          {m.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-1 min-w-[110px]">
-                  <Label>End Day</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={h.endDay ?? ""}
-                    onChange={(e) =>
-                      updateHour(
-                        i,
-                        "endDay",
-                        e.target.value ? Number(e.target.value) : null
-                      )
-                    }
-                    className="h-8 w-full px-2 text-xs"
-                    placeholder="Day"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label>Open</Label>
-                  <Input
-                    type="time"
-                    value={h.openTime}
-                    onChange={(e) => updateHour(i, "openTime", e.target.value)}
-                    className="h-8 w-full px-2 text-xs"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label>Close</Label>
-                  <Input
-                    type="time"
-                    value={h.closeTime}
-                    onChange={(e) => updateHour(i, "closeTime", e.target.value)}
-                    className="h-8 w-full px-2 text-xs"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label>Last Entry (mins)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={h.lastEntryMins}
-                    onChange={(e) =>
-                      updateHour(
-                        i,
-                        "lastEntryMins",
-                        e.target.value === ""
-                          ? 0
-                          : Number.isFinite(Number(e.target.value))
-                          ? Number(e.target.value)
-                          : h.lastEntryMins
-                      )
-                    }
-                    className="h-8 w-full px-2 text-xs"
-                  />
-                </div>
-                <div className="flex flex-col justify-end gap-1">
-                  <Button
-                    variant="destructive"
-                    onClick={() => removeHour(i)}
-                    className="h-8 px-3 text-xs"
-                    size="sm"
-                    disabled={!sightId || saving || loading}
-                  >
-                    Remove
-                  </Button>
-                  {err && <span className="text-xs text-red-600">{err}</span>}
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+          {sightId && !loading && hours.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No seasons yet. Add one to begin.</p>
+          ) : null}
 
-      {/* Closures */}
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold">Closures / Exceptions</h2>
-            <Button
-              onClick={addClosure}
-              size="sm"
-              className="h-8 px-3"
-              disabled={!sightId || loading || saving}
-            >
-              + Add Closure
-            </Button>
+          <div className="space-y-4">
+            {hours.map((h, i) => {
+              const err = seasonHasError(h);
+              return (
+                <div
+                  key={i}
+                  className="grid grid-cols-[repeat(7,minmax(0,1fr))_auto] gap-2 items-end border p-3 rounded-lg text-sm"
+                >
+                  <div className="flex flex-col gap-1 min-w-[120px]">
+                    <Label>Start Month</Label>
+                    <Select
+                      value={h.startMonth ? String(h.startMonth) : ""}
+                      onValueChange={(val) =>
+                        updateHour(i, "startMonth", Number(val))
+                      }
+                    >
+                      <SelectTrigger className="h-9 w-full text-sm">
+                        <SelectValue placeholder="Month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MONTH_OPTIONS.map((m) => (
+                          <SelectItem key={m.value} value={String(m.value)}>
+                            {m.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1 min-w-[110px]">
+                    <Label>Start Day</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={h.startDay ?? ""}
+                      onChange={(e) =>
+                        updateHour(
+                          i,
+                          "startDay",
+                          e.target.value ? Number(e.target.value) : null
+                        )
+                      }
+                      className="h-9 w-full px-3 text-sm"
+                      placeholder="Day"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 min-w-[120px]">
+                    <Label>End Month</Label>
+                    <Select
+                      value={h.endMonth ? String(h.endMonth) : ""}
+                      onValueChange={(val) =>
+                        updateHour(i, "endMonth", Number(val))
+                      }
+                    >
+                      <SelectTrigger className="h-9 w-full text-sm">
+                        <SelectValue placeholder="Month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MONTH_OPTIONS.map((m) => (
+                          <SelectItem key={m.value} value={String(m.value)}>
+                            {m.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1 min-w-[110px]">
+                    <Label>End Day</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={h.endDay ?? ""}
+                      onChange={(e) =>
+                        updateHour(
+                          i,
+                          "endDay",
+                          e.target.value ? Number(e.target.value) : null
+                        )
+                      }
+                      className="h-9 w-full px-3 text-sm"
+                      placeholder="Day"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label>Open</Label>
+                    <Input
+                      type="time"
+                      value={h.openTime}
+                      onChange={(e) => updateHour(i, "openTime", e.target.value)}
+                      className="h-9 w-full px-3 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label>Close</Label>
+                    <Input
+                      type="time"
+                      value={h.closeTime}
+                      onChange={(e) => updateHour(i, "closeTime", e.target.value)}
+                      className="h-9 w-full px-3 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label>Last Entry (mins)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={h.lastEntryMins}
+                      onChange={(e) =>
+                        updateHour(
+                          i,
+                          "lastEntryMins",
+                          e.target.value === ""
+                            ? 0
+                            : Number.isFinite(Number(e.target.value))
+                            ? Number(e.target.value)
+                            : h.lastEntryMins
+                        )
+                      }
+                      className="h-9 w-full px-3 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end gap-1">
+                    <Button
+                      variant="destructive"
+                      onClick={() => removeHour(i)}
+                      className="h-9 px-3 text-sm"
+                      size="sm"
+                      disabled={!sightId || saving || loading}
+                    >
+                      Remove
+                    </Button>
+                    {err && <span className="text-xs text-red-600">{err}</span>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          {sightId && !loading && closures.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No closures yet. Add one to begin.
-            </p>
-          )}
-
-          {closures.map((c, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-[minmax(180px,2fr)_repeat(3,minmax(0,1fr))_auto] gap-2 items-end border p-3 rounded-lg text-xs"
-            >
-              <div className="flex flex-col gap-1">
-                <Label>Type</Label>
-                <Select
-                  value={c.type}
-                  onValueChange={(val) => updateClosure(i, "type", val)}
+          <div className="space-y-4">
+            {closures.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No closures yet. Add one to begin.
+              </p>
+            ) : (
+              closures.map((c, i) => (
+                <div
+                  key={i}
+                  className="grid grid-cols-[minmax(180px,2fr)_repeat(3,minmax(0,1fr))_auto] gap-2 items-end border p-3 rounded-lg text-sm"
                 >
-                  <SelectTrigger className="h-8 w-full text-xs">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fixed">Fixed Date</SelectItem>
-                    <SelectItem value="range">Date Range</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="flex flex-col gap-1">
+                    <Label>Type</Label>
+                    <Select
+                      value={c.type}
+                      onValueChange={(val) => updateClosure(i, "type", val)}
+                    >
+                      <SelectTrigger className="h-9 w-full text-sm">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed">Fixed Date</SelectItem>
+                        <SelectItem value="range">Date Range</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {c.type === "fixed" && (
-                <DatePickerField
-                  label="Date"
-                  value={c.startDate}
-                  onChange={(d) => updateClosure(i, "startDate", d)}
-                  className="w-full"
-                />
-              )}
+                  {c.type === "fixed" && (
+                    <DatePickerField
+                      label="Date"
+                      value={c.startDate}
+                      onChange={(d) => updateClosure(i, "startDate", d)}
+                      className="w-full"
+                    />
+                  )}
 
-              {c.type === "range" && (
-                <>
-                  <DatePickerField
-                    label="Start"
-                    value={c.startDate}
-                    onChange={(d) => updateClosure(i, "startDate", d)}
-                    className="w-full"
-                  />
-                  <DatePickerField
-                    label="End"
-                    value={c.endDate}
-                    onChange={(d) => updateClosure(i, "endDate", d)}
-                    className="w-full"
-                  />
-                </>
-              )}
+                  {c.type === "range" && (
+                    <>
+                      <DatePickerField
+                        label="Start"
+                        value={c.startDate}
+                        onChange={(d) => updateClosure(i, "startDate", d)}
+                        className="w-full"
+                      />
+                      <DatePickerField
+                        label="End"
+                        value={c.endDate}
+                        onChange={(d) => updateClosure(i, "endDate", d)}
+                        className="w-full"
+                      />
+                    </>
+                  )}
 
-              {c.type === "weekly" && (
-                <div className="flex flex-col gap-1">
-                  <Label>Weekday</Label>
-                  <Select
-                    value={(c.weekday ?? "").toString()}
-                    onValueChange={(val) =>
-                      updateClosure(i, "weekday", parseInt(val, 10))
-                    }
-                  >
-                    <SelectTrigger className="h-8 w-full text-xs">
-                      <SelectValue placeholder="Select day" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Sunday</SelectItem>
-                      <SelectItem value="1">Monday</SelectItem>
-                      <SelectItem value="2">Tuesday</SelectItem>
-                      <SelectItem value="3">Wednesday</SelectItem>
-                      <SelectItem value="4">Thursday</SelectItem>
-                      <SelectItem value="5">Friday</SelectItem>
-                      <SelectItem value="6">Saturday</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {c.type === "weekly" && (
+                    <div className="flex flex-col gap-1">
+                      <Label>Weekday</Label>
+                      <Select
+                        value={(c.weekday ?? "").toString()}
+                        onValueChange={(val) =>
+                          updateClosure(i, "weekday", parseInt(val, 10))
+                        }
+                      >
+                        <SelectTrigger className="h-9 w-full text-sm">
+                          <SelectValue placeholder="Select day" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">Sunday</SelectItem>
+                          <SelectItem value="1">Monday</SelectItem>
+                          <SelectItem value="2">Tuesday</SelectItem>
+                          <SelectItem value="3">Wednesday</SelectItem>
+                          <SelectItem value="4">Thursday</SelectItem>
+                          <SelectItem value="5">Friday</SelectItem>
+                          <SelectItem value="6">Saturday</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-1">
+                    <Label>Notes</Label>
+                    <Input
+                      value={c.notes || ""}
+                      onChange={(e) => updateClosure(i, "notes", e.target.value)}
+                      className="h-9 w-full px-3 text-sm"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      variant="destructive"
+                      onClick={() => removeClosure(i)}
+                      className="h-9 px-3 text-sm"
+                      size="sm"
+                      disabled={!sightId || saving || loading}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </div>
-              )}
+              ))
+            )}
+          </div>
 
-              <div className="flex flex-col gap-1">
-                <Label>Notes</Label>
-                <Input
-                  value={c.notes || ""}
-                  onChange={(e) => updateClosure(i, "notes", e.target.value)}
-                  className="h-8 w-full px-2 text-xs"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  variant="destructive"
-                  onClick={() => removeClosure(i)}
-                  className="h-8 px-3 text-xs"
-                  size="sm"
-                  disabled={!sightId || saving || loading}
-                >
-                  Remove
-                </Button>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent>
-          <h2 className="text-lg font-bold">Debug Output</h2>
-          <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
-            {JSON.stringify(debugPayload, null, 2)}
-          </pre>
+          <div className="flex justify-start">
+            <Button
+              onClick={() => {
+                persistOpeningTimes().catch(() => {});
+              }}
+              size="sm"
+              className="h-9 px-4"
+              disabled={!sightId || loading || saving}
+            >
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

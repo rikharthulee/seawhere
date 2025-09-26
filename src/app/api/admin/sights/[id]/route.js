@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { createClient } from "@supabase/supabase-js";
+import { fetchAdmissionPrices } from "@/lib/data/admission";
 
 export async function GET(_req, { params }) {
   try {
@@ -36,7 +37,19 @@ export async function GET(_req, { params }) {
       .eq("sight_id", id)
       .order("date", { ascending: true });
 
-    return NextResponse.json({ sight, hours: hours || [], exceptions: exceptions || [] });
+    let admission = [];
+    try {
+      admission = await fetchAdmissionPrices(id);
+    } catch (admissionError) {
+      console.error("Failed to load sight admission prices", admissionError);
+    }
+
+    return NextResponse.json({
+      sight,
+      hours: hours || [],
+      exceptions: exceptions || [],
+      admission,
+    });
   } catch (e) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
   }

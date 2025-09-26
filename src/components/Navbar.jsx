@@ -18,9 +18,6 @@ export default function Navbar() {
   const [user, setUser] = useState(null);
   const router = useRouter();
   const supabase = createClientComponentClient();
-  // Keep banner height consistent between image size and padding space
-  const bannerH = 120; // px
-
   // Track auth state and show Sign out when logged in
   useEffect(() => {
     let mounted = true;
@@ -184,11 +181,7 @@ export default function Navbar() {
         </div>
       ) : null}
 
-      <DesktopBannerNav
-        links={computedLinks}
-        isAuthed={isAuthed}
-        bannerH={bannerH}
-      />
+      <DesktopBannerNav links={computedLinks} isAuthed={isAuthed} />
 
       <MobileNavbar
         open={open}

@@ -1,4 +1,5 @@
-const { SUPABASE_URL, SUPABASE_ANON, SUPABASE_SERVICE } = require("../../lib/env");
+const { SUPABASE_URL, SUPABASE_ANON, SUPABASE_SERVICE } =
+  require("../../lib/env").default;
 
 function has(fn) {
   try {

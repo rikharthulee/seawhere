@@ -76,7 +76,7 @@ export default function SightsManager() {
           if (!open) setEditing(null);
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-8xl">
           <DialogHeader>
             <DialogTitle>
               {editing?.id ? `Edit ${editing.name || "sight"}` : "New Sight"}
@@ -175,6 +175,9 @@ export default function SightsManager() {
                               open_time: trimTime(e.open_time),
                               close_time: trimTime(e.close_time),
                             })),
+                            admission: Array.isArray(json.admission)
+                              ? json.admission
+                              : [],
                           };
                           setEditing(init);
                         } catch (e) {
