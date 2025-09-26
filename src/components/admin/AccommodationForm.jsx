@@ -13,6 +13,11 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import {
+  normalizePrefectureShape,
+  sortGeoRows,
+  shouldUseGeoViews,
+} from "@/lib/geo-normalize";
 
 const numberFromString = z.preprocess((v) => {
   if (v === "" || v === undefined || v === null) return undefined;
@@ -53,6 +58,7 @@ function slugify(s) {
 
 export default function AccommodationForm({ initial, onSaved, onCancel }) {
   const supabase = createClientComponentClient();
+  const useGeoViews = shouldUseGeoViews();
   const [name, setName] = useState(initial?.name || "");
   const [slug, setSlug] = useState(initial?.slug || "");
   const [slugTouched, setSlugTouched] = useState(!!initial?.id);
@@ -245,11 +251,19 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
       } catch {}
       // Fallback reads if needed
       try {
-        const { data: prefs } = await supabase
-          .from("prefectures")
-          .select("id,name,slug,region_id,order_index")
-          .order("order_index", { ascending: true });
-        if (!cancelled && (!prefectures || prefectures.length === 0)) setPrefectures(prefs || []);
+        const prefQuery = useGeoViews
+          ? supabase.from("geo_prefectures_v").select("*")
+          : supabase
+              .from("prefectures")
+              .select("id,name,slug,region_id,order_index")
+              .order("order_index", { ascending: true });
+        const { data: prefs } = await prefQuery;
+        if (!cancelled && (!prefectures || prefectures.length === 0)) {
+          const normalized = Array.isArray(prefs)
+            ? sortGeoRows(prefs.map(normalizePrefectureShape).filter(Boolean))
+            : [];
+          setPrefectures(normalized);
+        }
       } catch {}
       // Division options are loaded via RPC per destination; no general divisions fetch here.
       try {

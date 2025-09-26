@@ -8,6 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import ImageUpload from "./ImageUpload";
 import MultiImageUpload from "@/components/admin/MultiImageUpload";
 import ParagraphEditor from "./ParagraphEditor";
+import {
+  normalizePrefectureShape,
+  normalizeDivisionShape,
+  sortGeoRows,
+  shouldUseGeoViews,
+} from "@/lib/geo-normalize";
 
 function slugify(s) {
   return (s || "")
@@ -20,6 +26,7 @@ function slugify(s) {
 
 export default function DestinationForm({ initial, onSaved, onCancel }) {
   const supabase = createClientComponentClient();
+  const useGeoViews = shouldUseGeoViews();
   const [name, setName] = useState(initial?.name || "");
   const [slug, setSlug] = useState(initial?.slug || "");
   const [slugTouched, setSlugTouched] = useState(!!initial?.id);
@@ -83,18 +90,34 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
       } catch {}
       // Fallback chain: Supabase client → REST public
       try {
-        const { data: prefs } = await supabase
-          .from("prefectures")
-          .select("id,name,slug,region_id,order_index")
-          .order("order_index", { ascending: true });
-        if (!cancelled) setPrefectures(Array.isArray(prefs) ? prefs : []);
+        const prefQuery = useGeoViews
+          ? supabase.from("geo_prefectures_v").select("*")
+          : supabase
+              .from("prefectures")
+              .select("id,name,slug,region_id,order_index")
+              .order("order_index", { ascending: true });
+        const { data: prefs } = await prefQuery;
+        if (!cancelled) {
+          const normalized = Array.isArray(prefs)
+            ? sortGeoRows(prefs.map(normalizePrefectureShape).filter(Boolean))
+            : [];
+          setPrefectures(normalized);
+        }
       } catch {}
       try {
-        const { data: divs } = await supabase
-          .from("divisions")
-          .select("id,name,slug,prefecture_id,order_index")
-          .order("order_index", { ascending: true });
-        if (!cancelled) setDivisions(Array.isArray(divs) ? divs : []);
+        const divQuery = useGeoViews
+          ? supabase.from("geo_divisions_v").select("*")
+          : supabase
+              .from("divisions")
+              .select("id,name,slug,prefecture_id,order_index")
+              .order("order_index", { ascending: true });
+        const { data: divs } = await divQuery;
+        if (!cancelled) {
+          const normalized = Array.isArray(divs)
+            ? sortGeoRows(divs.map(normalizeDivisionShape).filter(Boolean))
+            : [];
+          setDivisions(normalized);
+        }
       } catch {}
       // No further fallback; admin meta + client reads should suffice
     }

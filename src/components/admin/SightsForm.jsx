@@ -15,9 +15,15 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import OpeningTimes from "@/components/admin/OpeningTimesEditor";
 import AdmissionEditor from "@/components/admin/AdmissionEditor";
+import {
+  normalizePrefectureShape,
+  sortGeoRows,
+  shouldUseGeoViews,
+} from "@/lib/geo-normalize";
 
 export default function SightsForm({ id, initial, onSaved, onCancel }) {
   const supabase = createClientComponentClient();
+  const useGeoViews = shouldUseGeoViews();
   const isEditing = !!id;
 
   const [name, setName] = useState(initial?.name || "");
@@ -113,12 +119,23 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         if (!cancelled && r && r.length && regions.length === 0) setRegions(r);
       } catch {}
       try {
-        const { data: p } = await supabase
-          .from("prefectures")
-          .select("id,name,slug,region_id,order_index")
-          .order("order_index", { ascending: true });
-        if (!cancelled && p && p.length && prefectures.length === 0)
-          setPrefectures(p);
+        const prefQuery = useGeoViews
+          ? supabase.from("geo_prefectures_v").select("*")
+          : supabase
+              .from("prefectures")
+              .select("id,name,slug,region_id,order_index")
+              .order("order_index", { ascending: true });
+        const { data: p } = await prefQuery;
+        if (
+          !cancelled &&
+          Array.isArray(p) &&
+          p.length &&
+          prefectures.length === 0
+        ) {
+          setPrefectures(
+            sortGeoRows(p.map(normalizePrefectureShape).filter(Boolean))
+          );
+        }
       } catch {}
       // Division options are loaded via RPC per destination; no general divisions fetch here.
       try {
