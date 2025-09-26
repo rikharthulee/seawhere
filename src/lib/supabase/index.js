@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { createServerClient, createBrowserClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
-import env from "../../../lib/env";
+import env from "@/lib/env";
 
 const { SUPABASE_URL, SUPABASE_ANON, SUPABASE_SERVICE } = env;
 
