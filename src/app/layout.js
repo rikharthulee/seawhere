@@ -3,13 +3,6 @@ import Navbar from "../components/Navbar";
 import GygAnalytics from "@/components/GygAnalytics";
 import { Suspense } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Ancizar_Serif } from "next/font/google";
-
-const ancizarSerif = Ancizar_Serif({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata = {
   title: "JapanMan",
@@ -47,7 +40,7 @@ export default function RootLayout({ children }) {
           <link key={`${href}-dns`} rel="dns-prefetch" href={href} />
         ))}
       </head>
-      <body className={ancizarSerif.className}>
+      <body>
         <Navbar />
         <div className="site-root antialiased bg-background text-foreground">{children}</div>
         <Suspense fallback={null}>
