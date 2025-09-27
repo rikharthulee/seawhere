@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
 
 async function getClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,8 +19,10 @@ export async function GET(_req, { params }) {
       .select("*")
       .eq("id", id)
       .maybeSingle();
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    if (!experience) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (!experience)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const { data: rules } = await client
       .from("experience_availability_rules")
@@ -34,9 +35,16 @@ export async function GET(_req, { params }) {
       .eq("experience_id", id)
       .order("date", { ascending: true });
 
-    return NextResponse.json({ ...experience, rules: rules || [], exceptions: exceptions || [] });
+    return NextResponse.json({
+      ...experience,
+      rules: rules || [],
+      exceptions: exceptions || [],
+    });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }
 
@@ -59,7 +67,14 @@ export async function PUT(request, { params }) {
       lat: body.lat ?? null,
       lng: body.lng ?? null,
       // normalize price
-      price: body.price || (body.price_amount != null ? { amount: body.price_amount, currency: body.price_currency || 'JPY' } : null),
+      price:
+        body.price ||
+        (body.price_amount != null
+          ? {
+              amount: body.price_amount,
+              currency: body.price_currency || "JPY",
+            }
+          : null),
       price_amount: body.price_amount ?? null,
       price_currency: body.price_currency || null,
       duration_minutes: body.duration_minutes ?? null,
@@ -68,11 +83,20 @@ export async function PUT(request, { params }) {
       gyg_id: body.gyg_id || null,
       tags: Array.isArray(body.tags) ? body.tags : null,
     };
-    const { error } = await client.from("experiences").update(payload).eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    const { error } = await client
+      .from("experiences")
+      .update(payload)
+      .eq("id", id);
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 400 });
 
-    await client.from("experience_availability_rules").delete().eq("experience_id", id);
-    const rules = Array.isArray(body.availability_rules) ? body.availability_rules : [];
+    await client
+      .from("experience_availability_rules")
+      .delete()
+      .eq("experience_id", id);
+    const rules = Array.isArray(body.availability_rules)
+      ? body.availability_rules
+      : [];
     if (rules.length > 0) {
       const rows = rules.map((r, idx) => ({
         experience_id: id,
@@ -83,8 +107,11 @@ export async function PUT(request, { params }) {
         valid_to: r.valid_to || null,
         timezone: r.timezone || "Asia/Tokyo",
       }));
-      const { error: rErr } = await client.from("experience_availability_rules").insert(rows);
-      if (rErr) return NextResponse.json({ error: rErr.message }, { status: 400 });
+      const { error: rErr } = await client
+        .from("experience_availability_rules")
+        .insert(rows);
+      if (rErr)
+        return NextResponse.json({ error: rErr.message }, { status: 400 });
     }
 
     await client.from("experience_exceptions").delete().eq("experience_id", id);
@@ -97,13 +124,19 @@ export async function PUT(request, { params }) {
         start_time: e.start_time || null,
         note: e.note || null,
       }));
-      const { error: eErr } = await client.from("experience_exceptions").insert(rows);
-      if (eErr) return NextResponse.json({ error: eErr.message }, { status: 400 });
+      const { error: eErr } = await client
+        .from("experience_exceptions")
+        .insert(rows);
+      if (eErr)
+        return NextResponse.json({ error: eErr.message }, { status: 400 });
     }
 
     return NextResponse.json({ id });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }
 
@@ -111,12 +144,19 @@ export async function DELETE(_req, { params }) {
   try {
     const { id } = await params;
     const client = await getClient();
-    await client.from("experience_availability_rules").delete().eq("experience_id", id);
+    await client
+      .from("experience_availability_rules")
+      .delete()
+      .eq("experience_id", id);
     await client.from("experience_exceptions").delete().eq("experience_id", id);
     const { error } = await client.from("experiences").delete().eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }

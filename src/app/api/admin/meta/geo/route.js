@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
 import env from "@/lib/env";
 import {
   normalizePrefectureShape,
@@ -43,26 +42,37 @@ export async function GET() {
     if (url && serviceKey) {
       const svc = createClient(url, serviceKey);
       const [r, p, d] = await Promise.all([
-        svc.from("regions").select("id,name,slug,order_index").order("order_index", { ascending: true }),
+        svc
+          .from("regions")
+          .select("id,name,slug,order_index")
+          .order("order_index", { ascending: true }),
         prefectureQuery(svc),
         divisionQuery(svc),
       ]);
       const err = r.error || p.error || d.error;
-      if (err) return NextResponse.json({ error: err.message }, { status: 400 });
+      if (err)
+        return NextResponse.json({ error: err.message }, { status: 400 });
       const prefectures = Array.isArray(p.data)
         ? sortGeoRows(p.data.map(mapPrefecture).filter(Boolean))
         : [];
       const divisions = Array.isArray(d.data)
         ? sortGeoRows(d.data.map(mapDivision).filter(Boolean))
         : [];
-      return NextResponse.json({ regions: r.data || [], prefectures, divisions });
+      return NextResponse.json({
+        regions: r.data || [],
+        prefectures,
+        divisions,
+      });
     }
 
     // Fallback: use user session (requires RLS allowing reads for admin/editor)
     const cookieStore = cookies();
     const supabase = createClient({ cookies: cookieStore });
     const [regionsRes, prefsRes, divsRes] = await Promise.all([
-      supabase.from("regions").select("id,name,slug,order_index").order("order_index", { ascending: true }),
+      supabase
+        .from("regions")
+        .select("id,name,slug,order_index")
+        .order("order_index", { ascending: true }),
       prefectureQuery(supabase),
       divisionQuery(supabase),
     ]);
@@ -74,8 +84,15 @@ export async function GET() {
     const divisions = Array.isArray(divsRes.data)
       ? sortGeoRows(divsRes.data.map(mapDivision).filter(Boolean))
       : [];
-    return NextResponse.json({ regions: regionsRes.data || [], prefectures, divisions });
+    return NextResponse.json({
+      regions: regionsRes.data || [],
+      prefectures,
+      divisions,
+    });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }

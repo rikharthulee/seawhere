@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
 
 async function getClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -37,20 +36,27 @@ export async function GET(request) {
       }));
     }
 
-    const [sights, experiences, tours, accommodation, foodDrink] = await Promise.all([
-      run("sight", "sights"),
-      run("experience", "experiences"),
-      run("tour", "tours"),
-      run("accommodation", "accommodation"),
-      run("food_drink", "food_drink"),
-    ]);
+    const [sights, experiences, tours, accommodation, foodDrink] =
+      await Promise.all([
+        run("sight", "sights"),
+        run("experience", "experiences"),
+        run("tour", "tours"),
+        run("accommodation", "accommodation"),
+        run("food_drink", "food_drink"),
+      ]);
 
-    const items = [...sights, ...experiences, ...tours, ...accommodation, ...foodDrink].slice(
-      0,
-      limit * 5
-    );
+    const items = [
+      ...sights,
+      ...experiences,
+      ...tours,
+      ...accommodation,
+      ...foodDrink,
+    ].slice(0, limit * 5);
     return NextResponse.json({ items });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
 
 export async function GET() {
   try {
@@ -12,22 +11,32 @@ export async function GET() {
       const svc = createClient(url, serviceKey);
       const res = await svc
         .from("sights")
-        .select("id, slug, name, summary, destination_id, status, images, lat, lng")
+        .select(
+          "id, slug, name, summary, destination_id, status, images, lat, lng"
+        )
         .order("name", { ascending: true });
-      data = res.data; error = res.error;
+      data = res.data;
+      error = res.error;
     } else {
       const cookieStore = cookies();
       const supabase = createClient({ cookies: cookieStore });
       const res = await supabase
         .from("sights")
-        .select("id, slug, name, summary, destination_id, status, images, lat, lng")
+        .select(
+          "id, slug, name, summary, destination_id, status, images, lat, lng"
+        )
         .order("name", { ascending: true });
-      data = res.data; error = res.error;
+      data = res.data;
+      error = res.error;
     }
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ items: data || [] });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }
 
@@ -70,7 +79,8 @@ export async function POST(request) {
       .insert(payload)
       .select("id")
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 400 });
 
     const sightId = data.id;
 
@@ -79,7 +89,8 @@ export async function POST(request) {
     if (hours.length > 0) {
       const rows = hours.map((h, idx) => ({
         sight_id: sightId,
-        weekday: typeof h.weekday === "number" ? h.weekday : Number(h.weekday) || 0,
+        weekday:
+          typeof h.weekday === "number" ? h.weekday : Number(h.weekday) || 0,
         idx: h.idx ?? idx,
         open_time: h.open_time || null,
         close_time: h.close_time || null,
@@ -87,12 +98,17 @@ export async function POST(request) {
         valid_from: h.valid_from || null,
         valid_to: h.valid_to || null,
       }));
-      const { error: hErr } = await client.from("sight_opening_hours").insert(rows);
-      if (hErr) return NextResponse.json({ error: hErr.message }, { status: 400 });
+      const { error: hErr } = await client
+        .from("sight_opening_hours")
+        .insert(rows);
+      if (hErr)
+        return NextResponse.json({ error: hErr.message }, { status: 400 });
     }
 
     // Insert exceptions
-    const exceptions = Array.isArray(body.opening_exceptions) ? body.opening_exceptions : [];
+    const exceptions = Array.isArray(body.opening_exceptions)
+      ? body.opening_exceptions
+      : [];
     if (exceptions.length > 0) {
       const rows = exceptions.map((e) => ({
         sight_id: sightId,
@@ -102,12 +118,18 @@ export async function POST(request) {
         close_time: e.close_time || null,
         note: e.note || null,
       }));
-      const { error: eErr } = await client.from("sight_opening_exceptions").insert(rows);
-      if (eErr) return NextResponse.json({ error: eErr.message }, { status: 400 });
+      const { error: eErr } = await client
+        .from("sight_opening_exceptions")
+        .insert(rows);
+      if (eErr)
+        return NextResponse.json({ error: eErr.message }, { status: 400 });
     }
 
     return NextResponse.json({ id: sightId });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }

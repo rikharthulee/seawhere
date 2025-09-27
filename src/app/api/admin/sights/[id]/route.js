@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
 import { fetchAdmissionPrices } from "@/lib/data/admission";
 
 export async function GET(_req, { params }) {
@@ -22,12 +21,16 @@ export async function GET(_req, { params }) {
       .select("*")
       .eq("id", id)
       .maybeSingle();
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    if (!sight) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (!sight)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const { data: hours } = await client
       .from("sight_opening_hours")
-      .select("weekday, idx, open_time, close_time, is_closed, valid_from, valid_to")
+      .select(
+        "weekday, idx, open_time, close_time, is_closed, valid_from, valid_to"
+      )
       .eq("sight_id", id)
       .order("weekday", { ascending: true })
       .order("idx", { ascending: true });
@@ -51,7 +54,10 @@ export async function GET(_req, { params }) {
       admission,
     });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }
 
@@ -90,7 +96,8 @@ export async function PUT(request, { params }) {
       price_currency: body.price_currency || null,
     };
     const { error } = await client.from("sights").update(payload).eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 400 });
 
     // Replace hours and exceptions
     await client.from("sight_opening_hours").delete().eq("sight_id", id);
@@ -98,7 +105,8 @@ export async function PUT(request, { params }) {
     if (hours.length > 0) {
       const rows = hours.map((h, idx) => ({
         sight_id: id,
-        weekday: typeof h.weekday === "number" ? h.weekday : Number(h.weekday) || 0,
+        weekday:
+          typeof h.weekday === "number" ? h.weekday : Number(h.weekday) || 0,
         idx: h.idx ?? idx,
         open_time: h.open_time || null,
         close_time: h.close_time || null,
@@ -106,12 +114,17 @@ export async function PUT(request, { params }) {
         valid_from: h.valid_from || null,
         valid_to: h.valid_to || null,
       }));
-      const { error: hErr } = await client.from("sight_opening_hours").insert(rows);
-      if (hErr) return NextResponse.json({ error: hErr.message }, { status: 400 });
+      const { error: hErr } = await client
+        .from("sight_opening_hours")
+        .insert(rows);
+      if (hErr)
+        return NextResponse.json({ error: hErr.message }, { status: 400 });
     }
 
     await client.from("sight_opening_exceptions").delete().eq("sight_id", id);
-    const exceptions = Array.isArray(body.opening_exceptions) ? body.opening_exceptions : [];
+    const exceptions = Array.isArray(body.opening_exceptions)
+      ? body.opening_exceptions
+      : [];
     if (exceptions.length > 0) {
       const rows = exceptions.map((e) => ({
         sight_id: id,
@@ -121,13 +134,19 @@ export async function PUT(request, { params }) {
         close_time: e.close_time || null,
         note: e.note || null,
       }));
-      const { error: eErr } = await client.from("sight_opening_exceptions").insert(rows);
-      if (eErr) return NextResponse.json({ error: eErr.message }, { status: 400 });
+      const { error: eErr } = await client
+        .from("sight_opening_exceptions")
+        .insert(rows);
+      if (eErr)
+        return NextResponse.json({ error: eErr.message }, { status: 400 });
     }
 
     return NextResponse.json({ id });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }
 
@@ -146,9 +165,13 @@ export async function DELETE(_req, { params }) {
     await client.from("sight_opening_hours").delete().eq("sight_id", id);
     await client.from("sight_opening_exceptions").delete().eq("sight_id", id);
     const { error } = await client.from("sights").delete().eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }

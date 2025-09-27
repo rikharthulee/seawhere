@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request) {
   try {
@@ -10,7 +9,10 @@ export async function POST(request) {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
     if (!bucket || !url) {
       return NextResponse.json(
-        { error: "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_BUCKET" },
+        {
+          error:
+            "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_BUCKET",
+        },
         { status: 500 }
       );
     }
@@ -21,7 +23,8 @@ export async function POST(request) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const form = await request.formData();
     const file = form.get("file");
@@ -41,7 +44,10 @@ export async function POST(request) {
     const origName = file.name || "upload.bin";
     const ext = origName.includes(".") ? origName.split(".").pop() : "bin";
     const base = origName.replace(/\.[^.]+$/, "");
-    const safeBase = base.toLowerCase().replace(/[^a-z0-9-_]+/g, "-").slice(0, 48);
+    const safeBase = base
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]+/g, "-")
+      .slice(0, 48);
     const key = `${prefix}/${Date.now()}-${safeBase}.${ext}`;
 
     // Convert to ArrayBuffer to avoid any runtime/env Blob issues
@@ -52,11 +58,15 @@ export async function POST(request) {
       upsert: false,
       contentType: file.type || "application/octet-stream",
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 400 });
 
     const publicUrl = `${url}/storage/v1/object/public/${bucket}/${key}`;
     return NextResponse.json({ ok: true, key, url: publicUrl });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }

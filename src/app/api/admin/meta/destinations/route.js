@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
 
 export async function GET() {
   try {
@@ -14,7 +13,8 @@ export async function GET() {
         .from("destinations")
         .select("id, name, slug, status, prefecture_id, division_id")
         .order("name", { ascending: true });
-      data = res.data; error = res.error;
+      data = res.data;
+      error = res.error;
     } else {
       const cookieStore = cookies();
       const supabase = createClient({ cookies: cookieStore });
@@ -22,11 +22,16 @@ export async function GET() {
         .from("destinations")
         .select("id, name, slug, status, prefecture_id, division_id")
         .order("name", { ascending: true });
-      data = res.data; error = res.error;
+      data = res.data;
+      error = res.error;
     }
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ items: data || [] });
   } catch (e) {
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json(
+      { error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }
