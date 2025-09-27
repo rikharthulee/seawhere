@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import LoginForm from "./LoginForm";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/server";
 import { getRouteParams } from "@/lib/route-params";
 
 export const dynamic = "force-dynamic";
@@ -11,8 +10,7 @@ export default async function LoginPage(props) {
   const { searchParams } = await getRouteParams(props);
   // Server-side: if already authed and authorized, redirect to target immediately.
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerComponentClient({ cookies: () => cookieStore });
+    const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import MultiImageUpload from "./MultiImageUpload";
 import RichTextEditor from "./RichTextEditor";
@@ -22,7 +22,7 @@ import {
 } from "@/lib/geo-normalize";
 
 export default function SightsForm({ id, initial, onSaved, onCancel }) {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const useGeoViews = shouldUseGeoViews();
   const isEditing = !!id;
 

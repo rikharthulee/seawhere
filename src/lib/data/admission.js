@@ -1,6 +1,6 @@
 "use server";
 
-import { getServiceSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 
 function coerceNumber(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -45,7 +45,7 @@ function normalizeRow(row = {}) {
 
 export async function fetchAdmissionPrices(sightId) {
   if (!sightId) return [];
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("sight_admission_prices")
     .select(
@@ -74,7 +74,7 @@ export async function saveAdmissionPrices(sightId, rows) {
     };
   });
 
-  const db = getServiceSupabase();
+  const db = createServiceClient();
 
   const existingIdsRes = await db
     .from("sight_admission_prices")

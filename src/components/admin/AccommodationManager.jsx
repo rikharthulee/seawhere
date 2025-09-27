@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 import AccommodationForm from "./AccommodationForm";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import StatusBadge from "@/components/admin/StatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function AccommodationsManager() {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);

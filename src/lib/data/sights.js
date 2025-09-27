@@ -1,7 +1,7 @@
-import { getServiceSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export async function getPublishedSights() {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("sights")
     .select("id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )")
@@ -12,7 +12,7 @@ export async function getPublishedSights() {
 }
 
 export async function getSightsForDestination(destId, divisionSlug = null) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   let query = db
     .from("sights")
     .select("id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id")
@@ -37,7 +37,7 @@ export async function getSightsForDestination(destId, divisionSlug = null) {
 
 export async function getSightsByDestinationIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("sights")
     .select("id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )")
@@ -49,7 +49,7 @@ export async function getSightsByDestinationIds(ids = []) {
 }
 
 export async function getSightBySlugs(destinationSlug, sightSlug) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data: dst } = await db
     .from("destinations")
     .select("id, slug, name")
@@ -68,7 +68,7 @@ export async function getSightBySlugs(destinationSlug, sightSlug) {
 }
 
 export async function getSightOpeningHours(id) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("sight_opening_hours")
     .select(
@@ -82,7 +82,7 @@ export async function getSightOpeningHours(id) {
 }
 
 export async function getSightOpeningExceptions(id) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("sight_opening_exceptions")
     .select("type, start_date, end_date, weekday, note")

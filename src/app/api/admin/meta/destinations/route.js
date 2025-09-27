@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 
 export async function GET() {
@@ -16,8 +16,8 @@ export async function GET() {
         .order("name", { ascending: true });
       data = res.data; error = res.error;
     } else {
-      const cookieStore = await cookies();
-      const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+      const cookieStore = cookies();
+      const supabase = createClient({ cookies: cookieStore });
       const res = await supabase
         .from("destinations")
         .select("id, name, slug, status, prefecture_id, division_id")

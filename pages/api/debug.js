@@ -1,8 +1,8 @@
-import { getServiceSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export default async function handler(_req, res) {
   try {
-    const supa = getServiceSupabase();
+    const supa = createServiceClient();
 
     // 1) Are we hitting the right project?
     const which = process.env.NEXT_PUBLIC_SUPABASE_URL;

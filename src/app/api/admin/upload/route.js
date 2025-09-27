@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request) {
@@ -16,8 +16,8 @@ export async function POST(request) {
     }
 
     // Require authenticated user (role-agnostic; RLS protects DB writes elsewhere)
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const cookieStore = cookies();
+    const supabase = createClient({ cookies: cookieStore });
     const {
       data: { user },
     } = await supabase.auth.getUser();

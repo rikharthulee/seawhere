@@ -1,7 +1,7 @@
-import { getServiceSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export async function getPublishedTours() {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("tours")
     .select("id, slug, name, summary, images, destination_id, provider, deeplink, gyg_id, duration_minutes, price_amount, price_currency, tags, destinations ( slug, name )")
@@ -12,7 +12,7 @@ export async function getPublishedTours() {
 }
 
 export async function getToursForDestination(destId, divisionSlug = null) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   let query = db
     .from("tours")
     .select("id, slug, name, summary, images, destination_id, provider, deeplink, gyg_id, duration_minutes, price_amount, price_currency, tags")
@@ -37,7 +37,7 @@ export async function getToursForDestination(destId, divisionSlug = null) {
 
 export async function getToursByDestinationIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("tours")
     .select("id, slug, name, summary, images, destination_id, provider, deeplink, gyg_id, duration_minutes, price_amount, price_currency, tags, destinations ( slug, name )")
@@ -49,7 +49,7 @@ export async function getToursByDestinationIds(ids = []) {
 }
 
 export async function getTourBySlugs(destinationSlug, tourSlug) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data: dst } = await db
     .from("destinations")
     .select("id, slug, name")
@@ -68,7 +68,7 @@ export async function getTourBySlugs(destinationSlug, tourSlug) {
 }
 
 export async function getTourAvailabilityRules(id) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("tour_availability_rules")
     .select("idx, days_of_week, start_times, valid_from, valid_to, timezone")
@@ -79,7 +79,7 @@ export async function getTourAvailabilityRules(id) {
 }
 
 export async function getTourExceptions(id) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("tour_exceptions")
     .select("date, action, start_time, note")

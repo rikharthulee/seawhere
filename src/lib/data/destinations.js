@@ -1,7 +1,7 @@
-import { getServiceSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export async function getPublishedDestinations() {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("destinations")
     .select("id, slug, name, summary, images, credit")
@@ -12,7 +12,7 @@ export async function getPublishedDestinations() {
 }
 
 export async function getDestinationBySlug(slug) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("destinations")
     .select("id, name, slug, status, prefecture_id, division_id, images, body_richtext, credit, lat, lng, published_at, created_at, gyg_location_id")
@@ -24,7 +24,7 @@ export async function getDestinationBySlug(slug) {
 }
 
 export async function getDestinationBySlugLoose(slug) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("destinations")
     .select("id, slug, name, status")
@@ -36,7 +36,7 @@ export async function getDestinationBySlugLoose(slug) {
 
 export async function getDestinationById(id) {
   if (!id) return null;
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("destinations")
     .select("id, name, slug, status")

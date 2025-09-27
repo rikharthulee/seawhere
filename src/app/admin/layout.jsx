@@ -1,11 +1,9 @@
 // app/admin/layout.js
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({ children }) {
-  const cookieStore = await cookies();
-  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+  const supabase = createClient();
 
   const {
     data: { user },

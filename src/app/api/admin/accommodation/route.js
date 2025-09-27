@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const cookieStore = cookies();
+    const supabase = createClient({ cookies: cookieStore });
     const { data, error } = await supabase
       .from("accommodation")
       .select(
@@ -22,8 +22,8 @@ export async function GET() {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const cookieStore = cookies();
+    const supabase = createClient({ cookies: cookieStore });
     const { data, error } = await supabase
       .from("accommodation")
       .insert(body)

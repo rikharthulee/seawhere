@@ -1,7 +1,7 @@
-import { getServiceSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export async function getPublishedExperiences() {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("experiences")
     .select(
@@ -14,7 +14,7 @@ export async function getPublishedExperiences() {
 }
 
 export async function getExperiencesForDestination(destId, divisionSlug = null) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   let query = db
     .from("experiences")
     .select("id, slug, name, summary, images, destination_id")
@@ -39,7 +39,7 @@ export async function getExperiencesForDestination(destId, divisionSlug = null) 
 
 export async function getExperiencesByDestinationIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("experiences")
     .select(
@@ -53,7 +53,7 @@ export async function getExperiencesByDestinationIds(ids = []) {
 }
 
 export async function getExperienceBySlugs(destinationSlug, experienceSlug) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data: dst } = await db
     .from("destinations")
     .select("id, slug, name")
@@ -72,7 +72,7 @@ export async function getExperienceBySlugs(destinationSlug, experienceSlug) {
 }
 
 export async function getExperienceAvailabilityRules(id) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("experience_availability_rules")
     .select(
@@ -85,7 +85,7 @@ export async function getExperienceAvailabilityRules(id) {
 }
 
 export async function getExperienceExceptions(id) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("experience_exceptions")
     .select("date, action, start_time, note")

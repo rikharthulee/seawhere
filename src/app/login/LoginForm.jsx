@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
 export default function LoginForm() {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
 

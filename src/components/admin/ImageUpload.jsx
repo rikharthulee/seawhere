@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import SafeImage from "@/components/SafeImage";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ export default function ImageUpload({
   onChange,
   prefix = "destinations",
 }) {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const bucket = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;

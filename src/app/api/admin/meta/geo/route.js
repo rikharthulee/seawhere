@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import env from "@/lib/env";
 import {
@@ -59,8 +59,8 @@ export async function GET() {
     }
 
     // Fallback: use user session (requires RLS allowing reads for admin/editor)
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const cookieStore = cookies();
+    const supabase = createClient({ cookies: cookieStore });
     const [regionsRes, prefsRes, divsRes] = await Promise.all([
       supabase.from("regions").select("id,name,slug,order_index").order("order_index", { ascending: true }),
       prefectureQuery(supabase),

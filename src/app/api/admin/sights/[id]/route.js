@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { fetchAdmissionPrices } from "@/lib/data/admission";
 
@@ -13,8 +13,8 @@ export async function GET(_req, { params }) {
     if (url && serviceKey) {
       client = createClient(url, serviceKey);
     } else {
-      const cookieStore = await cookies();
-      client = createRouteHandlerClient({ cookies: () => cookieStore });
+      const cookieStore = cookies();
+      client = createClient({ cookies: cookieStore });
     }
 
     const { data: sight, error } = await client
@@ -64,8 +64,8 @@ export async function PUT(request, { params }) {
     if (url && serviceKey) {
       client = createClient(url, serviceKey);
     } else {
-      const cookieStore = await cookies();
-      client = createRouteHandlerClient({ cookies: () => cookieStore });
+      const cookieStore = cookies();
+      client = createClient({ cookies: cookieStore });
     }
     const body = await request.json();
 
@@ -140,8 +140,8 @@ export async function DELETE(_req, { params }) {
     if (url && serviceKey) {
       client = createClient(url, serviceKey);
     } else {
-      const cookieStore = await cookies();
-      client = createRouteHandlerClient({ cookies: () => cookieStore });
+      const cookieStore = cookies();
+      client = createClient({ cookies: cookieStore });
     }
     await client.from("sight_opening_hours").delete().eq("sight_id", id);
     await client.from("sight_opening_exceptions").delete().eq("sight_id", id);

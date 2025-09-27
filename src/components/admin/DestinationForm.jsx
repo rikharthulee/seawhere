@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -25,7 +25,7 @@ function slugify(s) {
 }
 
 export default function DestinationForm({ initial, onSaved, onCancel }) {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const useGeoViews = shouldUseGeoViews();
   const [name, setName] = useState(initial?.name || "");
   const [slug, setSlug] = useState(initial?.slug || "");

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServiceSupabase, getServerSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -9,9 +10,9 @@ export async function GET(request) {
     const limit = Math.min(Number(searchParams.get("limit") || 200), 500);
     let client;
     try {
-      client = getServiceSupabase();
+      client = createServiceClient();
     } catch (_) {
-      client = getServerSupabase();
+      client = createClient();
     }
 
     const { data, error } = await client

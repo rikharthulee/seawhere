@@ -1,10 +1,26 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/server";
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+  const supabase = createClient({
+    cookies: {
+      get(name) {
+        return req.cookies.get(name)?.value;
+      },
+      set(name, value, options) {
+        res.cookies.set(name, value, options);
+      },
+      delete(name, options) {
+        if (typeof res.cookies.delete === "function") {
+          res.cookies.delete(name, options);
+        } else {
+          res.cookies.set(name, "", { ...(options ?? {}), maxAge: 0 });
+        }
+      },
+    },
+  });
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -22,4 +38,3 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/admin/:path*"],
 };
-

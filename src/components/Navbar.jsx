@@ -4,7 +4,7 @@ import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import CallNowButton from "./CallNowButton";
 import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 import DesktopBannerNav from "@/components/DesktopBannerNav";
 import MobileNavbar from "@/components/MobileNavbar";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export default function Navbar() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [user, setUser] = useState(null);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   // Track auth state and show Sign out when logged in
   useEffect(() => {
     let mounted = true;

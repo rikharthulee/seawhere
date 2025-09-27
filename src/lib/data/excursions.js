@@ -1,8 +1,8 @@
-import { getServiceSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 
 // Top-level excursions list
 export async function getPublishedExcursions() {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("excursions")
     .select(
@@ -16,7 +16,7 @@ export async function getPublishedExcursions() {
 
 // Excursions scoped to a destination
 export async function getExcursionsForDestination(destId) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("excursions")
     .select(
@@ -32,7 +32,7 @@ export async function getExcursionsForDestination(destId) {
 // Excursions for a set of destination ids (region/prefecture/division pages)
 export async function getExcursionsByDestinationIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("excursions")
     .select(
@@ -47,7 +47,7 @@ export async function getExcursionsByDestinationIds(ids = []) {
 
 // Single excursion by destination slug + excursion slug
 export async function getExcursionBySlugs(destinationSlug, excursionSlug) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data: dst } = await db
     .from("destinations")
     .select("id, slug, name")
@@ -69,7 +69,7 @@ export async function getExcursionBySlugs(destinationSlug, excursionSlug) {
 
 // Optional: opening hours/exception helpers if tracked for excursions
 export async function getExcursionOpeningHours(id) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("excursion_opening_hours")
     .select(
@@ -83,7 +83,7 @@ export async function getExcursionOpeningHours(id) {
 }
 
 export async function getExcursionOpeningExceptions(id) {
-  const db = getServiceSupabase();
+  const db = createServiceClient();
   const { data, error } = await db
     .from("excursion_opening_exceptions")
     .select("date, is_closed, open_time, close_time, note")

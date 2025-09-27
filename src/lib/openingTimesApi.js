@@ -1,4 +1,4 @@
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 
 // format helpers for exceptions (which keep full dates)
 export function fromISODate(d) {
@@ -17,7 +17,7 @@ export function toISODate(d) {
 }
 
 export async function loadOpeningTimes(sightId) {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const { data: hours, error: hErr } = await supabase
     .from("sight_opening_hours")
     .select("id, start_month, start_day, end_month, end_day, open_time, close_time, last_entry_mins")
@@ -68,7 +68,7 @@ export async function saveOpeningTimes(
   sightId,
   { hours, closures, officialUrl }
 ) {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const hourRows = (hours || [])
     .filter((h) =>
       h &&

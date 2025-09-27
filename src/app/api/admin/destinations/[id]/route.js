@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/server";
 
 export async function PUT(req, { params }) {
   try {
     const { id } = await params;
     const body = await req.json();
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const cookieStore = cookies();
+    const supabase = createClient({ cookies: cookieStore });
     const { data, error } = await supabase
       .from("destinations")
       .update(body)
@@ -24,8 +24,8 @@ export async function PUT(req, { params }) {
 export async function DELETE(_req, { params }) {
   try {
     const { id } = await params;
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const cookieStore = cookies();
+    const supabase = createClient({ cookies: cookieStore });
     const { error } = await supabase.from("destinations").delete().eq("id", id);
     if (error) {
       const status = error.code === "23503" ? 409 : 400; // 23503: foreign_key_violation

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 import MultiImageUpload from "./MultiImageUpload";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import RichTextEditor from "./RichTextEditor";
@@ -14,7 +14,7 @@ import {
 } from "@/lib/geo-normalize";
 
 export default function ToursForm({ id, initial, onSaved, onCancel }) {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const useGeoViews = shouldUseGeoViews();
   const isEditing = !!id;
 

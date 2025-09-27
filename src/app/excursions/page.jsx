@@ -1,11 +1,11 @@
 import ExcursionsGallery from "@/components/ExcursionsGallery";
-import { getServiceSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
 export const revalidate = 300;
 
 async function getPublishedExcursions() {
-  const supabase = getServiceSupabase();
+  const supabase = createServiceClient();
   const selectWithSlug =
     "id, slug, name, description, summary, transport, maps_url, updated_at, status";
   const selectWithoutSlug =

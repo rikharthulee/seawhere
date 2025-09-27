@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers, cookies } from "next/headers";
-import { getServiceSupabase, getServerSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@/lib/supabase/server";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -183,7 +184,7 @@ export default async function AdminExcursionsIndex() {
       }
     }
     if (rows.length === 0) {
-      const supabase = getServerSupabase();
+      const supabase = createClient();
       const baseSelect = [
         "id",
         "name",

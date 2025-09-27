@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req) {
   const secret = process.env.REVALIDATE_SECRET;
@@ -14,8 +14,8 @@ export async function POST(req) {
   // Or allow if an authenticated admin/editor calls it
   if (!allowed) {
     try {
-      const cookieStore = await cookies();
-      const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+      const cookieStore = cookies();
+      const supabase = createClient({ cookies: cookieStore });
       const {
         data: { user },
       } = await supabase.auth.getUser();

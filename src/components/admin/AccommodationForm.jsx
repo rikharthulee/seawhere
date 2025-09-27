@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 import MultiImageUpload from "./MultiImageUpload";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,7 @@ function slugify(s) {
 }
 
 export default function AccommodationForm({ initial, onSaved, onCancel }) {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const useGeoViews = shouldUseGeoViews();
   const [name, setName] = useState(initial?.name || "");
   const [slug, setSlug] = useState(initial?.slug || "");

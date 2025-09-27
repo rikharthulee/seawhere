@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
-import { getServiceSupabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { getRouteParams } from "@/lib/route-params";
 import { Badge } from "@/components/ui/badge";
@@ -106,7 +106,7 @@ function pickItemDisplay(entry) {
 }
 
 async function fetchExcursions(includeDrafts = false) {
-  const supabase = getServiceSupabase();
+  const supabase = createServiceClient();
 
   let query = supabase
     .from("excursions")
@@ -126,7 +126,7 @@ async function fetchExcursions(includeDrafts = false) {
 }
 
 async function fetchExcursionItems(excursionId) {
-  const supabase = getServiceSupabase();
+  const supabase = createServiceClient();
   // Be permissive with columns because schema may evolve
   const { data, error } = await supabase
     .from("excursion_items")
@@ -142,7 +142,7 @@ async function fetchExcursionItems(excursionId) {
 }
 
 async function hydrateItemsFromRefs(items) {
-  const supabase = getServiceSupabase();
+  const supabase = createServiceClient();
   if (!Array.isArray(items) || items.length === 0) return [];
 
   // Group ref_ids by item_type
