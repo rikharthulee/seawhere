@@ -1,10 +1,12 @@
-import { createServiceClient } from "@/lib/supabase/service";
+import { createServerClient } from "@/lib/supabase/server";
 
 export async function getPublishedTours() {
-  const db = createServiceClient();
+  const db = createServerClient();
   const { data, error } = await db
     .from("tours")
-    .select("id, slug, name, summary, images, destination_id, provider, deeplink, gyg_id, duration_minutes, price_amount, price_currency, tags, destinations ( slug, name )")
+    .select(
+      "id, slug, name, summary, images, destination_id, provider, deeplink, gyg_id, duration_minutes, price_amount, price_currency, tags, destinations ( slug, name )"
+    )
     .eq("status", "published")
     .order("name", { ascending: true });
   if (error) return [];
@@ -15,7 +17,9 @@ export async function getToursForDestination(destId, divisionSlug = null) {
   const db = createServiceClient();
   let query = db
     .from("tours")
-    .select("id, slug, name, summary, images, destination_id, provider, deeplink, gyg_id, duration_minutes, price_amount, price_currency, tags")
+    .select(
+      "id, slug, name, summary, images, destination_id, provider, deeplink, gyg_id, duration_minutes, price_amount, price_currency, tags"
+    )
     .eq("destination_id", destId)
     .eq("status", "published")
     .order("name", { ascending: true });
@@ -40,7 +44,9 @@ export async function getToursByDestinationIds(ids = []) {
   const db = createServiceClient();
   const { data, error } = await db
     .from("tours")
-    .select("id, slug, name, summary, images, destination_id, provider, deeplink, gyg_id, duration_minutes, price_amount, price_currency, tags, destinations ( slug, name )")
+    .select(
+      "id, slug, name, summary, images, destination_id, provider, deeplink, gyg_id, duration_minutes, price_amount, price_currency, tags, destinations ( slug, name )"
+    )
     .in("destination_id", ids)
     .eq("status", "published")
     .order("name", { ascending: true });
@@ -58,7 +64,9 @@ export async function getTourBySlugs(destinationSlug, tourSlug) {
   if (!dst?.id) return null;
   const { data, error } = await db
     .from("tours")
-    .select("id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency, tags")
+    .select(
+      "id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency, tags"
+    )
     .eq("destination_id", dst.id)
     .eq("slug", tourSlug)
     .eq("status", "published")

@@ -1,10 +1,12 @@
-import { createServiceClient } from "@/lib/supabase/service";
+import { createServerClient } from "@/lib/supabase/server";
 
 export async function getPublishedSights() {
-  const db = createServiceClient();
+  const db = createServerClient();
   const { data, error } = await db
     .from("sights")
-    .select("id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )")
+    .select(
+      "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )"
+    )
     .eq("status", "published")
     .order("name", { ascending: true });
   if (error) return [];
@@ -15,7 +17,9 @@ export async function getSightsForDestination(destId, divisionSlug = null) {
   const db = createServiceClient();
   let query = db
     .from("sights")
-    .select("id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id")
+    .select(
+      "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id"
+    )
     .eq("destination_id", destId)
     .eq("status", "published")
     .order("name", { ascending: true });
@@ -40,7 +44,9 @@ export async function getSightsByDestinationIds(ids = []) {
   const db = createServiceClient();
   const { data, error } = await db
     .from("sights")
-    .select("id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )")
+    .select(
+      "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )"
+    )
     .in("destination_id", ids)
     .eq("status", "published")
     .order("name", { ascending: true });
@@ -58,7 +64,9 @@ export async function getSightBySlugs(destinationSlug, sightSlug) {
   if (!dst?.id) return null;
   const { data, error } = await db
     .from("sights")
-    .select("id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency, tags, opening_times_url")
+    .select(
+      "id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency, tags, opening_times_url"
+    )
     .eq("destination_id", dst.id)
     .eq("slug", sightSlug)
     .eq("status", "published")

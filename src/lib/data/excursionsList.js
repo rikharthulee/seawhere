@@ -1,7 +1,7 @@
-import { createServiceClient } from "@/lib/supabase/service";
+import { createServerClient } from "@/lib/supabase/server";
 
 export async function getExcursionsList(limit = 200) {
-  const client = createServiceClient();
+  const client = createServerClient();
 
   const { data, error } = await client
     .from("excursions")

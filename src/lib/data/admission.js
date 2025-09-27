@@ -1,6 +1,4 @@
-"use server";
-
-import { createServiceClient } from "@/lib/supabase/service";
+import { createServerClient } from "@/lib/supabase/server";
 
 function coerceNumber(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -24,10 +22,7 @@ function normalizeRow(row = {}) {
       typeof row.subsection === "string"
         ? row.subsection.trim() || null
         : row.subsection || null,
-    label:
-      typeof row.label === "string"
-        ? row.label.trim()
-        : "",
+    label: typeof row.label === "string" ? row.label.trim() : "",
     min_age: coerceNumber(row.min_age),
     max_age: coerceNumber(row.max_age),
     requires_id: Boolean(row.requires_id),
@@ -37,15 +32,13 @@ function normalizeRow(row = {}) {
     valid_from: row.valid_from || null,
     valid_to: row.valid_to || null,
     note:
-      typeof row.note === "string"
-        ? row.note.trim() || null
-        : row.note || null,
+      typeof row.note === "string" ? row.note.trim() || null : row.note || null,
   };
 }
 
 export async function fetchAdmissionPrices(sightId) {
   if (!sightId) return [];
-  const db = createServiceClient();
+  const db = createServerClient();
   const { data, error } = await db
     .from("sight_admission_prices")
     .select(
@@ -54,7 +47,8 @@ export async function fetchAdmissionPrices(sightId) {
     .eq("sight_id", sightId)
     .order("idx", { ascending: true });
 
-  if (error) throw new Error(error.message || "Failed to load admission prices");
+  if (error)
+    throw new Error(error.message || "Failed to load admission prices");
   return (Array.isArray(data) ? data : []).map((row, idx) => {
     const normalized = normalizeRow(row) || {};
     return { ...normalized, idx };
@@ -82,7 +76,9 @@ export async function saveAdmissionPrices(sightId, rows) {
     .eq("sight_id", sightId);
 
   if (existingIdsRes.error)
-    throw new Error(existingIdsRes.error.message || "Failed to resolve current rows");
+    throw new Error(
+      existingIdsRes.error.message || "Failed to resolve current rows"
+    );
 
   const existingIds = new Set(
     (existingIdsRes.data || [])
@@ -103,7 +99,8 @@ export async function saveAdmissionPrices(sightId, rows) {
       .from("sight_admission_prices")
       .delete()
       .in("id", toDelete);
-    if (deleteError) throw new Error(deleteError.message || "Failed to delete old rows");
+    if (deleteError)
+      throw new Error(deleteError.message || "Failed to delete old rows");
   }
 
   const preparedRows = normalizedRows.map((row) => {
@@ -136,7 +133,9 @@ export async function saveAdmissionPrices(sightId, rows) {
       .from("sight_admission_prices")
       .insert(rowsWithoutId);
     if (insertError)
-      throw new Error(insertError.message || "Failed to create admission prices");
+      throw new Error(
+        insertError.message || "Failed to create admission prices"
+      );
   }
 
   if (rowsWithId.length > 0) {

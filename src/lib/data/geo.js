@@ -1,4 +1,4 @@
-import { createServiceClient } from "@/lib/supabase/service";
+import { createServerClient } from "@/lib/supabase/server";
 import env from "@/lib/env";
 import {
   normalizePrefectureShape,
@@ -12,7 +12,7 @@ const normalizePrefecture = normalizePrefectureShape;
 const normalizeDivision = normalizeDivisionShape;
 
 export async function getRegions() {
-  const db = createServiceClient();
+  const db = createServerClient();
   const { data } = await db
     .from("regions")
     .select("id, slug, name, order_index")
@@ -21,7 +21,7 @@ export async function getRegions() {
 }
 
 export async function getPrefectures() {
-  const db = createServiceClient();
+  const db = createServerClient();
   if (useGeoViews) {
     const { data, error } = await db.from("geo_prefectures_v").select("*");
     if (!error && Array.isArray(data)) {
@@ -36,7 +36,7 @@ export async function getPrefectures() {
 }
 
 export async function getRegionBySlug(slug) {
-  const db = createServiceClient();
+  const db = createServerClient();
   const { data } = await db
     .from("regions")
     .select("id, slug, name")
@@ -46,7 +46,7 @@ export async function getRegionBySlug(slug) {
 }
 
 export async function getPrefecturesByRegion(regionId) {
-  const db = createServiceClient();
+  const db = createServerClient();
   if (useGeoViews) {
     let query = db.from("geo_prefectures_v").select("*");
     if (regionId) {
@@ -66,9 +66,12 @@ export async function getPrefecturesByRegion(regionId) {
 }
 
 export async function getPrefectureBySlug(slug, regionId) {
-  const db = createServiceClient();
+  const db = createServerClient();
   if (useGeoViews) {
-    let query = db.from("geo_prefectures_v").select("*").eq("prefecture_slug", slug);
+    let query = db
+      .from("geo_prefectures_v")
+      .select("*")
+      .eq("prefecture_slug", slug);
     if (regionId) query = query.eq("region_id", regionId);
     const { data, error } = await query.maybeSingle();
     if (!error && data) return normalizePrefecture(data);
@@ -84,7 +87,7 @@ export async function getPrefectureBySlug(slug, regionId) {
 }
 
 export async function getDivisionsByPrefecture(prefId) {
-  const db = createServiceClient();
+  const db = createServerClient();
   if (useGeoViews) {
     let targetPrefSlug = null;
     if (prefId) {
@@ -112,7 +115,7 @@ export async function getDivisionsByPrefecture(prefId) {
 }
 
 export async function getPrefectureById(id) {
-  const db = createServiceClient();
+  const db = createServerClient();
   if (useGeoViews) {
     const { data, error } = await db
       .from("geo_prefectures_v")
@@ -131,7 +134,7 @@ export async function getPrefectureById(id) {
 }
 
 export async function getDivisionById(id) {
-  const db = createServiceClient();
+  const db = createServerClient();
   if (useGeoViews) {
     const { data, error } = await db
       .from("geo_divisions_v")
@@ -151,7 +154,7 @@ export async function getDivisionById(id) {
 
 export async function getDestinationsByPrefectureIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const db = createServiceClient();
+  const db = createServerClient();
   const { data } = await db
     .from("destinations")
     .select("id, slug, name, summary, images, prefecture_id, division_id")
@@ -162,7 +165,7 @@ export async function getDestinationsByPrefectureIds(ids = []) {
 }
 
 export async function getDestinationsByPrefecture(prefId) {
-  const db = createServiceClient();
+  const db = createServerClient();
   const { data } = await db
     .from("destinations")
     .select("id, slug, name, summary, images, prefecture_id, division_id")

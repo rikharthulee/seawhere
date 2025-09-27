@@ -1,7 +1,7 @@
-import { createServiceClient } from "@/lib/supabase/service";
+import { createServerClient } from "@/lib/supabase/server";
 
 export async function getPublishedExperiences() {
-  const db = createServiceClient();
+  const db = createServerClient();
   const { data, error } = await db
     .from("experiences")
     .select(
@@ -13,8 +13,11 @@ export async function getPublishedExperiences() {
   return data || [];
 }
 
-export async function getExperiencesForDestination(destId, divisionSlug = null) {
-  const db = createServiceClient();
+export async function getExperiencesForDestination(
+  destId,
+  divisionSlug = null
+) {
+  const db = createServerClient();
   let query = db
     .from("experiences")
     .select("id, slug, name, summary, images, destination_id")
@@ -62,7 +65,9 @@ export async function getExperienceBySlugs(destinationSlug, experienceSlug) {
   if (!dst?.id) return null;
   const { data, error } = await db
     .from("experiences")
-    .select("id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, price, price_amount, price_currency, duration_minutes, provider, deeplink, gyg_id, tags")
+    .select(
+      "id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, price, price_amount, price_currency, duration_minutes, provider, deeplink, gyg_id, tags"
+    )
     .eq("destination_id", dst.id)
     .eq("slug", experienceSlug)
     .eq("status", "published")
@@ -75,9 +80,7 @@ export async function getExperienceAvailabilityRules(id) {
   const db = createServiceClient();
   const { data, error } = await db
     .from("experience_availability_rules")
-    .select(
-      "idx, days_of_week, start_times, valid_from, valid_to, timezone"
-    )
+    .select("idx, days_of_week, start_times, valid_from, valid_to, timezone")
     .eq("experience_id", id)
     .order("idx", { ascending: true });
   if (error) return [];

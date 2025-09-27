@@ -1,94 +1,169 @@
-import { createServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@/lib/supabase/client";
 
 // Top-level excursions list
 export async function getPublishedExcursions() {
-  const db = createServiceClient();
-  const { data, error } = await db
-    .from("excursions")
-    .select(
-      "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )"
-    )
-    .eq("status", "published")
-    .order("name", { ascending: true });
-  if (error) return [];
-  return data || [];
+  try {
+    const db = createClient();
+    const { data, error } = await db
+      .from("excursions")
+      .select(
+        "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )"
+      )
+      .eq("status", "published")
+      .order("name", { ascending: true });
+    if (error) {
+      console.error("getPublishedExcursions error:", error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.error("getPublishedExcursions exception:", e);
+    return [];
+  }
 }
 
 // Excursions scoped to a destination
 export async function getExcursionsForDestination(destId) {
-  const db = createServiceClient();
-  const { data, error } = await db
-    .from("excursions")
-    .select(
-      "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id"
-    )
-    .eq("destination_id", destId)
-    .eq("status", "published")
-    .order("name", { ascending: true });
-  if (error) return [];
-  return data || [];
+  if (!destId) return [];
+  try {
+    const db = createClient();
+    const { data, error } = await db
+      .from("excursions")
+      .select(
+        "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id"
+      )
+      .eq("destination_id", destId)
+      .eq("status", "published")
+      .order("name", { ascending: true });
+    if (error) {
+      console.error("getExcursionsForDestination error:", error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.error("getExcursionsForDestination exception:", e);
+    return [];
+  }
 }
 
 // Excursions for a set of destination ids (region/prefecture/division pages)
 export async function getExcursionsByDestinationIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const db = createServiceClient();
-  const { data, error } = await db
-    .from("excursions")
-    .select(
-      "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )"
-    )
-    .in("destination_id", ids)
-    .eq("status", "published")
-    .order("name", { ascending: true });
-  if (error) return [];
-  return data || [];
+  try {
+    const db = createClient();
+    const { data, error } = await db
+      .from("excursions")
+      .select(
+        "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )"
+      )
+      .in("destination_id", ids)
+      .eq("status", "published")
+      .order("name", { ascending: true });
+    if (error) {
+      console.error("getExcursionsByDestinationIds error:", error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.error("getExcursionsByDestinationIds exception:", e);
+    return [];
+  }
 }
 
 // Single excursion by destination slug + excursion slug
 export async function getExcursionBySlugs(destinationSlug, excursionSlug) {
-  const db = createServiceClient();
-  const { data: dst } = await db
-    .from("destinations")
-    .select("id, slug, name")
-    .eq("slug", String(destinationSlug || "").trim())
-    .maybeSingle();
-  if (!dst?.id) return null;
-  const { data, error } = await db
-    .from("excursions")
-    .select(
-      "id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency"
-    )
-    .eq("destination_id", dst.id)
-    .eq("slug", excursionSlug)
-    .eq("status", "published")
-    .maybeSingle();
-  if (error || !data) return null;
-  return { excursion: data, destination: dst };
+  try {
+    const db = createClient();
+
+    const dstSlug = String(destinationSlug || "")
+      .trim()
+      .toLowerCase();
+    const excSlug = String(excursionSlug || "")
+      .trim()
+      .toLowerCase();
+    if (!dstSlug || !excSlug) return null;
+
+    const { data: dst, error: dstErr } = await db
+      .from("destinations")
+      .select("id, slug, name")
+      .eq("slug", dstSlug)
+      .maybeSingle();
+
+    if (dstErr) {
+      console.error(
+        "getExcursionBySlugs destination lookup error:",
+        dstErr.message
+      );
+      return null;
+    }
+    if (!dst?.id) return null;
+
+    const { data, error } = await db
+      .from("excursions")
+      .select(
+        "id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency"
+      )
+      .eq("destination_id", dst.id)
+      .eq("slug", excSlug)
+      .eq("status", "published")
+      .maybeSingle();
+
+    if (error) {
+      console.error(
+        "getExcursionBySlugs excursion lookup error:",
+        error.message
+      );
+      return null;
+    }
+    if (!data) return null;
+
+    return { excursion: data, destination: dst };
+  } catch (e) {
+    console.error("getExcursionBySlugs exception:", e);
+    return null;
+  }
 }
 
 // Optional: opening hours/exception helpers if tracked for excursions
 export async function getExcursionOpeningHours(id) {
-  const db = createServiceClient();
-  const { data, error } = await db
-    .from("excursion_opening_hours")
-    .select(
-      "weekday, idx, open_time, close_time, is_closed, valid_from, valid_to"
-    )
-    .eq("excursion_id", id)
-    .order("weekday", { ascending: true })
-    .order("idx", { ascending: true });
-  if (error) return [];
-  return data || [];
+  if (!id) return [];
+  try {
+    const db = createClient();
+    const { data, error } = await db
+      .from("excursion_opening_hours")
+      .select(
+        "weekday, idx, open_time, close_time, is_closed, valid_from, valid_to"
+      )
+      .eq("excursion_id", id)
+      .order("weekday", { ascending: true })
+      .order("idx", { ascending: true });
+    if (error) {
+      console.error("getExcursionOpeningHours error:", error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.error("getExcursionOpeningHours exception:", e);
+    return [];
+  }
 }
 
 export async function getExcursionOpeningExceptions(id) {
-  const db = createServiceClient();
-  const { data, error } = await db
-    .from("excursion_opening_exceptions")
-    .select("date, is_closed, open_time, close_time, note")
-    .eq("excursion_id", id)
-    .order("date", { ascending: true });
-  if (error) return [];
-  return data || [];
+  if (!id) return [];
+  try {
+    const db = createClient();
+    const { data, error } = await db
+      .from("excursion_opening_exceptions")
+      .select("date, is_closed, open_time, close_time, note")
+      .eq("excursion_id", id)
+      .order("date", { ascending: true });
+    if (error) {
+      console.error("getExcursionOpeningExceptions error:", error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.error("getExcursionOpeningExceptions exception:", e);
+    return [];
+  }
 }

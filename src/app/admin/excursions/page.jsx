@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { headers, cookies } from "next/headers";
-import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +29,8 @@ function extractImageSrc(row) {
       if (candidate) return resolveImageUrl(candidate);
     }
   } else if (images && typeof images === "object") {
-    const candidate = images.url || images.src || images.cover || images.default;
+    const candidate =
+      images.url || images.src || images.cover || images.default;
     if (candidate) return resolveImageUrl(candidate);
   }
 
@@ -45,8 +45,10 @@ function normalizeExcursions(rows = []) {
         if (!row?.description) return null;
         if (typeof row.description === "string") return row.description;
         if (typeof row.description === "object") {
-          if (typeof row.description.text === "string") return row.description.text;
-          if (typeof row.description.summary === "string") return row.description.summary;
+          if (typeof row.description.text === "string")
+            return row.description.text;
+          if (typeof row.description.summary === "string")
+            return row.description.summary;
         }
         return null;
       })();
@@ -84,11 +86,18 @@ function excursionMeta(excursion) {
 
 function ExcursionCard({ excursion }) {
   const meta = excursionMeta(excursion);
-  const href = `/admin/excursions/builder?id=${encodeURIComponent(excursion.id)}`;
-  const updatedDate = excursion.updatedAt ? new Date(excursion.updatedAt) : null;
+  const href = `/admin/excursions/builder?id=${encodeURIComponent(
+    excursion.id
+  )}`;
+  const updatedDate = excursion.updatedAt
+    ? new Date(excursion.updatedAt)
+    : null;
   const updatedLabel =
     updatedDate && !Number.isNaN(updatedDate.valueOf())
-      ? updatedDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+      ? updatedDate.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        })
       : null;
 
   return (
@@ -110,9 +119,13 @@ function ExcursionCard({ excursion }) {
           )}
         </div>
         <CardContent className="flex flex-1 flex-col gap-3 p-5">
-          <h3 className="text-lg font-semibold leading-tight">{excursion.title}</h3>
+          <h3 className="text-lg font-semibold leading-tight">
+            {excursion.title}
+          </h3>
           {excursion.summary ? (
-            <p className="line-clamp-3 text-sm text-muted-foreground">{excursion.summary}</p>
+            <p className="line-clamp-3 text-sm text-muted-foreground">
+              {excursion.summary}
+            </p>
           ) : null}
           <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
             <span>{meta || " "}</span>
@@ -128,8 +141,14 @@ function ExcursionCard({ excursion }) {
 
 function CreateExcursionCard() {
   return (
-    <Card asChild className="h-full overflow-hidden border-dashed border-border/70 bg-muted/30 p-0 transition hover:border-primary/40 hover:bg-muted/60">
-      <Link href="/admin/excursions/builder" className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+    <Card
+      asChild
+      className="h-full overflow-hidden border-dashed border-border/70 bg-muted/30 p-0 transition hover:border-primary/40 hover:bg-muted/60"
+    >
+      <Link
+        href="/admin/excursions/builder"
+        className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center"
+      >
         <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-border/60 text-muted-foreground">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -147,7 +166,8 @@ function CreateExcursionCard() {
         <div className="space-y-2">
           <h3 className="text-lg font-semibold">Create new excursion</h3>
           <p className="text-sm text-muted-foreground">
-            Start from a blank canvas and build a bespoke excursion for your trip.
+            Start from a blank canvas and build a bespoke excursion for your
+            trip.
           </p>
         </div>
       </Link>
@@ -203,7 +223,9 @@ export default async function AdminExcursionsIndex() {
       if (!error && Array.isArray(data)) {
         rows = data;
       } else if (error?.code === "42703") {
-        const fallbackSelect = baseSelect.filter((field) => field !== "updated_at");
+        const fallbackSelect = baseSelect.filter(
+          (field) => field !== "updated_at"
+        );
         const { data: fallbackData } = await supabase
           .from("excursions")
           .select(fallbackSelect.join(","))
@@ -222,9 +244,12 @@ export default async function AdminExcursionsIndex() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-12">
       <header className="max-w-3xl space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Excursion Builder</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Excursion Builder
+        </h1>
         <p className="text-base text-muted-foreground sm:text-lg">
-          Jump into an existing itinerary to tweak it or spin up a fresh excursion for your clients.
+          Jump into an existing itinerary to tweak it or spin up a fresh
+          excursion for your clients.
         </p>
       </header>
 
