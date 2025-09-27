@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { fetchAdmissionPrices } from "@/lib/data/admission";
 
 export async function GET(_req, { params }) {

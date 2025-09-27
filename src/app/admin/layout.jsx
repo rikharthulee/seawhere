@@ -1,9 +1,9 @@
 // app/admin/layout.js
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
 export default async function AdminLayout({ children }) {
-  const supabase = createClient();
+  const supabase = getDB();
 
   const {
     data: { user },
@@ -20,9 +20,5 @@ export default async function AdminLayout({ children }) {
     return redirect("/login?unauthorized=1");
   }
 
-  return (
-    <div className="min-h-screen">
-      {children}
-    </div>
-  );
+  return <div className="min-h-screen">{children}</div>;
 }

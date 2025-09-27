@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 
 export async function POST(request) {
-  const cookieStore = cookies();
-  const supabase = createClient({ cookies: cookieStore });
+  const supabase = await createServerClient();
   await supabase.auth.signOut();
   const origin = new URL(request.url).origin;
   return NextResponse.redirect(new URL("/", origin));

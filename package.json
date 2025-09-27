@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run lint && npm run lint:service && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:service": "git grep -n 'lib/supabase/service' -- ':!node_modules' && (echo '❌ service client found' && exit 1) || echo '✅ all clear'"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

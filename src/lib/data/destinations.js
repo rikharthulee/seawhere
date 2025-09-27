@@ -1,7 +1,7 @@
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
 export async function getPublishedDestinations() {
-  const db = createServerClient();
+  const db = getDB();
   const { data, error } = await db
     .from("destinations")
     .select("id, slug, name, summary, images, credit")
@@ -12,7 +12,7 @@ export async function getPublishedDestinations() {
 }
 
 export async function getDestinationBySlug(slug) {
-  const db = createServiceClient();
+  const db = getDB();
   const { data, error } = await db
     .from("destinations")
     .select(
@@ -26,7 +26,7 @@ export async function getDestinationBySlug(slug) {
 }
 
 export async function getDestinationBySlugLoose(slug) {
-  const db = createServiceClient();
+  const db = getDB();
   const { data, error } = await db
     .from("destinations")
     .select("id, slug, name, status")
@@ -38,7 +38,7 @@ export async function getDestinationBySlugLoose(slug) {
 
 export async function getDestinationById(id) {
   if (!id) return null;
-  const db = createServiceClient();
+  const db = getDB();
   const { data, error } = await db
     .from("destinations")
     .select("id, name, slug, status")

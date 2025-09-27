@@ -1,8 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
-import CallNowButton from "./CallNowButton";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import DesktopBannerNav from "@/components/DesktopBannerNav";

@@ -1,15 +1,35 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@supabase/ssr";
 
+function getSupabaseForRoute() {
+  const cookieStore = cookies();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) throw new Error("Missing NEXT_PUBLIC_SUPABASE_* envs");
+
+  return createServerClient(url, anon, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        const resCookies = cookies();
+        cookiesToSet.forEach(({ name, value, options }) => {
+          resCookies.set(name, value, options);
+        });
+      },
+    },
+  });
+}
+
+// Handle magic-link / OTP code exchange
 export async function GET(request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
 
   if (code) {
-    // Exchange the one-time code from the email link for a session
-    const cookieStore = cookies();
-    const supabase = createClient({ cookies: cookieStore });
+    const supabase = getSupabaseForRoute();
     await supabase.auth.exchangeCodeForSession(code);
   }
 
@@ -19,12 +39,15 @@ export async function GET(request) {
 
 // Sync client auth events to server cookies (for SSR/admin checks)
 export async function POST(request) {
-  const cookieStore = cookies();
-  const supabase = createClient({ cookies: cookieStore });
+  const supabase = getSupabaseForRoute();
   const { event, session } = await request.json().catch(() => ({}));
 
   try {
-    if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+    if (
+      event === "SIGNED_IN" ||
+      event === "TOKEN_REFRESHED" ||
+      event === "USER_UPDATED"
+    ) {
       if (session?.access_token && session?.refresh_token) {
         await supabase.auth.setSession({
           access_token: session.access_token,

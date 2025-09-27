@@ -1,7 +1,7 @@
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
 export async function getPublishedAccommodation() {
-  const db = createServerClient();
+  const db = getDB();
   const { data, error } = await db
     .from("accommodation")
     .select("id, slug, name, summary, images, credit")
@@ -12,7 +12,7 @@ export async function getPublishedAccommodation() {
 }
 
 export async function getAccommodationBySlug(slug) {
-  const db = createServiceClient();
+  const db = getDB();
   const { data, error } = await db
     .from("accommodation")
     .select(

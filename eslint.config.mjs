@@ -9,6 +9,24 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-const eslintConfig = [...compat.extends("next/core-web-vitals")];
+const eslintConfig = [
+  ...compat.extends("next/core-web-vitals"),
+  {
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/supabase/service",
+              message:
+                "❌ Service client is not allowed. Use '@/lib/supabase/server' (server) or '@/lib/supabase/client' (client).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+];
 
 export default eslintConfig;
