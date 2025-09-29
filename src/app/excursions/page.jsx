@@ -6,7 +6,7 @@ export const revalidate = 300;
 
 async function getPublishedExcursions() {
   try {
-    const supabase = createServerClient();
+    const supabase = await getDB();
     const selectWithSlug =
       "id, slug, name, description, summary, transport, maps_url, updated_at, status";
     const selectWithoutSlug =
