@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 import env from "@/lib/env";
 import {
   normalizePrefectureShape,
@@ -8,6 +7,9 @@ import {
   shouldUseGeoViews,
   sortGeoRows,
 } from "@/lib/geo-normalize";
+
+export const runtime = "nodejs";
+export const revalidate = 0;
 
 const useGeoViews = env.USE_GEO_VIEWS() || shouldUseGeoViews();
 
@@ -36,59 +38,35 @@ function divisionQuery(client) {
 
 export async function GET() {
   try {
-    // Prefer service role for reliable admin reads (bypass RLS)
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-    if (url && serviceKey) {
-      const svc = createClient(url, serviceKey);
-      const [r, p, d] = await Promise.all([
-        svc
-          .from("regions")
-          .select("id,name,slug,order_index")
-          .order("order_index", { ascending: true }),
-        prefectureQuery(svc),
-        divisionQuery(svc),
-      ]);
-      const err = r.error || p.error || d.error;
-      if (err)
-        return NextResponse.json({ error: err.message }, { status: 400 });
-      const prefectures = Array.isArray(p.data)
-        ? sortGeoRows(p.data.map(mapPrefecture).filter(Boolean))
-        : [];
-      const divisions = Array.isArray(d.data)
-        ? sortGeoRows(d.data.map(mapDivision).filter(Boolean))
-        : [];
-      return NextResponse.json({
-        regions: r.data || [],
-        prefectures,
-        divisions,
-      });
-    }
+    const db = await getDB();
 
-    // Fallback: use user session (requires RLS allowing reads for admin/editor)
-    const cookieStore = cookies();
-    const supabase = createClient({ cookies: cookieStore });
     const [regionsRes, prefsRes, divsRes] = await Promise.all([
-      supabase
+      db
         .from("regions")
         .select("id,name,slug,order_index")
         .order("order_index", { ascending: true }),
-      prefectureQuery(supabase),
-      divisionQuery(supabase),
+      prefectureQuery(db),
+      divisionQuery(db),
     ]);
+
     const err = regionsRes.error || prefsRes.error || divsRes.error;
     if (err) return NextResponse.json({ error: err.message }, { status: 400 });
+
     const prefectures = Array.isArray(prefsRes.data)
       ? sortGeoRows(prefsRes.data.map(mapPrefecture).filter(Boolean))
       : [];
     const divisions = Array.isArray(divsRes.data)
       ? sortGeoRows(divsRes.data.map(mapDivision).filter(Boolean))
       : [];
-    return NextResponse.json({
-      regions: regionsRes.data || [],
-      prefectures,
-      divisions,
-    });
+
+    return NextResponse.json(
+      {
+        regions: regionsRes.data || [],
+        prefectures,
+        divisions,
+      },
+      { status: 200 }
+    );
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },

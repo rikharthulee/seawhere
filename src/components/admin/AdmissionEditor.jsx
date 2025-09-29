@@ -8,7 +8,6 @@ import {
   useCallback,
   useState,
 } from "react";
-import { saveAdmissionPrices } from "@/lib/data/admission";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -18,6 +17,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+// Helper for HTTP admission price save
+async function saveAdmissionPricesHttp(sightId, rows) {
+  const res = await fetch(`/api/admin/sights/${sightId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ _action: "saveAdmission", admission: rows }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+  return json?.admission || [];
+}
 
 const EMPTY_ROW = {
   id: null,
@@ -39,19 +50,10 @@ function toEditableRow(row = {}) {
     id: row.id || null,
     subsection: row.subsection || "",
     label: row.label || "",
-    min_age:
-      row.min_age === 0 || row.min_age
-        ? String(row.min_age)
-        : "",
-    max_age:
-      row.max_age === 0 || row.max_age
-        ? String(row.max_age)
-        : "",
+    min_age: row.min_age === 0 || row.min_age ? String(row.min_age) : "",
+    max_age: row.max_age === 0 || row.max_age ? String(row.max_age) : "",
     is_free: Boolean(row.is_free),
-    amount:
-      row.amount === 0 || row.amount
-        ? String(row.amount)
-        : "",
+    amount: row.amount === 0 || row.amount ? String(row.amount) : "",
     currency: (row.currency || "JPY").toUpperCase(),
     requires_id: Boolean(row.requires_id),
     valid_from: row.valid_from || "",
@@ -68,11 +70,7 @@ function toDisplayState(rows) {
 function presetRow(type) {
   switch (type) {
     case "adults":
-      return {
-        ...EMPTY_ROW,
-        label: "Adults",
-        amount: "2800",
-      };
+      return { ...EMPTY_ROW, label: "Adults", amount: "2800" };
     case "students":
       return {
         ...EMPTY_ROW,
@@ -123,7 +121,9 @@ const AdmissionEditor = forwardRef(function AdmissionEditor(
   function updateRow(index, next) {
     setRows((current) => {
       const list = Array.isArray(current) ? [...current] : [];
-      const base = list[index] ? { ...EMPTY_ROW, ...list[index] } : { ...EMPTY_ROW };
+      const base = list[index]
+        ? { ...EMPTY_ROW, ...list[index] }
+        : { ...EMPTY_ROW };
       list[index] = { ...base, ...next };
       return list;
     });
@@ -153,20 +153,20 @@ const AdmissionEditor = forwardRef(function AdmissionEditor(
       setSaving(true);
       setError("");
       try {
-      const payload = rowList.map((row, idx) => ({
-        ...row,
-        idx,
-        subsection: row.subsection?.trim() ? row.subsection.trim() : null,
-        label: row.label.trim(),
+        const payload = rowList.map((row, idx) => ({
+          ...row,
+          idx,
+          subsection: row.subsection?.trim() ? row.subsection.trim() : null,
+          label: row.label.trim(),
           min_age: row.min_age === "" ? null : row.min_age,
           max_age: row.max_age === "" ? null : row.max_age,
-        amount: row.amount === "" ? null : row.amount,
-        valid_from: row.valid_from || null,
-        valid_to: row.valid_to || null,
-        note: row.note?.trim() || null,
-      }));
+          amount: row.amount === "" ? null : row.amount,
+          valid_from: row.valid_from || null,
+          valid_to: row.valid_to || null,
+          note: row.note?.trim() || null,
+        }));
 
-        const fresh = await saveAdmissionPrices(targetId, payload);
+        const fresh = await saveAdmissionPricesHttp(targetId, payload);
         setRows(toDisplayState(fresh));
         setMessage("Admission prices saved");
         return fresh;
@@ -212,7 +212,9 @@ const AdmissionEditor = forwardRef(function AdmissionEditor(
       ) : null}
 
       {saving ? (
-        <p className="text-xs text-muted-foreground">Saving admission prices…</p>
+        <p className="text-xs text-muted-foreground">
+          Saving admission prices…
+        </p>
       ) : null}
 
       {error ? (
@@ -227,178 +229,181 @@ const AdmissionEditor = forwardRef(function AdmissionEditor(
       ) : null}
 
       <div className="rounded-lg border border-border/60 shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-36 min-w-[120px]">Sub-section</TableHead>
-            <TableHead className="min-w-[140px]">Category</TableHead>
-            <TableHead className="min-w-[160px]">Age</TableHead>
-            <TableHead className="w-[80px]">Free?</TableHead>
-            <TableHead className="min-w-[120px]">Amount</TableHead>
-            <TableHead className="w-[80px]">Cur</TableHead>
-            <TableHead className="w-[80px]">ID?</TableHead>
-            <TableHead className="min-w-[200px]">Valid</TableHead>
-            <TableHead className="min-w-[220px]">Note</TableHead>
-            <TableHead className="w-[90px]">Remove</TableHead>
-          </TableRow>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-36 min-w-[120px]">Sub-section</TableHead>
+              <TableHead className="min-w-[140px]">Category</TableHead>
+              <TableHead className="min-w-[160px]">Age</TableHead>
+              <TableHead className="w-[80px]">Free?</TableHead>
+              <TableHead className="min-w-[120px]">Amount</TableHead>
+              <TableHead className="w-[80px]">Cur</TableHead>
+              <TableHead className="w-[80px]">ID?</TableHead>
+              <TableHead className="min-w-[200px]">Valid</TableHead>
+              <TableHead className="min-w-[220px]">Note</TableHead>
+              <TableHead className="w-[90px]">Remove</TableHead>
+            </TableRow>
           </TableHeader>
           <TableBody>
             {rowList.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="text-center text-sm text-muted-foreground">
-                Add the first admission row to get started.
-              </TableCell>
-            </TableRow>
-          ) : (
-            rowList.map((row, index) => (
-              <TableRow key={row.id || index}>
-                <TableCell>
-                  <input
-                    className="w-32 rounded border border-border px-2 py-1 text-sm"
-                    value={row.subsection}
-                    onChange={(event) =>
-                      updateRow(index, { subsection: event.target.value })
-                    }
-                    placeholder="Sub-section"
-                  />
-                </TableCell>
-                <TableCell>
-                  <input
-                    className="w-full rounded border border-border px-2 py-1 text-sm"
-                    value={row.label}
-                    onChange={(event) =>
-                      updateRow(index, { label: event.target.value })
-                    }
-                    placeholder="e.g. Adults"
-                  />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={0}
-                      className="w-20 rounded border border-border px-2 py-1 text-sm"
-                      value={row.min_age}
-                      onChange={(event) =>
-                        updateRow(index, { min_age: event.target.value })
-                      }
-                      placeholder="Min"
-                    />
-                    <span className="text-xs text-muted-foreground">–</span>
-                    <input
-                      type="number"
-                      min={0}
-                      className="w-20 rounded border border-border px-2 py-1 text-sm"
-                      value={row.max_age}
-                      onChange={(event) =>
-                        updateRow(index, { max_age: event.target.value })
-                      }
-                      placeholder="Max"
-                    />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={row.is_free}
-                      onChange={(event) =>
-                        updateRow(index, {
-                          is_free: event.target.checked,
-                          amount: event.target.checked ? "" : row.amount,
-                        })
-                      }
-                    />
-                    <span>Free</span>
-                  </label>
-                </TableCell>
-                <TableCell>
-                  <input
-                    type="number"
-                    min={0}
-                    step="100"
-                    className="w-full rounded border border-border px-2 py-1 text-sm disabled:bg-muted"
-                    value={row.amount}
-                    onChange={(event) =>
-                      updateRow(index, { amount: event.target.value })
-                    }
-                    placeholder="0"
-                    disabled={row.is_free}
-                  />
-                </TableCell>
-                <TableCell>
-                  <input
-                    className="w-full rounded border border-border px-2 py-1 text-sm"
-                    value={row.currency}
-                    onChange={(event) => {
-                      const nextValue = event.target.value
-                        .toUpperCase()
-                        .replace(/[^A-Z]/g, "")
-                        .slice(0, 3);
-                      updateRow(index, {
-                        currency: nextValue || "",
-                      });
-                    }}
-                    placeholder="JPY"
-                    maxLength={3}
-                  />
-                </TableCell>
-                <TableCell>
-                  <label className="flex items-center justify-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={row.requires_id}
-                      onChange={(event) =>
-                        updateRow(index, { requires_id: event.target.checked })
-                      }
-                    />
-                    <span>ID</span>
-                  </label>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-2">
-                    <input
-                      type="date"
-                      className="rounded border border-border px-2 py-1 text-sm"
-                      value={row.valid_from}
-                      onChange={(event) =>
-                        updateRow(index, { valid_from: event.target.value })
-                      }
-                    />
-                    <input
-                      type="date"
-                      className="rounded border border-border px-2 py-1 text-sm"
-                      value={row.valid_to}
-                      onChange={(event) =>
-                        updateRow(index, { valid_to: event.target.value })
-                      }
-                    />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-2">
-                    <input
-                      className="w-full rounded border border-border px-2 py-1 text-sm"
-                      value={row.note}
-                      onChange={(event) =>
-                        updateRow(index, { note: event.target.value })
-                      }
-                      placeholder="Note"
-                    />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => removeRow(index)}
-                  >
-                    Remove
-                  </Button>
+              <TableRow>
+                <TableCell
+                  colSpan={9}
+                  className="text-center text-sm text-muted-foreground"
+                >
+                  Add the first admission row to get started.
                 </TableCell>
               </TableRow>
-            ))
-          )}
+            ) : (
+              rowList.map((row, index) => (
+                <TableRow key={row.id || index}>
+                  <TableCell>
+                    <input
+                      className="w-32 rounded border border-border px-2 py-1 text-sm"
+                      value={row.subsection}
+                      onChange={(event) =>
+                        updateRow(index, { subsection: event.target.value })
+                      }
+                      placeholder="Sub-section"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <input
+                      className="w-full rounded border border-border px-2 py-1 text-sm"
+                      value={row.label}
+                      onChange={(event) =>
+                        updateRow(index, { label: event.target.value })
+                      }
+                      placeholder="e.g. Adults"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-20 rounded border border-border px-2 py-1 text-sm"
+                        value={row.min_age}
+                        onChange={(event) =>
+                          updateRow(index, { min_age: event.target.value })
+                        }
+                        placeholder="Min"
+                      />
+                      <span className="text-xs text-muted-foreground">–</span>
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-20 rounded border border-border px-2 py-1 text-sm"
+                        value={row.max_age}
+                        onChange={(event) =>
+                          updateRow(index, { max_age: event.target.value })
+                        }
+                        placeholder="Max"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={row.is_free}
+                        onChange={(event) =>
+                          updateRow(index, {
+                            is_free: event.target.checked,
+                            amount: event.target.checked ? "" : row.amount,
+                          })
+                        }
+                      />
+                      <span>Free</span>
+                    </label>
+                  </TableCell>
+                  <TableCell>
+                    <input
+                      type="number"
+                      min={0}
+                      step="100"
+                      className="w-full rounded border border-border px-2 py-1 text-sm disabled:bg-muted"
+                      value={row.amount}
+                      onChange={(event) =>
+                        updateRow(index, { amount: event.target.value })
+                      }
+                      placeholder="0"
+                      disabled={row.is_free}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <input
+                      className="w-full rounded border border-border px-2 py-1 text-sm"
+                      value={row.currency}
+                      onChange={(event) => {
+                        const nextValue = event.target.value
+                          .toUpperCase()
+                          .replace(/[^A-Z]/g, "")
+                          .slice(0, 3);
+                        updateRow(index, { currency: nextValue || "" });
+                      }}
+                      placeholder="JPY"
+                      maxLength={3}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <label className="flex items-center justify-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={row.requires_id}
+                        onChange={(event) =>
+                          updateRow(index, {
+                            requires_id: event.target.checked,
+                          })
+                        }
+                      />
+                      <span>ID</span>
+                    </label>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="date"
+                        className="rounded border border-border px-2 py-1 text-sm"
+                        value={row.valid_from}
+                        onChange={(event) =>
+                          updateRow(index, { valid_from: event.target.value })
+                        }
+                      />
+                      <input
+                        type="date"
+                        className="rounded border border-border px-2 py-1 text-sm"
+                        value={row.valid_to}
+                        onChange={(event) =>
+                          updateRow(index, { valid_to: event.target.value })
+                        }
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-2">
+                      <input
+                        className="w-full rounded border border-border px-2 py-1 text-sm"
+                        value={row.note}
+                        onChange={(event) =>
+                          updateRow(index, { note: event.target.value })
+                        }
+                        placeholder="Note"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeRow(index)}
+                    >
+                      Remove
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

@@ -1,7 +1,7 @@
 import { getDB } from "@/lib/supabase/server";
 
 export async function getPublishedSights() {
-  const db = getDB();
+  const db = await getDB();
   const { data, error } = await db
     .from("sights")
     .select(
@@ -14,7 +14,7 @@ export async function getPublishedSights() {
 }
 
 export async function getSightsForDestination(destId, divisionSlug = null) {
-  const db = getDB();
+  const db = await getDB();
   let query = db
     .from("sights")
     .select(
@@ -41,7 +41,7 @@ export async function getSightsForDestination(destId, divisionSlug = null) {
 
 export async function getSightsByDestinationIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const db = getDB();
+  const db = await getDB();
   const { data, error } = await db
     .from("sights")
     .select(
@@ -55,7 +55,7 @@ export async function getSightsByDestinationIds(ids = []) {
 }
 
 export async function getSightBySlugs(destinationSlug, sightSlug) {
-  const db = getDB();
+  const db = await getDB();
   const { data: dst } = await db
     .from("destinations")
     .select("id, slug, name")
@@ -76,7 +76,7 @@ export async function getSightBySlugs(destinationSlug, sightSlug) {
 }
 
 export async function getSightOpeningHours(id) {
-  const db = getDB();
+  const db = await getDB();
   const { data, error } = await db
     .from("sight_opening_hours")
     .select(
@@ -90,7 +90,7 @@ export async function getSightOpeningHours(id) {
 }
 
 export async function getSightOpeningExceptions(id) {
-  const db = getDB();
+  const db = await getDB();
   const { data, error } = await db
     .from("sight_opening_exceptions")
     .select("type, start_date, end_date, weekday, note")

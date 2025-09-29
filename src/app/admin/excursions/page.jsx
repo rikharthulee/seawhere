@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { headers, cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 

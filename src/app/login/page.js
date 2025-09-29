@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import LoginForm from "./LoginForm";
 import { redirect } from "next/navigation";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 import { getRouteParams } from "@/lib/route-params";
 
 export const dynamic = "force-dynamic";

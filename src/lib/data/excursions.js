@@ -3,7 +3,7 @@ import { getDB } from "@/lib/supabase/server";
 // Top-level excursions list
 export async function getPublishedExcursions() {
   try {
-    const db = getDB();
+    const db = await getDB();
     const { data, error } = await db
       .from("excursions")
       .select(
@@ -26,7 +26,7 @@ export async function getPublishedExcursions() {
 export async function getExcursionsForDestination(destId) {
   if (!destId) return [];
   try {
-    const db = getDB();
+    const db = await getDB();
     const { data, error } = await db
       .from("excursions")
       .select(
@@ -50,7 +50,7 @@ export async function getExcursionsForDestination(destId) {
 export async function getExcursionsByDestinationIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
   try {
-    const db = getDB();
+    const db = await getDB();
     const { data, error } = await db
       .from("excursions")
       .select(
@@ -73,7 +73,7 @@ export async function getExcursionsByDestinationIds(ids = []) {
 // Single excursion by destination slug + excursion slug
 export async function getExcursionBySlugs(destinationSlug, excursionSlug) {
   try {
-    const db = getDB();
+    const db = await getDB();
 
     const dstSlug = String(destinationSlug || "")
       .trim()
@@ -128,7 +128,7 @@ export async function getExcursionBySlugs(destinationSlug, excursionSlug) {
 export async function getExcursionOpeningHours(id) {
   if (!id) return [];
   try {
-    const db = getDB();
+    const db = await getDB();
     const { data, error } = await db
       .from("excursion_opening_hours")
       .select(
@@ -151,7 +151,7 @@ export async function getExcursionOpeningHours(id) {
 export async function getExcursionOpeningExceptions(id) {
   if (!id) return [];
   try {
-    const db = getDB();
+    const db = await getDB();
     const { data, error } = await db
       .from("excursion_opening_exceptions")
       .select("date, is_closed, open_time, close_time, note")

@@ -38,7 +38,7 @@ function normalizeRow(row = {}) {
 
 export async function fetchAdmissionPrices(sightId) {
   if (!sightId) return [];
-  const db = getDB();
+  const db = await getDB();
   const { data, error } = await db
     .from("sight_admission_prices")
     .select(
@@ -68,7 +68,7 @@ export async function saveAdmissionPrices(sightId, rows) {
     };
   });
 
-  const db = getDB();
+  const db = await getDB();
 
   const existingIdsRes = await db
     .from("sight_admission_prices")

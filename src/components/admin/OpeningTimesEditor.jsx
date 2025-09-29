@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useState,
-} from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 
@@ -28,10 +23,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import {
-  loadOpeningTimes,
-  saveOpeningTimes,
-} from "@/lib/openingTimesApi";
+import { loadOpeningTimes, saveOpeningTimes } from "@/lib/openingTimesApi";
 
 const MONTH_OPTIONS = [
   "January",
@@ -150,7 +142,28 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                 : 0,
           }))
         );
-        setClosures(closures || []);
+        setClosures(
+          (closures || []).map((c) => ({
+            type: c.type || "fixed",
+            startDate: c.startDate
+              ? c.startDate instanceof Date
+                ? c.startDate
+                : new Date(c.startDate)
+              : null,
+            endDate: c.endDate
+              ? c.endDate instanceof Date
+                ? c.endDate
+                : new Date(c.endDate)
+              : null,
+            weekday:
+              typeof c.weekday === "number"
+                ? c.weekday
+                : c.weekday
+                ? Number(c.weekday)
+                : undefined,
+            notes: c.notes || "",
+          }))
+        );
         setOfficialUrl(officialUrl || "");
       })
       .catch((e) => {
@@ -212,19 +225,111 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
     setClosures(closures.filter((_, idx) => idx !== i));
 
   async function persistOpeningTimes(targetId = sightId) {
-    if (!targetId) throw new Error("Save the sight before saving opening times");
+    if (!targetId)
+      throw new Error("Save the sight before saving opening times");
     setSaving(true);
     setLoading(true);
     setError("");
     try {
+      // Normalize hours and closures prior to saving
+      const hoursToSave = (hours || []).map((h) => ({
+        startMonth: h.startMonth ?? null,
+        startDay: h.startDay ?? null,
+        endMonth: h.endMonth ?? null,
+        endDay: h.endDay ?? null,
+        openTime: h.openTime || "",
+        closeTime: h.closeTime || "",
+        lastEntryMins:
+          typeof h.lastEntryMins === "number"
+            ? h.lastEntryMins
+            : h.lastEntryMins
+            ? Number(h.lastEntryMins)
+            : 0,
+      }));
+
+      const closuresToSave = (closures || []).map((c) => ({
+        type: c.type || "fixed",
+        startDate:
+          c.startDate instanceof Date
+            ? format(c.startDate, "yyyy-MM-dd")
+            : c.startDate || null,
+        endDate:
+          c.endDate instanceof Date
+            ? format(c.endDate, "yyyy-MM-dd")
+            : c.endDate || null,
+        weekday:
+          typeof c.weekday === "number"
+            ? c.weekday
+            : c.weekday
+            ? Number(c.weekday)
+            : undefined,
+        notes: c.notes || "",
+      }));
+
       await saveOpeningTimes(targetId, {
-        hours,
-        closures,
+        hours: hoursToSave,
+        closures: closuresToSave,
         officialUrl: officialUrl.trim(),
       });
       const refreshed = await loadOpeningTimes(targetId);
-      setHours(refreshed.hours || []);
-      setClosures(refreshed.closures || []);
+      setHours(
+        (refreshed.hours || []).map((h) => ({
+          startMonth:
+            typeof h.startMonth === "number"
+              ? h.startMonth
+              : h.startMonth
+              ? Number(h.startMonth)
+              : null,
+          startDay:
+            typeof h.startDay === "number"
+              ? h.startDay
+              : h.startDay
+              ? Number(h.startDay)
+              : null,
+          endMonth:
+            typeof h.endMonth === "number"
+              ? h.endMonth
+              : h.endMonth
+              ? Number(h.endMonth)
+              : null,
+          endDay:
+            typeof h.endDay === "number"
+              ? h.endDay
+              : h.endDay
+              ? Number(h.endDay)
+              : null,
+          openTime: h.openTime || "",
+          closeTime: h.closeTime || "",
+          lastEntryMins:
+            typeof h.lastEntryMins === "number"
+              ? h.lastEntryMins
+              : h.lastEntryMins
+              ? Number(h.lastEntryMins)
+              : 0,
+        }))
+      );
+      setClosures(
+        (refreshed.closures || []).map((c) => ({
+          type: c.type || "fixed",
+          startDate: c.startDate
+            ? c.startDate instanceof Date
+              ? c.startDate
+              : new Date(c.startDate)
+            : null,
+          endDate: c.endDate
+            ? c.endDate instanceof Date
+              ? c.endDate
+              : new Date(c.endDate)
+            : null,
+          weekday:
+            typeof c.weekday === "number"
+              ? c.weekday
+              : c.weekday
+              ? Number(c.weekday)
+              : undefined,
+          notes: c.notes || "",
+        }))
+      );
       setOfficialUrl(refreshed.officialUrl || "");
       setMessage("Opening hours saved");
     } catch (e) {
@@ -291,9 +396,13 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
           </div>
 
           {saving ? (
-            <p className="text-xs text-muted-foreground">Saving opening hours…</p>
+            <p className="text-xs text-muted-foreground">
+              Saving opening hours…
+            </p>
           ) : loading ? (
-            <p className="text-xs text-muted-foreground">Loading opening hours…</p>
+            <p className="text-xs text-muted-foreground">
+              Loading opening hours…
+            </p>
           ) : null}
 
           {error ? (
@@ -309,7 +418,9 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
           ) : null}
 
           {sightId && !loading && hours.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No seasons yet. Add one to begin.</p>
+            <p className="text-sm text-muted-foreground">
+              No seasons yet. Add one to begin.
+            </p>
           ) : null}
 
           <div className="space-y-4">
@@ -401,7 +512,9 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                     <Input
                       type="time"
                       value={h.openTime}
-                      onChange={(e) => updateHour(i, "openTime", e.target.value)}
+                      onChange={(e) =>
+                        updateHour(i, "openTime", e.target.value)
+                      }
                       className="h-9 w-full px-3 text-sm"
                     />
                   </div>
@@ -410,7 +523,9 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                     <Input
                       type="time"
                       value={h.closeTime}
-                      onChange={(e) => updateHour(i, "closeTime", e.target.value)}
+                      onChange={(e) =>
+                        updateHour(i, "closeTime", e.target.value)
+                      }
                       className="h-9 w-full px-3 text-sm"
                     />
                   </div>
@@ -534,7 +649,9 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                     <Label>Notes</Label>
                     <Input
                       value={c.notes || ""}
-                      onChange={(e) => updateClosure(i, "notes", e.target.value)}
+                      onChange={(e) =>
+                        updateClosure(i, "notes", e.target.value)
+                      }
                       className="h-9 w-full px-3 text-sm"
                     />
                   </div>
@@ -569,7 +686,9 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
           </div>
 
           <div className="space-y-2 border-t pt-4">
-            <Label className="text-sm font-medium">Official opening hours link</Label>
+            <Label className="text-sm font-medium">
+              Official opening hours link
+            </Label>
             <Input
               type="url"
               value={officialUrl}
@@ -579,8 +698,8 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
               disabled={!sightId || loading}
             />
             <p className="text-xs text-muted-foreground">
-              Provide the venue&rsquo;s official site so travellers can confirm the latest
-              opening hours.
+              Provide the venue&rsquo;s official site so travellers can confirm
+              the latest opening hours.
             </p>
           </div>
         </CardContent>

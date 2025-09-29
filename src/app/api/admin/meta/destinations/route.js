@@ -1,33 +1,20 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-    let data, error;
-    if (url && serviceKey) {
-      const svc = createClient(url, serviceKey);
-      const res = await svc
-        .from("destinations")
-        .select("id, name, slug, status, prefecture_id, division_id")
-        .order("name", { ascending: true });
-      data = res.data;
-      error = res.error;
-    } else {
-      const cookieStore = cookies();
-      const supabase = createClient({ cookies: cookieStore });
-      const res = await supabase
-        .from("destinations")
-        .select("id, name, slug, status, prefecture_id, division_id")
-        .order("name", { ascending: true });
-      data = res.data;
-      error = res.error;
-    }
+    const db = await getDB();
+    const { data, error } = await db
+      .from("destinations")
+      .select("id, name, slug, status, prefecture_id, division_id")
+      .order("name", { ascending: true });
+
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ items: data || [] });
+    return NextResponse.json({ items: data || [] }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },

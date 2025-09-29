@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
-async function getClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-  if (url && serviceKey) return createClient(url, serviceKey);
-  const cookieStore = cookies();
-  return createClient({ cookies: cookieStore });
-}
+export const runtime = "nodejs";
+export const revalidate = 0;
 
 export async function POST(request) {
   try {
-    const client = await getClient();
+    const db = await getDB();
     const body = await request.json();
 
     const payload = {
@@ -23,7 +17,7 @@ export async function POST(request) {
       transport: body.transport || null,
     };
 
-    const { data, error } = await client
+    const { data, error } = await db
       .from("excursions")
       .insert(payload)
       .select("id")
@@ -43,14 +37,12 @@ export async function POST(request) {
         sort_order: Number(it.sort_order) || 0,
       }));
     if (rows.length > 0) {
-      const { error: itemsErr } = await client
-        .from("excursion_items")
-        .insert(rows);
+      const { error: itemsErr } = await db.from("excursion_items").insert(rows);
       if (itemsErr)
         return NextResponse.json({ error: itemsErr.message }, { status: 400 });
     }
 
-    return NextResponse.json({ id: excursionId });
+    return NextResponse.json({ id: excursionId }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -61,7 +53,7 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
-    const client = await getClient();
+    const db = await getDB();
     const { searchParams } = new URL(request.url);
     const limit = Math.min(Number(searchParams.get("limit") || 50), 200);
     const q = (searchParams.get("q") || "").trim();
@@ -74,7 +66,7 @@ export async function GET(request) {
       "destination_id",
     ];
 
-    let query = client
+    let query = db
       .from("excursions")
       .select(baseSelect.join(","))
       .order("updated_at", { ascending: false })
@@ -91,7 +83,7 @@ export async function GET(request) {
         const fallbackSelect = baseSelect
           .filter((field) => field !== "updated_at")
           .join(",");
-        let fallback = client
+        let fallback = db
           .from("excursions")
           .select(fallbackSelect)
           .order("name", { ascending: true })
@@ -113,7 +105,7 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ items: data || [] });
+    return NextResponse.json({ items: data || [] }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },

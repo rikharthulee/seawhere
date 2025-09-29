@@ -1,26 +1,26 @@
-import { createServerClient as createSupaServerClient } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-// Synchronous for callers; the adapter handles async cookies internally.
-export function getDB() {
+export async function getDB() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
   if (!url || !anonKey) {
     throw new Error(
       "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"
     );
   }
-  return createSupaServerClient(url, anonKey, {
+
+  const cookieStore = await cookies();
+
+  return createServerClient(url, anonKey, {
     cookies: {
-      async getAll() {
-        const { cookies } = await import("next/headers");
-        const store = await cookies(); // ✅ await in RSC
-        return store.getAll();
+      getAll() {
+        return cookieStore.getAll();
       },
-      async setAll(cookiesToSet) {
-        const { cookies } = await import("next/headers");
-        const store = await cookies(); // ✅ await in RSC
+      setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
-          store.set({ name, value, ...options });
+          cookieStore.set(name, value, options);
         });
       },
     },

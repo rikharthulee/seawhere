@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
-async function getClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-  if (url && serviceKey) return createClient(url, serviceKey);
-  const cookieStore = cookies();
-  return createClient({ cookies: cookieStore });
-}
+export const runtime = "nodejs";
+export const revalidate = 0;
 
 export async function GET(_req, { params }) {
   try {
-    const { id } = await params;
-    const client = await getClient();
-    const { data: tour, error } = await client
+    const id = params?.id;
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const db = await getDB();
+    const { data: tour, error } = await db
       .from("tours")
       .select("*")
       .eq("id", id)
@@ -24,22 +19,21 @@ export async function GET(_req, { params }) {
     if (!tour)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const { data: rules } = await client
+    const { data: rules } = await db
       .from("tour_availability_rules")
       .select("idx, days_of_week, start_times, valid_from, valid_to, timezone")
       .eq("tour_id", id)
       .order("idx", { ascending: true });
-    const { data: exceptions } = await client
+    const { data: exceptions } = await db
       .from("tour_exceptions")
       .select("date, action, start_time, note")
       .eq("tour_id", id)
       .order("date", { ascending: true });
 
-    return NextResponse.json({
-      tour,
-      rules: rules || [],
-      exceptions: exceptions || [],
-    });
+    return NextResponse.json(
+      { tour, rules: rules || [], exceptions: exceptions || [] },
+      { status: 200 }
+    );
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -50,8 +44,9 @@ export async function GET(_req, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    const { id } = await params;
-    const client = await getClient();
+    const id = params?.id;
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const db = await getDB();
     const body = await request.json();
 
     const payload = {
@@ -74,11 +69,11 @@ export async function PUT(request, { params }) {
       price_amount: body.price_amount ?? null,
       price_currency: body.price_currency || null,
     };
-    const { error } = await client.from("tours").update(payload).eq("id", id);
+    const { error } = await db.from("tours").update(payload).eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
 
-    await client.from("tour_availability_rules").delete().eq("tour_id", id);
+    await db.from("tour_availability_rules").delete().eq("tour_id", id);
     const rules = Array.isArray(body.availability_rules)
       ? body.availability_rules
       : [];
@@ -92,14 +87,14 @@ export async function PUT(request, { params }) {
         valid_to: r.valid_to || null,
         timezone: r.timezone || "Asia/Tokyo",
       }));
-      const { error: rErr } = await client
+      const { error: rErr } = await db
         .from("tour_availability_rules")
         .insert(rows);
       if (rErr)
         return NextResponse.json({ error: rErr.message }, { status: 400 });
     }
 
-    await client.from("tour_exceptions").delete().eq("tour_id", id);
+    await db.from("tour_exceptions").delete().eq("tour_id", id);
     const exceptions = Array.isArray(body.exceptions) ? body.exceptions : [];
     if (exceptions.length > 0) {
       const rows = exceptions.map((e) => ({
@@ -109,12 +104,12 @@ export async function PUT(request, { params }) {
         start_time: e.start_time || null,
         note: e.note || null,
       }));
-      const { error: eErr } = await client.from("tour_exceptions").insert(rows);
+      const { error: eErr } = await db.from("tour_exceptions").insert(rows);
       if (eErr)
         return NextResponse.json({ error: eErr.message }, { status: 400 });
     }
 
-    return NextResponse.json({ id });
+    return NextResponse.json({ id }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -125,14 +120,15 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(_req, { params }) {
   try {
-    const { id } = await params;
-    const client = await getClient();
-    await client.from("tour_availability_rules").delete().eq("tour_id", id);
-    await client.from("tour_exceptions").delete().eq("tour_id", id);
-    const { error } = await client.from("tours").delete().eq("id", id);
+    const id = params?.id;
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const db = await getDB();
+    await db.from("tour_availability_rules").delete().eq("tour_id", id);
+    await db.from("tour_exceptions").delete().eq("tour_id", id);
+    const { error } = await db.from("tours").delete().eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ ok: true });
+    return new NextResponse(null, { status: 204 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },

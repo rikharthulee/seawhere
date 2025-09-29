@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
-async function getClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-  if (url && serviceKey) return createClient(url, serviceKey);
-  const cookieStore = cookies();
-  return createClient({ cookies: cookieStore });
-}
+export const runtime = "nodejs";
+export const revalidate = 0;
 
 export async function GET(_req, { params }) {
   try {
-    const { id } = await params;
-    const client = await getClient();
-    const { data: experience, error } = await client
+    const id = params?.id;
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const db = await getDB();
+    const { data: experience, error } = await db
       .from("experiences")
       .select("*")
       .eq("id", id)
@@ -24,22 +19,25 @@ export async function GET(_req, { params }) {
     if (!experience)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const { data: rules } = await client
+    const { data: rules } = await db
       .from("experience_availability_rules")
       .select("idx, days_of_week, start_times, valid_from, valid_to, timezone")
       .eq("experience_id", id)
       .order("idx", { ascending: true });
-    const { data: exceptions } = await client
+    const { data: exceptions } = await db
       .from("experience_exceptions")
       .select("date, action, start_time, note")
       .eq("experience_id", id)
       .order("date", { ascending: true });
 
-    return NextResponse.json({
-      ...experience,
-      rules: rules || [],
-      exceptions: exceptions || [],
-    });
+    return NextResponse.json(
+      {
+        ...experience,
+        rules: rules || [],
+        exceptions: exceptions || [],
+      },
+      { status: 200 }
+    );
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -50,8 +48,9 @@ export async function GET(_req, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    const { id } = await params;
-    const client = await getClient();
+    const id = params?.id;
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const db = await getDB();
     const body = await request.json();
 
     const payload = {
@@ -83,14 +82,11 @@ export async function PUT(request, { params }) {
       gyg_id: body.gyg_id || null,
       tags: Array.isArray(body.tags) ? body.tags : null,
     };
-    const { error } = await client
-      .from("experiences")
-      .update(payload)
-      .eq("id", id);
+    const { error } = await db.from("experiences").update(payload).eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
 
-    await client
+    await db
       .from("experience_availability_rules")
       .delete()
       .eq("experience_id", id);
@@ -107,14 +103,14 @@ export async function PUT(request, { params }) {
         valid_to: r.valid_to || null,
         timezone: r.timezone || "Asia/Tokyo",
       }));
-      const { error: rErr } = await client
+      const { error: rErr } = await db
         .from("experience_availability_rules")
         .insert(rows);
       if (rErr)
         return NextResponse.json({ error: rErr.message }, { status: 400 });
     }
 
-    await client.from("experience_exceptions").delete().eq("experience_id", id);
+    await db.from("experience_exceptions").delete().eq("experience_id", id);
     const exceptions = Array.isArray(body.exceptions) ? body.exceptions : [];
     if (exceptions.length > 0) {
       const rows = exceptions.map((e) => ({
@@ -124,14 +120,14 @@ export async function PUT(request, { params }) {
         start_time: e.start_time || null,
         note: e.note || null,
       }));
-      const { error: eErr } = await client
+      const { error: eErr } = await db
         .from("experience_exceptions")
         .insert(rows);
       if (eErr)
         return NextResponse.json({ error: eErr.message }, { status: 400 });
     }
 
-    return NextResponse.json({ id });
+    return NextResponse.json({ id }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -142,17 +138,18 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(_req, { params }) {
   try {
-    const { id } = await params;
-    const client = await getClient();
-    await client
+    const id = params?.id;
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const db = await getDB();
+    await db
       .from("experience_availability_rules")
       .delete()
       .eq("experience_id", id);
-    await client.from("experience_exceptions").delete().eq("experience_id", id);
-    const { error } = await client.from("experiences").delete().eq("id", id);
+    await db.from("experience_exceptions").delete().eq("experience_id", id);
+    const { error } = await db.from("experiences").delete().eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ ok: true });
+    return new NextResponse(null, { status: 204 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },

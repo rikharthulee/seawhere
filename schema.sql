@@ -56,7 +56,7 @@ CREATE TABLE public.category_links (
   category_id uuid NOT NULL,
   entity_type text NOT NULL CHECK (entity_type = ANY (ARRAY['destination'::text, 'poi'::text, 'accommodation'::text, 'article'::text])),
   entity_id uuid NOT NULL,
-  CONSTRAINT category_links_pkey PRIMARY KEY (entity_type, category_id, entity_id),
+  CONSTRAINT category_links_pkey PRIMARY KEY (category_id, entity_id, entity_type),
   CONSTRAINT category_links_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
 );
 CREATE TABLE public.destination_links (
@@ -64,7 +64,7 @@ CREATE TABLE public.destination_links (
   to_location_id uuid NOT NULL,
   relation text NOT NULL CHECK (relation = ANY (ARRAY['nearby'::text, 'day_trip'::text, 'gateway'::text, 'sister_area'::text])),
   weight integer DEFAULT 0,
-  CONSTRAINT destination_links_pkey PRIMARY KEY (from_location_id, relation, to_location_id)
+  CONSTRAINT destination_links_pkey PRIMARY KEY (relation, to_location_id, from_location_id)
 );
 CREATE TABLE public.destinations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -150,6 +150,8 @@ CREATE TABLE public.excursions (
   updated_at timestamp with time zone,
   summary text,
   destination_id uuid,
+  slug text,
+  cover_image text,
   CONSTRAINT excursions_pkey PRIMARY KEY (id),
   CONSTRAINT excursions_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
 );
@@ -359,27 +361,52 @@ CREATE TABLE public.regions (
   summary text,
   CONSTRAINT regions_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.sight_admission_prices (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  sight_id uuid NOT NULL,
+  idx integer NOT NULL DEFAULT 0,
+  label text NOT NULL,
+  min_age integer,
+  max_age integer,
+  requires_id boolean NOT NULL DEFAULT false,
+  amount numeric,
+  currency text NOT NULL DEFAULT 'JPY'::text,
+  is_free boolean NOT NULL DEFAULT false,
+  valid_from date,
+  valid_to date,
+  note text,
+  external_url text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  subsection text,
+  CONSTRAINT sight_admission_prices_pkey PRIMARY KEY (id),
+  CONSTRAINT sight_admission_prices_sight_id_fkey FOREIGN KEY (sight_id) REFERENCES public.sights(id)
+);
 CREATE TABLE public.sight_opening_exceptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   sight_id uuid NOT NULL,
-  date date NOT NULL,
-  is_closed boolean NOT NULL DEFAULT false,
-  open_time time without time zone,
-  close_time time without time zone,
+  type USER-DEFINED NOT NULL,
+  start_date date,
+  end_date date,
+  weekday smallint,
   note text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT sight_opening_exceptions_pkey PRIMARY KEY (id),
   CONSTRAINT sight_opening_exceptions_sight_id_fkey FOREIGN KEY (sight_id) REFERENCES public.sights(id)
 );
 CREATE TABLE public.sight_opening_hours (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   sight_id uuid NOT NULL,
-  weekday integer NOT NULL CHECK (weekday >= 0 AND weekday <= 6),
-  idx integer NOT NULL DEFAULT 0,
-  open_time time without time zone,
-  close_time time without time zone,
-  is_closed boolean NOT NULL DEFAULT false,
-  valid_from date,
-  valid_to date,
+  start_month integer NOT NULL CHECK (start_month >= 1 AND start_month <= 12),
+  start_day integer CHECK (start_day >= 1 AND start_day <= 31),
+  end_month integer NOT NULL CHECK (end_month >= 1 AND end_month <= 12),
+  end_day integer CHECK (end_day >= 1 AND end_day <= 31),
+  open_time time without time zone NOT NULL,
+  close_time time without time zone NOT NULL,
+  last_entry_mins integer NOT NULL DEFAULT 0 CHECK (last_entry_mins >= 0),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT sight_opening_hours_pkey PRIMARY KEY (id),
   CONSTRAINT sight_opening_hours_sight_id_fkey FOREIGN KEY (sight_id) REFERENCES public.sights(id)
 );
@@ -409,6 +436,8 @@ CREATE TABLE public.sights (
   price_amount numeric,
   price_currency text DEFAULT 'JPY'::text,
   division_id uuid,
+  opening_times_url text,
+  maps_place_id text,
   CONSTRAINT sights_pkey PRIMARY KEY (id),
   CONSTRAINT sights_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
   CONSTRAINT sights_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id)

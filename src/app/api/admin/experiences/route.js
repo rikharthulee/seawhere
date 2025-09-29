@@ -1,37 +1,21 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-    let data, error;
-    if (url && serviceKey) {
-      const svc = createClient(url, serviceKey);
-      const res = await svc
-        .from("experiences")
-        .select(
-          "id, slug, name, summary, destination_id, status, images, lat, lng"
-        )
-        .order("name", { ascending: true });
-      data = res.data;
-      error = res.error;
-    } else {
-      const cookieStore = cookies();
-      const supabase = createClient({ cookies: cookieStore });
-      const res = await supabase
-        .from("experiences")
-        .select(
-          "id, slug, name, summary, destination_id, status, images, lat, lng"
-        )
-        .order("name", { ascending: true });
-      data = res.data;
-      error = res.error;
-    }
+    const db = await getDB();
+    const { data, error } = await db
+      .from("experiences")
+      .select(
+        "id, slug, name, summary, destination_id, status, images, lat, lng"
+      )
+      .order("name", { ascending: true });
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ items: data || [] });
+    return NextResponse.json({ items: data || [] }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -42,15 +26,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-    let client;
-    if (url && serviceKey) {
-      client = createClient(url, serviceKey);
-    } else {
-      const cookieStore = cookies();
-      client = createClient({ cookies: cookieStore });
-    }
+    const db = await getDB();
     const body = await request.json();
 
     const payload = {
@@ -83,7 +59,7 @@ export async function POST(request) {
       tags: Array.isArray(body.tags) ? body.tags : null,
     };
 
-    const { data, error } = await client
+    const { data, error } = await db
       .from("experiences")
       .insert(payload)
       .select("id")
@@ -107,7 +83,7 @@ export async function POST(request) {
         valid_to: r.valid_to || null,
         timezone: r.timezone || "Asia/Tokyo",
       }));
-      const { error: rErr } = await client
+      const { error: rErr } = await db
         .from("experience_availability_rules")
         .insert(rows);
       if (rErr)
@@ -124,14 +100,14 @@ export async function POST(request) {
         start_time: e.start_time || null,
         note: e.note || null,
       }));
-      const { error: eErr } = await client
+      const { error: eErr } = await db
         .from("experience_exceptions")
         .insert(rows);
       if (eErr)
         return NextResponse.json({ error: eErr.message }, { status: 400 });
     }
 
-    return NextResponse.json({ id: expId });
+    return NextResponse.json({ id: expId }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
+export const revalidate = 0;
 
 export async function POST(req) {
   const secret = process.env.REVALIDATE_SECRET;
@@ -14,13 +16,11 @@ export async function POST(req) {
   // Or allow if an authenticated admin/editor calls it
   if (!allowed) {
     try {
-      const cookieStore = cookies();
-      const supabase = createClient({ cookies: cookieStore });
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const db = await getDB();
+      const { data: auth } = await db.auth.getUser();
+      const user = auth?.user || null;
       if (user) {
-        const { data: prof } = await supabase
+        const { data: prof } = await db
           .from("profiles")
           .select("role")
           .eq("id", user.id)
@@ -31,7 +31,10 @@ export async function POST(req) {
   }
 
   if (!allowed && secret) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 }
+    );
   }
 
   let payload = {};
@@ -65,5 +68,8 @@ export async function POST(req) {
   // Revalidate all collected tags
   tags.forEach((t) => revalidateTag(t));
 
-  return NextResponse.json({ ok: true, revalidated: Array.from(tags) });
+  return NextResponse.json(
+    { ok: true, revalidated: Array.from(tags) },
+    { status: 200 }
+  );
 }

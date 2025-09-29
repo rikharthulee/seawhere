@@ -1,22 +1,18 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
-import { fetchAdmissionPrices } from "@/lib/data/admission";
+import { getDB } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
+export const revalidate = 0;
 
 export async function GET(_req, { params }) {
+  const { id } = await params;
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
   try {
-    const { id } = await params;
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-    let client;
-    if (url && serviceKey) {
-      client = createClient(url, serviceKey);
-    } else {
-      const cookieStore = cookies();
-      client = createClient({ cookies: cookieStore });
-    }
+    const db = await getDB();
 
-    const { data: sight, error } = await client
+    const { data: sight, error } = await db
       .from("sights")
       .select("*")
       .eq("id", id)
@@ -26,7 +22,7 @@ export async function GET(_req, { params }) {
     if (!sight)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const { data: hours } = await client
+    const { data: hours } = await db
       .from("sight_opening_hours")
       .select(
         "weekday, idx, open_time, close_time, is_closed, valid_from, valid_to"
@@ -34,25 +30,32 @@ export async function GET(_req, { params }) {
       .eq("sight_id", id)
       .order("weekday", { ascending: true })
       .order("idx", { ascending: true });
-    const { data: exceptions } = await client
+    const { data: exceptions } = await db
       .from("sight_opening_exceptions")
       .select("date, is_closed, open_time, close_time, note")
       .eq("sight_id", id)
       .order("date", { ascending: true });
 
-    let admission = [];
-    try {
-      admission = await fetchAdmissionPrices(id);
-    } catch (admissionError) {
-      console.error("Failed to load sight admission prices", admissionError);
+    const { data: admissionRows, error: aErr } = await db
+      .from("sight_admission_prices")
+      .select(
+        "id, idx, subsection, label, min_age, max_age, is_free, amount, currency, requires_id, valid_from, valid_to, note"
+      )
+      .eq("sight_id", id)
+      .order("idx", { ascending: true });
+    if (aErr) {
+      return NextResponse.json({ error: aErr.message }, { status: 400 });
     }
 
-    return NextResponse.json({
-      sight,
-      hours: hours || [],
-      exceptions: exceptions || [],
-      admission,
-    });
+    return NextResponse.json(
+      {
+        sight,
+        hours: hours || [],
+        exceptions: exceptions || [],
+        admission: admissionRows || [],
+      },
+      { status: 200 }
+    );
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -62,18 +65,67 @@ export async function GET(_req, { params }) {
 }
 
 export async function PUT(request, { params }) {
+  const { id } = await params;
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
   try {
-    const { id } = await params;
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-    let client;
-    if (url && serviceKey) {
-      client = createClient(url, serviceKey);
-    } else {
-      const cookieStore = cookies();
-      client = createClient({ cookies: cookieStore });
-    }
+    const db = await getDB();
     const body = await request.json();
+
+    // Admission prices save action (from AdmissionEditor)
+    if (body?._action === "saveAdmission") {
+      const rows = Array.isArray(body.admission) ? body.admission : [];
+
+      // Normalize rows
+      const cleaned = rows.map((r, idx) => ({
+        sight_id: id,
+        idx: r.idx ?? idx,
+        subsection: r.subsection ?? null,
+        label: r.label ?? null,
+        min_age: r.min_age === "" ? null : r.min_age ?? null,
+        max_age: r.max_age === "" ? null : r.max_age ?? null,
+        is_free: !!r.is_free,
+        amount: r.amount === "" ? null : r.amount ?? null,
+        currency: r.currency ?? "JPY",
+        requires_id: !!r.requires_id,
+        valid_from: r.valid_from || null,
+        valid_to: r.valid_to || null,
+        note: r.note ?? null,
+      }));
+
+      // Replace existing rows
+      const { error: delErr } = await db
+        .from("sight_admission_prices")
+        .delete()
+        .eq("sight_id", id);
+      if (delErr)
+        return NextResponse.json({ error: delErr.message }, { status: 400 });
+
+      if (cleaned.length > 0) {
+        const { error: insErr } = await db
+          .from("sight_admission_prices")
+          .insert(cleaned);
+        if (insErr)
+          return NextResponse.json({ error: insErr.message }, { status: 400 });
+      }
+
+      // Return fresh rows
+      const { data: freshRows, error: fetchErr } = await db
+        .from("sight_admission_prices")
+        .select(
+          "id, idx, subsection, label, min_age, max_age, is_free, amount, currency, requires_id, valid_from, valid_to, note"
+        )
+        .eq("sight_id", id)
+        .order("idx", { ascending: true });
+      if (fetchErr)
+        return NextResponse.json({ error: fetchErr.message }, { status: 400 });
+
+      return NextResponse.json(
+        { ok: true, admission: freshRows || [] },
+        { status: 200 }
+      );
+    }
 
     const payload = {
       name: body.name,
@@ -95,12 +147,12 @@ export async function PUT(request, { params }) {
       price_amount: body.price_amount ?? null,
       price_currency: body.price_currency || null,
     };
-    const { error } = await client.from("sights").update(payload).eq("id", id);
+    const { error } = await db.from("sights").update(payload).eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
 
     // Replace hours and exceptions
-    await client.from("sight_opening_hours").delete().eq("sight_id", id);
+    await db.from("sight_opening_hours").delete().eq("sight_id", id);
     const hours = Array.isArray(body.opening_hours) ? body.opening_hours : [];
     if (hours.length > 0) {
       const rows = hours.map((h, idx) => ({
@@ -114,14 +166,12 @@ export async function PUT(request, { params }) {
         valid_from: h.valid_from || null,
         valid_to: h.valid_to || null,
       }));
-      const { error: hErr } = await client
-        .from("sight_opening_hours")
-        .insert(rows);
+      const { error: hErr } = await db.from("sight_opening_hours").insert(rows);
       if (hErr)
         return NextResponse.json({ error: hErr.message }, { status: 400 });
     }
 
-    await client.from("sight_opening_exceptions").delete().eq("sight_id", id);
+    await db.from("sight_opening_exceptions").delete().eq("sight_id", id);
     const exceptions = Array.isArray(body.opening_exceptions)
       ? body.opening_exceptions
       : [];
@@ -134,14 +184,14 @@ export async function PUT(request, { params }) {
         close_time: e.close_time || null,
         note: e.note || null,
       }));
-      const { error: eErr } = await client
+      const { error: eErr } = await db
         .from("sight_opening_exceptions")
         .insert(rows);
       if (eErr)
         return NextResponse.json({ error: eErr.message }, { status: 400 });
     }
 
-    return NextResponse.json({ id });
+    return NextResponse.json({ id }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -151,23 +201,18 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(_req, { params }) {
+  const { id } = await params;
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
   try {
-    const { id } = await params;
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-    let client;
-    if (url && serviceKey) {
-      client = createClient(url, serviceKey);
-    } else {
-      const cookieStore = cookies();
-      client = createClient({ cookies: cookieStore });
-    }
-    await client.from("sight_opening_hours").delete().eq("sight_id", id);
-    await client.from("sight_opening_exceptions").delete().eq("sight_id", id);
-    const { error } = await client.from("sights").delete().eq("id", id);
+    const db = await getDB();
+    await db.from("sight_opening_hours").delete().eq("sight_id", id);
+    await db.from("sight_opening_exceptions").delete().eq("sight_id", id);
+    const { error } = await db.from("sights").delete().eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ ok: true });
+    return new NextResponse(null, { status: 204 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },

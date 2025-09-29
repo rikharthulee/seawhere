@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
+
+export const runtime = "nodejs";
+export const revalidate = 0;
 
 export async function POST(request) {
   try {
@@ -17,12 +20,9 @@ export async function POST(request) {
       );
     }
 
-    // Require authenticated user (role-agnostic; RLS protects DB writes elsewhere)
-    const cookieStore = cookies();
-    const supabase = createClient({ cookies: cookieStore });
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const db = await getDB();
+    const { data: auth } = await db.auth.getUser();
+    const user = auth?.user || null;
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -40,7 +40,7 @@ export async function POST(request) {
       );
     }
 
-    const svc = createClient(url, serviceKey);
+    const svc = createServiceClient(url, serviceKey);
     const origName = file.name || "upload.bin";
     const ext = origName.includes(".") ? origName.split(".").pop() : "bin";
     const base = origName.replace(/\.[^.]+$/, "");
@@ -62,7 +62,10 @@ export async function POST(request) {
       return NextResponse.json({ error: error.message }, { status: 400 });
 
     const publicUrl = `${url}/storage/v1/object/public/${bucket}/${key}`;
-    return NextResponse.json({ ok: true, key, url: publicUrl });
+    return NextResponse.json(
+      { ok: true, key, url: publicUrl },
+      { status: 200 }
+    );
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getDB } from "@/lib/supabase/server";
 
 export default async function AdminLayout({ children }) {
-  const supabase = getDB();
+  const supabase = await getDB();
 
   const {
     data: { user },

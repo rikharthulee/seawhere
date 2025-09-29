@@ -1,5 +1,5 @@
 // lib/queries.js
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
 export async function getDestinations() {
   const supabase = createServerClient();

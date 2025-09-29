@@ -1,7 +1,7 @@
 import { getDB } from "@/lib/supabase/server";
 
 export async function getPublishedAccommodation() {
-  const db = getDB();
+  const db = await getDB();
   const { data, error } = await db
     .from("accommodation")
     .select("id, slug, name, summary, images, credit")
@@ -12,7 +12,7 @@ export async function getPublishedAccommodation() {
 }
 
 export async function getAccommodationBySlug(slug) {
-  const db = getDB();
+  const db = await getDB();
   const { data, error } = await db
     .from("accommodation")
     .select(

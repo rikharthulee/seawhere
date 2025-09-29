@@ -1,26 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { getDB } from "@/lib/supabase/server";
 
-function getSupabaseForRoute() {
-  const cookieStore = cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) throw new Error("Missing NEXT_PUBLIC_SUPABASE_* envs");
+export const runtime = "nodejs";
+export const revalidate = 0;
 
-  return createServerClient(url, anon, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        const resCookies = cookies();
-        cookiesToSet.forEach(({ name, value, options }) => {
-          resCookies.set(name, value, options);
-        });
-      },
-    },
-  });
+async function getSupabaseForRoute() {
+  // Use the shared server wrapper (handles await cookies() + cookie adapter)
+  return await getDB();
 }
 
 // Handle magic-link / OTP code exchange
@@ -29,7 +15,7 @@ export async function GET(request) {
   const code = url.searchParams.get("code");
 
   if (code) {
-    const supabase = getSupabaseForRoute();
+    const supabase = await getSupabaseForRoute();
     await supabase.auth.exchangeCodeForSession(code);
   }
 
@@ -39,7 +25,7 @@ export async function GET(request) {
 
 // Sync client auth events to server cookies (for SSR/admin checks)
 export async function POST(request) {
-  const supabase = getSupabaseForRoute();
+  const supabase = await getSupabaseForRoute();
   const { event, session } = await request.json().catch(() => ({}));
 
   try {

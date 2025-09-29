@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
-async function getClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-  if (url && serviceKey) return createClient(url, serviceKey);
-  const cookieStore = cookies();
-  return createClient({ cookies: cookieStore });
-}
+export const runtime = "nodejs";
+export const revalidate = 0;
 
 export async function GET(_req, { params }) {
   try {
-    const { id } = await params;
-    const client = await getClient();
-    const { data: exc, error } = await client
+    const id = params?.id;
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const db = await getDB();
+    const { data: exc, error } = await db
       .from("excursions")
       .select("*")
       .eq("id", id)
@@ -23,15 +18,15 @@ export async function GET(_req, { params }) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     if (!exc) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const { data: items } = await client
+    const { data: items } = await db
       .from("excursion_items")
       .select("id, item_type, ref_id, sort_order")
       .eq("excursion_id", id)
       .order("sort_order", { ascending: true });
 
-    const enriched = await enrichItems(client, items || []);
+    const enriched = await enrichItems(db, items || []);
 
-    return NextResponse.json({ ...exc, items: enriched });
+    return NextResponse.json({ ...exc, items: enriched }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -42,8 +37,9 @@ export async function GET(_req, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    const { id } = await params;
-    const client = await getClient();
+    const id = params?.id;
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const db = await getDB();
     const body = await request.json();
 
     const payload = {
@@ -53,14 +49,11 @@ export async function PUT(request, { params }) {
       description: body.description || null,
       transport: body.transport || null,
     };
-    const { error } = await client
-      .from("excursions")
-      .update(payload)
-      .eq("id", id);
+    const { error } = await db.from("excursions").update(payload).eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
 
-    await client.from("excursion_items").delete().eq("excursion_id", id);
+    await db.from("excursion_items").delete().eq("excursion_id", id);
     const rows = (Array.isArray(body.items) ? body.items : [])
       .filter((it) =>
         ["sight", "experience", "tour", "accommodation"].includes(it.item_type)
@@ -72,13 +65,11 @@ export async function PUT(request, { params }) {
         sort_order: Number(it.sort_order) || 0,
       }));
     if (rows.length > 0) {
-      const { error: itemsErr } = await client
-        .from("excursion_items")
-        .insert(rows);
+      const { error: itemsErr } = await db.from("excursion_items").insert(rows);
       if (itemsErr)
         return NextResponse.json({ error: itemsErr.message }, { status: 400 });
     }
-    return NextResponse.json({ id });
+    return NextResponse.json({ id }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -89,20 +80,21 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(_request, { params }) {
   try {
-    const { id } = await params;
-    const client = await getClient();
-    const { error: itemsErr } = await client
+    const id = params?.id;
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const db = await getDB();
+    const { error: itemsErr } = await db
       .from("excursion_items")
       .delete()
       .eq("excursion_id", id);
     if (itemsErr) {
       return NextResponse.json({ error: itemsErr.message }, { status: 400 });
     }
-    const { error } = await client.from("excursions").delete().eq("id", id);
+    const { error } = await db.from("excursions").delete().eq("id", id);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ id });
+    return new NextResponse(null, { status: 204 });
   } catch (e) {
     return NextResponse.json(
       { error: String(e?.message || e) },
@@ -118,7 +110,7 @@ const TABLE_BY_KIND = {
   accommodation: "accommodation",
 };
 
-async function enrichItems(client, items) {
+async function enrichItems(db, items) {
   if (!Array.isArray(items) || items.length === 0) return [];
 
   const grouped = items.reduce(
@@ -142,7 +134,7 @@ async function enrichItems(client, items) {
       if (idSet.size === 0) return;
       const table = TABLE_BY_KIND[kind];
       const ids = Array.from(idSet);
-      const { data } = await client
+      const { data } = await db
         .from(table)
         .select("id, name, destinations ( name )")
         .in("id", ids);

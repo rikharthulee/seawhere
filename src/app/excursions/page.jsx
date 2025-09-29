@@ -1,5 +1,5 @@
 import ExcursionsGallery from "@/components/ExcursionsGallery";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const revalidate = 300;

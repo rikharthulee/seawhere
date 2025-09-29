@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
 export async function POST(request) {
-  const supabase = await createServerClient();
+  const supabase = await getDB();
   await supabase.auth.signOut();
   const origin = new URL(request.url).origin;
   return NextResponse.redirect(new URL("/", origin));

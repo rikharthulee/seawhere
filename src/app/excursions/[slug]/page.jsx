@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { getRouteParams } from "@/lib/route-params";
 import { Badge } from "@/components/ui/badge";
