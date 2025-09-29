@@ -5,6 +5,8 @@
  * from "@supabase/ssr" should be imported directly.
  * All other server code must use `getDB()` from this file.
  */
+
+"use server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
