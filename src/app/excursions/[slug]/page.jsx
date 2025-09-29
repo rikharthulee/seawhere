@@ -106,7 +106,7 @@ function pickItemDisplay(entry) {
 }
 
 async function fetchExcursions(includeDrafts = false) {
-  const supabase = createServerClient();
+  const supabase = await getDB();
 
   let query = supabase
     .from("excursions")
@@ -126,7 +126,7 @@ async function fetchExcursions(includeDrafts = false) {
 }
 
 async function fetchExcursionItems(excursionId) {
-  const supabase = createServerClient();
+  const supabase = await getDB();
   // Be permissive with columns because schema may evolve
   const { data, error } = await supabase
     .from("excursion_items")
@@ -142,7 +142,7 @@ async function fetchExcursionItems(excursionId) {
 }
 
 async function hydrateItemsFromRefs(items) {
-  const supabase = createServerClient();
+  const supabase = await getDB();
   if (!Array.isArray(items) || items.length === 0) return [];
 
   // Group ref_ids by item_type

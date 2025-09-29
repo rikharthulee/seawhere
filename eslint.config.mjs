@@ -19,6 +19,7 @@ const eslintConfig = [
           paths: [
             {
               name: "@/lib/supabase/service",
+              importNames: ["createServerClient", "getServerSupabase"],
               message:
                 "❌ Service client is not allowed. Use getDB() from '@/lib/supabase/server' (server) or createClient() from '@/lib/supabase/client' (client).",
             },

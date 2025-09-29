@@ -1,3 +1,10 @@
+/**
+ * Centralised server-side Supabase client.
+ *
+ * ✅ This is the ONLY place in the codebase where `createServerClient`
+ * from "@supabase/ssr" should be imported directly.
+ * All other server code must use `getDB()` from this file.
+ */
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 

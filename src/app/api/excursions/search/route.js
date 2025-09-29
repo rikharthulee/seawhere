@@ -1,21 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { getDB } from "@/lib/supabase/server";
-
-async function getClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
-  if (url && serviceKey) return createClient(url, serviceKey);
-  const cookieStore = cookies();
-  return createClient({ cookies: cookieStore });
-}
 
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get("q") || "").trim();
     const limit = Number(searchParams.get("limit") || 8);
-    const db = await getClient();
+    const db = await getDB();
 
     const like = q ? `%${q}%` : null;
 

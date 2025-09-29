@@ -2,7 +2,7 @@
 import { getDB } from "@/lib/supabase/server";
 
 export async function getDestinations() {
-  const supabase = createServerClient();
+  const supabase = await getDB();
   return supabase
     .from("destinations")
     .select("id, slug, name, summary, images")
@@ -11,7 +11,7 @@ export async function getDestinations() {
 }
 
 export async function getDestination(slug) {
-  const supabase = createServerClient();
+  const supabase = await getDB();
   return supabase
     .from("destinations")
     .select(
@@ -23,7 +23,7 @@ export async function getDestination(slug) {
 }
 
 export async function getDestinationWithAreas(slug) {
-  const supabase = createServerClient();
+  const supabase = await getDB();
 
   const { data: destination, error: dErr } = await supabase
     .from("destinations")

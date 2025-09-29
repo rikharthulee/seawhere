@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/client";
+import { getDB } from "@/lib/supabase/server";
 
 // format helpers for exceptions (which keep full dates)
 export function fromISODate(d) {
@@ -17,10 +17,12 @@ export function toISODate(d) {
 }
 
 export async function loadOpeningTimes(sightId) {
-  const supabase = createClient();
+  const supabase = await getDB();
   const { data: hours, error: hErr } = await supabase
     .from("sight_opening_hours")
-    .select("id, start_month, start_day, end_month, end_day, open_time, close_time, last_entry_mins")
+    .select(
+      "id, start_month, start_day, end_month, end_day, open_time, close_time, last_entry_mins"
+    )
     .eq("sight_id", sightId)
     .order("start_month", { ascending: true })
     .order("start_day", { ascending: true });
@@ -68,15 +70,9 @@ export async function saveOpeningTimes(
   sightId,
   { hours, closures, officialUrl }
 ) {
-  const supabase = createClient();
+  const supabase = await getDB();
   const hourRows = (hours || [])
-    .filter((h) =>
-      h &&
-      h.startMonth &&
-      h.endMonth &&
-      h.openTime &&
-      h.closeTime
-    )
+    .filter((h) => h && h.startMonth && h.endMonth && h.openTime && h.closeTime)
     .map((h) => ({
       sight_id: sightId,
       start_month: Number(h.startMonth),

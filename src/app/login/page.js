@@ -10,7 +10,7 @@ export default async function LoginPage(props) {
   const { searchParams } = await getRouteParams(props);
   // Server-side: if already authed and authorized, redirect to target immediately.
   try {
-    const supabase = await createServerClient();
+    const supabase = await getDB();
     const {
       data: { user },
     } = await supabase.auth.getUser();

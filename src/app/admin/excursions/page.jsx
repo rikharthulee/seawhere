@@ -204,7 +204,7 @@ export default async function AdminExcursionsIndex() {
       }
     }
     if (rows.length === 0) {
-      const supabase = createServerClient();
+      const supabase = await getDB();
       const baseSelect = [
         "id",
         "name",
