@@ -1,3 +1,7 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import Sights from "@/components/Sights";
 import { getPublishedSights } from "@/lib/data/sights";
 
@@ -12,5 +16,3 @@ export default async function SightsPage() {
     </main>
   );
 }
-export const revalidate = 300;
-export const runtime = "nodejs";
