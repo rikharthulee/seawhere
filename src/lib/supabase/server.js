@@ -15,23 +15,48 @@ export async function getDB() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
+    const env = process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown";
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      `Missing Supabase env vars in ${env}. Required: NEXT_PUBLIC_SUPABASE_URL & NEXT_PUBLIC_SUPABASE_ANON_KEY`
     );
   }
 
+  // Soft validation: warn if URL host doesn't look like a Supabase project
+  try {
+    const host = new URL(url).hostname;
+    if (!host.endsWith(".supabase.co")) {
+      console.error(
+        "⚠️ Suspect NEXT_PUBLIC_SUPABASE_URL (host is not *.supabase.co)",
+        { url }
+      );
+    }
+  } catch (e) {
+    console.error("⚠️ Invalid NEXT_PUBLIC_SUPABASE_URL format", {
+      url,
+      error: e?.message,
+    });
+  }
+
+  // Next.js 15: cookies() is async; await the whole call (sync access is deprecated)
   const cookieStore = await cookies();
 
-  return createServerClient(url, anonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
+  try {
+    return createServerClient(url, anonKey, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
-      },
-    },
-  });
+    });
+  } catch (e) {
+    console.error("Failed to create Supabase server client", {
+      error: e?.message,
+    });
+    throw e;
+  }
 }
