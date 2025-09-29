@@ -179,7 +179,7 @@ export default async function AdminExcursionsIndex() {
   let rows = [];
 
   try {
-    const headerStore = headers();
+    const headerStore = await headers();
     const host =
       headerStore.get("x-forwarded-host") ||
       headerStore.get("host") ||

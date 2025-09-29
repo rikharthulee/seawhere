@@ -8,13 +8,11 @@ export const runtime = "nodejs";
 export const revalidate = 300;
 
 function slugify(input) {
-  return (
-    String(input || "")
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)+/g, "") || "excursion"
-  );
+  return (String(input || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "") || "excursion");
 }
 
 function extractSummary(row) {
@@ -250,8 +248,8 @@ export default async function ExcursionDetailPage(props) {
   } catch (_) {
     routeCtx = {};
   }
-  const params = routeCtx.params || props?.params || {};
-  const searchParams = routeCtx.searchParams || props?.searchParams || {};
+  const params = routeCtx.params || (await props?.params) || {};
+  const searchParams = routeCtx.searchParams || (await props?.searchParams) || {};
 
   const includeDrafts = String(searchParams?.preview) === "1";
   const slugParam = decodeURIComponent(params?.slug || "")

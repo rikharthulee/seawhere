@@ -7,8 +7,11 @@ export async function getPublishedDestinations() {
     .select("id, slug, name, summary, images, credit")
     .eq("status", "published")
     .order("name", { ascending: true });
-  if (error) return [];
-  return data || [];
+  if (error) {
+    console.error("getPublishedDestinations error", error);
+    return [];
+  }
+  return Array.isArray(data) ? JSON.parse(JSON.stringify(data)) : [];
 }
 
 export async function getDestinationBySlug(slug) {
@@ -21,8 +24,11 @@ export async function getDestinationBySlug(slug) {
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
-  if (error) return null;
-  return data;
+  if (error) {
+    console.error("getDestinationBySlug error", { slug, error });
+    return null;
+  }
+  return data ? JSON.parse(JSON.stringify(data)) : null;
 }
 
 export async function getDestinationBySlugLoose(slug) {
@@ -32,8 +38,11 @@ export async function getDestinationBySlugLoose(slug) {
     .select("id, slug, name, status")
     .eq("slug", String(slug || "").trim())
     .maybeSingle();
-  if (error) return null;
-  return data;
+  if (error) {
+    console.error("getDestinationBySlugLoose error", { slug, error });
+    return null;
+  }
+  return data ? JSON.parse(JSON.stringify(data)) : null;
 }
 
 export async function getDestinationById(id) {
@@ -44,6 +53,9 @@ export async function getDestinationById(id) {
     .select("id, name, slug, status")
     .eq("id", id)
     .maybeSingle();
-  if (error) return null;
-  return data;
+  if (error) {
+    console.error("getDestinationById error", { id, error });
+    return null;
+  }
+  return data ? JSON.parse(JSON.stringify(data)) : null;
 }
