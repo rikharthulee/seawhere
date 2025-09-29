@@ -4,9 +4,9 @@ import { getDB } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const revalidate = 0;
 
-export async function PUT(req, { params }) {
+export async function PUT(req, ctx) {
   try {
-    const id = params?.id;
+    const { id } = (await ctx.params) || {};
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
     const body = await req.json();
@@ -32,9 +32,9 @@ export async function PUT(req, { params }) {
   }
 }
 
-export async function DELETE(_req, { params }) {
+export async function DELETE(_req, ctx) {
   try {
-    const id = params?.id;
+    const { id } = (await ctx.params) || {};
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
     const db = await getDB();

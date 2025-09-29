@@ -4,13 +4,16 @@ import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
-import { getExperienceBySlugs, getExperienceAvailabilityRules, getExperienceExceptions } from "@/lib/data/experiences";
+import {
+  getExperienceBySlugs,
+  getExperienceAvailabilityRules,
+  getExperienceExceptions,
+} from "@/lib/data/experiences";
 import { fmtJPY } from "@/lib/format";
 import GygWidget from "@/components/GygWidget";
-import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -23,7 +26,7 @@ function fmtDays(days) {
 }
 
 export default async function ExperienceDetailBySlugPage(props) {
-  const { params } = await getRouteParams(props);
+  const { params } = await props?.params;
   const { slug, experience } = params || {};
   const result = await getExperienceBySlugs(slug, experience).catch(() => null);
   if (!result?.experience || !result?.destination) notFound();
@@ -41,8 +44,10 @@ export default async function ExperienceDetailBySlugPage(props) {
   if (p.images) {
     if (Array.isArray(p.images) && p.images.length > 0) {
       const first = p.images[0];
-      imgPath = (first && (first.url || first.src)) || (typeof first === 'string' ? first : null);
-    } else if (typeof p.images === 'string') {
+      imgPath =
+        (first && (first.url || first.src)) ||
+        (typeof first === "string" ? first : null);
+    } else if (typeof p.images === "string") {
       imgPath = p.images;
     }
   }
@@ -52,8 +57,12 @@ export default async function ExperienceDetailBySlugPage(props) {
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">{p.name}</h1>
-          <Link href={`/experiences/${dest.slug}`} className="underline ml-4">Back</Link>
+          <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
+            {p.name}
+          </h1>
+          <Link href={`/experiences/${dest.slug}`} className="underline ml-4">
+            Back
+          </Link>
         </div>
         <div className="border-b-2 border-border mt-3" />
       </div>
@@ -75,48 +84,79 @@ export default async function ExperienceDetailBySlugPage(props) {
           <Card className="mb-4">
             <CardContent className="p-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
-                {dest ? (
-                  <span>
-                    <span className="font-medium text-foreground">Destination:</span>{" "}
-                    <Link href={`/destinations/${dest.slug}`} className="underline">{dest.name}</Link>
-                  </span>
+                <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
+                  {dest ? (
+                    <span>
+                      <span className="font-medium text-foreground">
+                        Destination:
+                      </span>{" "}
+                      <Link
+                        href={`/destinations/${dest.slug}`}
+                        className="underline"
+                      >
+                        {dest.name}
+                      </Link>
+                    </span>
+                  ) : null}
+                  {fmtJPY(p.price_amount) ? (
+                    <span>
+                      <span className="font-medium text-foreground">
+                        Price:
+                      </span>{" "}
+                      {fmtJPY(p.price_amount)}
+                    </span>
+                  ) : null}
+                  {p.duration_minutes ? (
+                    <span>
+                      <span className="font-medium text-foreground">
+                        Duration:
+                      </span>{" "}
+                      {p.duration_minutes} min
+                    </span>
+                  ) : null}
+                  {p.provider ? (
+                    <span>
+                      <span className="font-medium text-foreground">
+                        Provider:
+                      </span>{" "}
+                      {p.provider}
+                    </span>
+                  ) : null}
+                </div>
+                {p.deeplink ? (
+                  <a
+                    href={p.deeplink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 hover:opacity-90"
+                  >
+                    Book Now
+                  </a>
                 ) : null}
-                {fmtJPY(p.price_amount) ? (
-                  <span><span className="font-medium text-foreground">Price:</span> {fmtJPY(p.price_amount)}</span>
-                ) : null}
-                {p.duration_minutes ? (
-                  <span><span className="font-medium text-foreground">Duration:</span> {p.duration_minutes} min</span>
-                ) : null}
-                {p.provider ? (
-                  <span><span className="font-medium text-foreground">Provider:</span> {p.provider}</span>
-                ) : null}
-              </div>
-              {p.deeplink ? (
-                <a
-                  href={p.deeplink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 hover:opacity-90"
-                >
-                  Book Now
-                </a>
-              ) : null}
               </div>
             </CardContent>
           </Card>
 
-          {p.summary ? <p className="text-lg leading-relaxed mb-3">{p.summary}</p> : null}
-          {p.body_richtext ? <RichTextReadOnly value={p.body_richtext} /> : null}
+          {p.summary ? (
+            <p className="text-lg leading-relaxed mb-3">{p.summary}</p>
+          ) : null}
+          {p.body_richtext ? (
+            <RichTextReadOnly value={p.body_richtext} />
+          ) : null}
           {Array.isArray(p.tags) && p.tags.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {p.tags.map((t, i) => (
-                <span key={i} className="inline-block rounded-full bg-accent text-accent-foreground px-2 py-0.5 text-xs">{t}</span>
+                <span
+                  key={i}
+                  className="inline-block rounded-full bg-accent text-accent-foreground px-2 py-0.5 text-xs"
+                >
+                  {t}
+                </span>
               ))}
             </div>
           ) : null}
         </div>
-  </section>
+      </section>
 
       <section className="mt-8">
         <h2 className="text-xl font-semibold mb-2">Book this experience</h2>
@@ -132,14 +172,20 @@ export default async function ExperienceDetailBySlugPage(props) {
                 return (
                   <li key={i} className="px-3 py-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">{fmtDays(r.days_of_week)}</span>
-                      <span className="text-muted-foreground">{Array.isArray(r.start_times) ? r.start_times.join(', ') : ''}</span>
+                      <span className="font-medium">
+                        {fmtDays(r.days_of_week)}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {Array.isArray(r.start_times)
+                          ? r.start_times.join(", ")
+                          : ""}
+                      </span>
                     </div>
-                    {(r.valid_from || r.valid_to) ? (
+                    {r.valid_from || r.valid_to ? (
                       <div className="text-xs text-muted-foreground mt-1">
-                        {r.valid_from ? `From ${r.valid_from}` : ''}
-                        {r.valid_from && r.valid_to ? ' • ' : ''}
-                        {r.valid_to ? `Until ${r.valid_to}` : ''}
+                        {r.valid_from ? `From ${r.valid_from}` : ""}
+                        {r.valid_from && r.valid_to ? " • " : ""}
+                        {r.valid_to ? `Until ${r.valid_to}` : ""}
                       </div>
                     ) : null}
                   </li>
@@ -158,9 +204,16 @@ export default async function ExperienceDetailBySlugPage(props) {
                 <li key={i} className="px-3 py-2">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{e.date}</span>
-                    <span className="text-muted-foreground">{e.action}{e.start_time ? ` @ ${e.start_time}` : ''}</span>
+                    <span className="text-muted-foreground">
+                      {e.action}
+                      {e.start_time ? ` @ ${e.start_time}` : ""}
+                    </span>
                   </div>
-                  {e.note ? <div className="text-xs text-muted-foreground mt-1">{e.note}</div> : null}
+                  {e.note ? (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {e.note}
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>

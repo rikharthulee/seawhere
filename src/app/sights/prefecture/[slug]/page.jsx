@@ -3,20 +3,24 @@ import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
-import { getPrefectureBySlug, getDestinationsByPrefecture } from "@/lib/data/geo";
+import {
+  getPrefectureBySlug,
+  getDestinationsByPrefecture,
+} from "@/lib/data/geo";
 import { getSightsByDestinationIds } from "@/lib/data/sights";
-import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
 export default async function SightsByPrefecturePage(props) {
-  const { params } = await getRouteParams(props);
+  const { params } = await props?.params;
   const { slug } = params || {};
   const pref = await getPrefectureBySlug(slug, undefined).catch(() => null);
   if (!pref?.id) notFound();
 
-  const destinations = await getDestinationsByPrefecture(pref.id).catch(() => []);
+  const destinations = await getDestinationsByPrefecture(pref.id).catch(
+    () => []
+  );
   const destIds = (destinations || []).map((d) => d.id).filter(Boolean);
   const pois = await getSightsByDestinationIds(destIds).catch(() => []);
 
@@ -40,34 +44,51 @@ export default async function SightsByPrefecturePage(props) {
             const img = resolveImageUrl(firstImageFromImages(p?.images));
             const destSlug = p?.destinations?.slug || null;
             const canLink = !!(destSlug && p.slug);
-            const Tag = canLink ? Link : 'div';
-            const linkProps = canLink ? { href: `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
+            const Tag = canLink ? Link : "div";
+            const linkProps = canLink
+              ? {
+                  href: `/sights/${encodeURIComponent(
+                    destSlug
+                  )}/${encodeURIComponent(p.slug)}`,
+                }
+              : {};
             return (
-              <Card asChild className="overflow-hidden transition-shadow hover:shadow-md">
-                <Tag key={p.id} {...linkProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">
-                <div className="aspect-[4/3] relative bg-muted">
-                  {img ? (
-                    <SafeImage
-                      src={img}
-                      alt={p.title || p.name}
-                      fill
-                      sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-cover"
-                    />
-                  ) : null}
-                </div>
-                <CardContent className="p-4">
-                  <div className="font-medium">{p.title || p.name}</div>
-                  {p.summary ? (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{p.summary}</p>
-                  ) : null}
-                </CardContent>
+              <Card
+                asChild
+                className="overflow-hidden transition-shadow hover:shadow-md"
+              >
+                <Tag
+                  key={p.id}
+                  {...linkProps}
+                  className="block focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <div className="aspect-[4/3] relative bg-muted">
+                    {img ? (
+                      <SafeImage
+                        src={img}
+                        alt={p.title || p.name}
+                        fill
+                        sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <CardContent className="p-4">
+                    <div className="font-medium">{p.title || p.name}</div>
+                    {p.summary ? (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                        {p.summary}
+                      </p>
+                    ) : null}
+                  </CardContent>
                 </Tag>
               </Card>
             );
           })
         ) : (
-          <div className="col-span-full text-muted-foreground">No sights found for this prefecture.</div>
+          <div className="col-span-full text-muted-foreground">
+            No sights found for this prefecture.
+          </div>
         )}
       </section>
     </main>

@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
-import { getRegionBySlug, getPrefectureBySlug, getDivisionsByPrefecture, getDestinationsByPrefecture } from "@/lib/data/geo";
+import {
+  getRegionBySlug,
+  getPrefectureBySlug,
+  getDivisionsByPrefecture,
+  getDestinationsByPrefecture,
+} from "@/lib/data/geo";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
-import { getRouteParams } from "@/lib/route-params";
 
 export default async function PrefecturePage(props) {
-  const { params } = await getRouteParams(props);
+  const { params } = await props?.params;
   const { region, prefecture } = params || {};
 
   const reg = await getRegionBySlug(region).catch(() => null);
@@ -16,7 +20,9 @@ export default async function PrefecturePage(props) {
   if (!pref) notFound();
 
   const divisions = await getDivisionsByPrefecture(pref.id).catch(() => []);
-  const allPrefDests = await getDestinationsByPrefecture(pref.id).catch(() => []);
+  const allPrefDests = await getDestinationsByPrefecture(pref.id).catch(
+    () => []
+  );
   const unassignedDests = Array.isArray(allPrefDests)
     ? allPrefDests.filter((d) => !d.division_id)
     : [];
@@ -24,7 +30,9 @@ export default async function PrefecturePage(props) {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <nav className="text-sm text-muted-foreground mb-4">
-        <Link href="/regions" className="underline">Regions</Link>
+        <Link href="/regions" className="underline">
+          Regions
+        </Link>
         <span> / </span>
         <span>{reg.name}</span>
         <span> / </span>
@@ -33,7 +41,9 @@ export default async function PrefecturePage(props) {
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl md:text-4xl font-medium">{pref.name}</h1>
-        <Link href={`/sights/prefecture/${pref.slug}`} className="underline">Sights in {pref.name}</Link>
+        <Link href={`/sights/prefecture/${pref.slug}`} className="underline">
+          Sights in {pref.name}
+        </Link>
       </div>
 
       {divisions.length > 0 ? (
@@ -42,25 +52,37 @@ export default async function PrefecturePage(props) {
             {divisions.map((d) => (
               <Card key={d.id}>
                 <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">{d.name}</h2>
-                  <Link href={`/${reg.slug}/${pref.slug}/${d.slug}`} className="underline">
-                    View all
-                  </Link>
-                </div>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">{d.name}</h2>
+                    <Link
+                      href={`/${reg.slug}/${pref.slug}/${d.slug}`}
+                      className="underline"
+                    >
+                      View all
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </section>
           {unassignedDests.length > 0 ? (
             <section className="mt-8">
-              <h2 className="text-xl font-semibold mb-3">Other destinations in {pref.name}</h2>
+              <h2 className="text-xl font-semibold mb-3">
+                Other destinations in {pref.name}
+              </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {unassignedDests.map((dst) => {
                   const img = resolveImageUrl(firstImageFromImages(dst.images));
                   return (
-                    <Card key={dst.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
-                      <Link href={`/destinations/${dst.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+                    <Card
+                      key={dst.id}
+                      asChild
+                      className="overflow-hidden transition-shadow hover:shadow-md"
+                    >
+                      <Link
+                        href={`/destinations/${dst.slug}`}
+                        className="block focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
                         <div className="aspect-[4/3] relative bg-black/5">
                           {img ? (
                             <SafeImage
@@ -88,8 +110,15 @@ export default async function PrefecturePage(props) {
           {unassignedDests.map((dst) => {
             const img = resolveImageUrl(firstImageFromImages(dst.images));
             return (
-              <Card key={dst.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
-                <Link href={`/destinations/${dst.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+              <Card
+                key={dst.id}
+                asChild
+                className="overflow-hidden transition-shadow hover:shadow-md"
+              >
+                <Link
+                  href={`/destinations/${dst.slug}`}
+                  className="block focus:outline-none focus:ring-2 focus:ring-ring"
+                >
                   <div className="aspect-[4/3] relative bg-black/5">
                     {img ? (
                       <SafeImage
@@ -108,11 +137,11 @@ export default async function PrefecturePage(props) {
               </Card>
             );
           })}
-      </section>
+        </section>
       )}
     </main>
   );
 }
 
 export const revalidate = 300;
-export const runtime = 'nodejs';
+export const runtime = "nodejs";

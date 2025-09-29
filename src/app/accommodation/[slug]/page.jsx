@@ -10,13 +10,12 @@ import {
   resolveImageUrl,
 } from "@/lib/imageUrl";
 import { getAccommodationBySlug } from "@/lib/data/accommodation";
-import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 900;
 export const runtime = "nodejs";
 
 export default async function AccommodationDetailPage(props) {
-  const { params } = await getRouteParams(props);
+  const { params } = await props?.params;
   const slug = params?.slug;
   if (!slug) notFound();
 

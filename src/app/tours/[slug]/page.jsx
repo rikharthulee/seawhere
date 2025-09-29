@@ -5,13 +5,12 @@ import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
-import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
 export default async function ToursByDestinationPage(props) {
-  const { params, searchParams } = await getRouteParams(props);
+  const { params, searchParams } = await props?.params;
   const { slug } = params || {};
   const divisionSlug =
     searchParams && typeof searchParams === "object"
@@ -19,7 +18,9 @@ export default async function ToursByDestinationPage(props) {
       : null;
   let dst = await getDestinationBySlugLoose(slug).catch(() => null);
   if (!dst) notFound();
-  const tours = await getToursForDestination(dst.id, divisionSlug).catch(() => []);
+  const tours = await getToursForDestination(dst.id, divisionSlug).catch(
+    () => []
+  );
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -44,44 +45,58 @@ export default async function ToursByDestinationPage(props) {
                 const first = p.images[0];
                 imgPath =
                   (first && (first.url || first.src)) ||
-                  (typeof first === 'string' ? first : null);
-              } else if (typeof p.images === 'string') {
+                  (typeof first === "string" ? first : null);
+              } else if (typeof p.images === "string") {
                 imgPath = p.images;
               }
             }
             const img = resolveImageUrl(imgPath);
             const canLink = !!p.slug;
-            const CardTag = canLink ? Link : 'div';
-            const cardProps = canLink ? { href: `/tours/${encodeURIComponent(dst.slug)}/${encodeURIComponent(p.slug)}` } : {};
+            const CardTag = canLink ? Link : "div";
+            const cardProps = canLink
+              ? {
+                  href: `/tours/${encodeURIComponent(
+                    dst.slug
+                  )}/${encodeURIComponent(p.slug)}`,
+                }
+              : {};
             return (
-              <Card key={p.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
+              <Card
+                key={p.id}
+                asChild
+                className="overflow-hidden transition-shadow hover:shadow-md"
+              >
                 <CardTag
                   {...cardProps}
                   className="block focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                <div className="aspect-[4/3] relative bg-muted">
-                  {img ? (
-                    <SafeImage
-                      src={img}
-                      alt={p.title || p.name}
-                      fill
-                      sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-cover"
-                    />
-                  ) : null}
-                </div>
-                <CardContent className="p-4">
-                  <div className="font-medium">{p.title || p.name}</div>
-                  {p.summary ? (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{p.summary}</p>
-                  ) : null}
-                </CardContent>
+                  <div className="aspect-[4/3] relative bg-muted">
+                    {img ? (
+                      <SafeImage
+                        src={img}
+                        alt={p.title || p.name}
+                        fill
+                        sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <CardContent className="p-4">
+                    <div className="font-medium">{p.title || p.name}</div>
+                    {p.summary ? (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                        {p.summary}
+                      </p>
+                    ) : null}
+                  </CardContent>
                 </CardTag>
               </Card>
             );
           })
         ) : (
-          <div className="col-span-full text-muted-foreground">No tours yet for this destination.</div>
+          <div className="col-span-full text-muted-foreground">
+            No tours yet for this destination.
+          </div>
         )}
       </section>
     </main>

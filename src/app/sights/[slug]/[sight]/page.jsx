@@ -12,7 +12,6 @@ import {
 } from "@/lib/data/sights";
 import { fetchAdmissionPrices } from "@/lib/data/admission";
 import { fmtTime, fmtJPY } from "@/lib/format";
-import { getRouteParams } from "@/lib/route-params";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -116,7 +115,7 @@ function formatAgeRange(row) {
 }
 
 export default async function SightDetailBySlugPage(props) {
-  const { params } = await getRouteParams(props);
+  const { params } = await props?.params;
   const { slug, sight } = params || {};
   const result = await getSightBySlugs(slug, sight).catch(() => null);
   if (!result?.sight || !result?.destination) notFound();
@@ -414,8 +413,13 @@ export default async function SightDetailBySlugPage(props) {
             <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
               {dest ? (
                 <span>
-                  <span className="font-medium text-foreground">Destination:</span>{" "}
-                  <Link href={`/destinations/${dest.slug}`} className="underline">
+                  <span className="font-medium text-foreground">
+                    Destination:
+                  </span>{" "}
+                  <Link
+                    href={`/destinations/${dest.slug}`}
+                    className="underline"
+                  >
                     {dest.name}
                   </Link>
                 </span>

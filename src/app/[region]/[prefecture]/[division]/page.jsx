@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
-import { getRegionBySlug, getPrefectureBySlug, getDivisionBySlugLoose, getDestinationsByDivision } from "@/lib/data/geo";
+import {
+  getRegionBySlug,
+  getPrefectureBySlug,
+  getDivisionBySlugLoose,
+  getDestinationsByDivision,
+} from "@/lib/data/geo";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
-import { getRouteParams } from "@/lib/route-params";
 
 export default async function DivisionPage(props) {
-  const { params } = await getRouteParams(props);
+  const { params } = await props?.params;
   const { region, prefecture, division } = params || {};
 
   const reg = await getRegionBySlug(region).catch(() => null);
@@ -22,24 +26,39 @@ export default async function DivisionPage(props) {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <nav className="text-sm text-black/60 mb-4">
-        <Link href="/regions" className="underline">Regions</Link>
+        <Link href="/regions" className="underline">
+          Regions
+        </Link>
         <span> / </span>
-        <Link href={`/${reg.slug}/${pref.slug}`} className="underline">{reg.name}</Link>
+        <Link href={`/${reg.slug}/${pref.slug}`} className="underline">
+          {reg.name}
+        </Link>
         <span> / </span>
-        <span className="text-black">{pref.name} — {div.name}</span>
+        <span className="text-black">
+          {pref.name} — {div.name}
+        </span>
       </nav>
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl md:text-4xl font-medium">{div.name}</h1>
-        <Link href={`/sights/division/${div.slug}`} className="underline">Sights in {div.name}</Link>
+        <Link href={`/sights/division/${div.slug}`} className="underline">
+          Sights in {div.name}
+        </Link>
       </div>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {destinations.map((dst) => {
           const img = resolveImageUrl(firstImageFromImages(dst.images));
           return (
-            <Card key={dst.id} asChild className="overflow-hidden transition-shadow hover:shadow-md">
-              <Link href={`/destinations/${dst.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+            <Card
+              key={dst.id}
+              asChild
+              className="overflow-hidden transition-shadow hover:shadow-md"
+            >
+              <Link
+                href={`/destinations/${dst.slug}`}
+                className="block focus:outline-none focus:ring-2 focus:ring-ring"
+              >
                 <div className="aspect-[4/3] relative bg-black/5">
                   {img ? (
                     <SafeImage
@@ -64,4 +83,4 @@ export default async function DivisionPage(props) {
 }
 
 export const revalidate = 300;
-export const runtime = 'nodejs';
+export const runtime = "nodejs";

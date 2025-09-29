@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
 import { getDB } from "@/lib/supabase/server";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import { getRouteParams } from "@/lib/route-params";
 import { Badge } from "@/components/ui/badge";
 
 export const runtime = "nodejs";
@@ -247,7 +246,7 @@ async function hydrateItemsFromRefs(items) {
 export default async function ExcursionDetailPage(props) {
   let routeCtx = {};
   try {
-    routeCtx = (await getRouteParams(props)) || {};
+    routeCtx = (await props?.params) || {};
   } catch (_) {
     routeCtx = {};
   }
