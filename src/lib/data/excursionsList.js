@@ -1,7 +1,7 @@
 import { getDB } from "@/lib/supabase/server";
 
 export async function getExcursionsList(limit = 200) {
-  const client = getDB();
+  const client = await getDB();
 
   const { data, error } = await client
     .from("excursions")

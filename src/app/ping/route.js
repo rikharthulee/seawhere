@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSupabase } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
 export async function GET() {
-  const supabase = await getServerSupabase();
+  const db = await getDB();
   const {
     data: { user },
     error: userErr,

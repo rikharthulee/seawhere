@@ -1,8 +1,8 @@
-import { createServerClient } from "@/lib/supabase/server";
+import { getDB } from "@/lib/supabase/server";
 
 export default async function handler(_req, res) {
   try {
-    const supa = createServerClient();
+    const db = await getDB();
 
     // 1) Are we hitting the right project?
     const which = process.env.NEXT_PUBLIC_SUPABASE_URL;

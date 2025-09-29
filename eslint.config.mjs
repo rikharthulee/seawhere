@@ -20,7 +20,7 @@ const eslintConfig = [
             {
               name: "@/lib/supabase/service",
               message:
-                "❌ Service client is not allowed. Use '@/lib/supabase/server' (server) or '@/lib/supabase/client' (client).",
+                "❌ Service client is not allowed. Use getDB() from '@/lib/supabase/server' (server) or createClient() from '@/lib/supabase/client' (client).",
             },
           ],
         },
