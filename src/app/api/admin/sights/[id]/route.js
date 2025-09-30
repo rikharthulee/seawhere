@@ -25,16 +25,17 @@ export async function GET(_req, ctx) {
     const { data: hours } = await db
       .from("sight_opening_hours")
       .select(
-        "weekday, idx, open_time, close_time, is_closed, valid_from, valid_to"
+        "id, start_month, start_day, end_month, end_day, open_time, close_time, last_entry_mins"
       )
       .eq("sight_id", id)
-      .order("weekday", { ascending: true })
-      .order("idx", { ascending: true });
+      .order("start_month", { ascending: true })
+      .order("start_day", { ascending: true });
+
     const { data: exceptions } = await db
       .from("sight_opening_exceptions")
-      .select("date, is_closed, open_time, close_time, note")
+      .select("id, type, start_date, end_date, weekday, note")
       .eq("sight_id", id)
-      .order("date", { ascending: true });
+      .order("start_date", { ascending: true });
 
     const { data: admissionRows, error: aErr } = await db
       .from("sight_admission_prices")
@@ -127,6 +128,69 @@ export async function PUT(request, ctx) {
       );
     }
 
+    // Opening times save action (from OpeningTimesEditor)
+    if (body?._action === "saveOpeningTimes") {
+      const ot = body.openingTimes || {};
+      const hours = Array.isArray(ot.hours) ? ot.hours : [];
+      const closures = Array.isArray(ot.closures) ? ot.closures : [];
+      const officialUrl = ot.officialUrl || null;
+
+      // Replace seasons/hours
+      await db.from("sight_opening_hours").delete().eq("sight_id", id);
+      if (hours.length > 0) {
+        const rows = hours.map((h) => ({
+          sight_id: id,
+          start_month: h.startMonth ?? null,
+          start_day: h.startDay ?? null,
+          end_month: h.endMonth ?? null,
+          end_day: h.endDay ?? null,
+          open_time: h.openTime || null,
+          close_time: h.closeTime || null,
+          last_entry_mins:
+            typeof h.lastEntryMins === "number" ? h.lastEntryMins : null,
+        }));
+        const { error: hErr } = await db
+          .from("sight_opening_hours")
+          .insert(rows);
+        if (hErr)
+          return NextResponse.json({ error: hErr.message }, { status: 400 });
+      }
+
+      // Replace closures/exceptions
+      await db.from("sight_opening_exceptions").delete().eq("sight_id", id);
+      if (closures.length > 0) {
+        const rows = closures.map((c) => ({
+          sight_id: id,
+          type: c.type || "fixed",
+          start_date: c.startDate || null,
+          end_date: c.endDate || null,
+          weekday: typeof c.weekday === "number" ? c.weekday : null,
+          note: c.notes || null,
+        }));
+        const { error: eErr } = await db
+          .from("sight_opening_exceptions")
+          .insert(rows);
+        if (eErr)
+          return NextResponse.json({ error: eErr.message }, { status: 400 });
+      }
+
+      // Save officialUrl into sights table
+      if (officialUrl !== undefined) {
+        const { error: urlErr } = await db
+          .from("sights")
+          .update({ opening_times_url: officialUrl })
+          .eq("id", id);
+        if (urlErr)
+          return NextResponse.json({ error: urlErr.message }, { status: 400 });
+      }
+
+      // Return fresh openingTimes
+      return NextResponse.json(
+        { ok: true, openingTimes: { hours, closures, officialUrl } },
+        { status: 200 }
+      );
+    }
+
     const payload = {
       name: body.name,
       slug: body.slug,
@@ -150,46 +214,6 @@ export async function PUT(request, ctx) {
     const { error } = await db.from("sights").update(payload).eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
-
-    // Replace hours and exceptions
-    await db.from("sight_opening_hours").delete().eq("sight_id", id);
-    const hours = Array.isArray(body.opening_hours) ? body.opening_hours : [];
-    if (hours.length > 0) {
-      const rows = hours.map((h, idx) => ({
-        sight_id: id,
-        weekday:
-          typeof h.weekday === "number" ? h.weekday : Number(h.weekday) || 0,
-        idx: h.idx ?? idx,
-        open_time: h.open_time || null,
-        close_time: h.close_time || null,
-        is_closed: !!h.is_closed,
-        valid_from: h.valid_from || null,
-        valid_to: h.valid_to || null,
-      }));
-      const { error: hErr } = await db.from("sight_opening_hours").insert(rows);
-      if (hErr)
-        return NextResponse.json({ error: hErr.message }, { status: 400 });
-    }
-
-    await db.from("sight_opening_exceptions").delete().eq("sight_id", id);
-    const exceptions = Array.isArray(body.opening_exceptions)
-      ? body.opening_exceptions
-      : [];
-    if (exceptions.length > 0) {
-      const rows = exceptions.map((e) => ({
-        sight_id: id,
-        date: e.date,
-        is_closed: e.is_closed === undefined ? true : !!e.is_closed,
-        open_time: e.open_time || null,
-        close_time: e.close_time || null,
-        note: e.note || null,
-      }));
-      const { error: eErr } = await db
-        .from("sight_opening_exceptions")
-        .insert(rows);
-      if (eErr)
-        return NextResponse.json({ error: eErr.message }, { status: 400 });
-    }
 
     return NextResponse.json({ id }, { status: 200 });
   } catch (e) {

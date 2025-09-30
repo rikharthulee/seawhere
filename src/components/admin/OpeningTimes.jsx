@@ -33,7 +33,7 @@ import {
   loadOpeningTimes,
   saveOpeningTimes,
   toISODate,
-} from "@/lib/openingTimesApi";
+} from "@/lib/data/openingTimesApi";
 
 const MONTH_OPTIONS = [
   "January",
@@ -210,7 +210,8 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
     setClosures(closures.filter((_, idx) => idx !== i));
 
   async function persistOpeningTimes(targetId = sightId) {
-    if (!targetId) throw new Error("Save the sight before saving opening times");
+    if (!targetId)
+      throw new Error("Save the sight before saving opening times");
     setSaving(true);
     setLoading(true);
     setError("");

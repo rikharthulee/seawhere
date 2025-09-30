@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import MultiImageUpload from "./MultiImageUpload";
@@ -73,6 +73,23 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
   const [formError, setFormError] = useState("");
   const openingTimesRef = useRef(null);
   const admissionRef = useRef(null);
+
+  // Ensure anything we pass to client children is plain JSON (no Date/Map/URL/classes)
+  const toPlain = useCallback((x) => {
+    try {
+      return JSON.parse(JSON.stringify(x));
+    } catch {
+      return x;
+    }
+  }, []);
+
+  const sightId = id || initial?.id || null;
+
+  const admissionRowsPlain = useMemo(() => {
+    const rows = Array.isArray(initial?.admission) ? initial.admission : [];
+    return toPlain(rows);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial?.admission]);
 
   function slugify(s) {
     return (s || "")
@@ -573,11 +590,11 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
                 Configure ticket categories, pricing, and validity windows.
               </p>
             </div>
-            {id || initial?.id ? (
+            {sightId ? (
               <AdmissionEditor
                 ref={admissionRef}
-                sightId={id || initial?.id}
-                initialRows={initial?.admission || []}
+                sightId={sightId}
+                initialRows={admissionRowsPlain}
               />
             ) : (
               <div className="rounded border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
@@ -587,10 +604,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
           </CardContent>
         </Card>
 
-        <OpeningTimes
-          ref={openingTimesRef}
-          sightId={id || initial?.id || null}
-        />
+        <OpeningTimes ref={openingTimesRef} sightId={sightId} />
         <div className="flex items-center gap-3">
           <Button
             onClick={save}

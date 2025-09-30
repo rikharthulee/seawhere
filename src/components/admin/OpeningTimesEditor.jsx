@@ -1,6 +1,13 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useCallback,
+  useState,
+} from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 
@@ -23,7 +30,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { loadOpeningTimes, saveOpeningTimes } from "@/lib/openingTimesApi";
 
 const MONTH_OPTIONS = [
   "January",
@@ -39,6 +45,48 @@ const MONTH_OPTIONS = [
   "November",
   "December",
 ].map((label, idx) => ({ label, value: idx + 1 }));
+
+// Mirror AdmissionEditor: save via admin endpoint with an _action
+async function saveOpeningTimesHttp(sightId, payload) {
+  const res = await fetch(`/api/admin/sights/${sightId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      _action: "saveOpeningTimes",
+      openingTimes: payload,
+    }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+  // Expect server to return a normalized shape similar to { hours, closures, officialUrl }
+  return json?.openingTimes || json || {};
+}
+
+async function fetchOpeningTimesClient(sightId) {
+  const res = await fetch(`/api/admin/sights/${sightId}`, {
+    cache: "no-store",
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+  const hours = (json.hours || []).map((h) => ({
+    startMonth: typeof h.start_month === "number" ? h.start_month : null,
+    startDay: typeof h.start_day === "number" ? h.start_day : null,
+    endMonth: typeof h.end_month === "number" ? h.end_month : null,
+    endDay: typeof h.end_day === "number" ? h.end_day : null,
+    openTime: h.open_time || "",
+    closeTime: h.close_time || "",
+    lastEntryMins: h.last_entry_mins ?? 0,
+  }));
+  const closures = (json.exceptions || []).map((c) => ({
+    type: c.type || "fixed",
+    startDate: c.start_date || null, // strings (YYYY-MM-DD)
+    endDate: c.end_date || null,
+    weekday: typeof c.weekday === "number" ? c.weekday : undefined,
+    notes: c.note || "",
+  }));
+  const officialUrl = json?.sight?.opening_times_url || "";
+  return { hours, closures, officialUrl };
+}
 
 function isValidMonthDay(month, day) {
   if (!month) return false;
@@ -93,6 +141,27 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
   const [message, setMessage] = useState("");
   const [officialUrl, setOfficialUrl] = useState("");
 
+  const seasonHasError = (h) => {
+    if (!h.startMonth) return "Start month required";
+    if (!isValidMonthDay(h.startMonth, h.startDay)) return "Start day invalid";
+    if (!h.endMonth) return "End month required";
+    if (!isValidMonthDay(h.endMonth, h.endDay)) return "End day invalid";
+    if ((h.openTime && !h.closeTime) || (!h.openTime && h.closeTime))
+      return "Provide both open and close times";
+    if (h.openTime && h.closeTime && h.closeTime <= h.openTime)
+      return "Close must be later than open";
+    return "";
+  };
+
+  const canSave = useMemo(() => {
+    if (!sightId) return false;
+    if (saving || loading) return false;
+    // Allow saving if no seasons/closures yet (to save officialUrl), otherwise require valid seasons
+    if ((hours?.length || 0) === 0 && (closures?.length || 0) === 0)
+      return true;
+    return (hours || []).every((h) => seasonHasError(h) === "");
+  }, [sightId, saving, loading, hours, closures]);
+
   useEffect(() => {
     if (!sightId) {
       setHours([]);
@@ -103,76 +172,24 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
     let cancelled = false;
     setLoading(true);
     setError("");
-    loadOpeningTimes(sightId)
+    fetchOpeningTimesClient(sightId)
       .then(({ hours, closures, officialUrl }) => {
         if (cancelled) return;
-        setHours(
-          (hours || []).map((h) => ({
-            startMonth:
-              typeof h.startMonth === "number"
-                ? h.startMonth
-                : h.startMonth
-                ? Number(h.startMonth)
-                : null,
-            startDay:
-              typeof h.startDay === "number"
-                ? h.startDay
-                : h.startDay
-                ? Number(h.startDay)
-                : null,
-            endMonth:
-              typeof h.endMonth === "number"
-                ? h.endMonth
-                : h.endMonth
-                ? Number(h.endMonth)
-                : null,
-            endDay:
-              typeof h.endDay === "number"
-                ? h.endDay
-                : h.endDay
-                ? Number(h.endDay)
-                : null,
-            openTime: h.openTime || "",
-            closeTime: h.closeTime || "",
-            lastEntryMins:
-              typeof h.lastEntryMins === "number"
-                ? h.lastEntryMins
-                : h.lastEntryMins
-                ? Number(h.lastEntryMins)
-                : 0,
-          }))
-        );
+        setHours(hours);
         setClosures(
           (closures || []).map((c) => ({
-            type: c.type || "fixed",
-            startDate: c.startDate
-              ? c.startDate instanceof Date
-                ? c.startDate
-                : new Date(c.startDate)
-              : null,
-            endDate: c.endDate
-              ? c.endDate instanceof Date
-                ? c.endDate
-                : new Date(c.endDate)
-              : null,
-            weekday:
-              typeof c.weekday === "number"
-                ? c.weekday
-                : c.weekday
-                ? Number(c.weekday)
-                : undefined,
-            notes: c.notes || "",
+            ...c,
+            startDate: c.startDate ? new Date(c.startDate) : null,
+            endDate: c.endDate ? new Date(c.endDate) : null,
           }))
         );
         setOfficialUrl(officialUrl || "");
       })
       .catch((e) => {
-        if (cancelled) return;
-        setError(e?.message || "Failed to load opening times");
+        if (!cancelled) setError(e?.message || "Failed to load opening times");
       })
       .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -224,80 +241,20 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
   const removeClosure = (i) =>
     setClosures(closures.filter((_, idx) => idx !== i));
 
-  async function persistOpeningTimes(targetId = sightId) {
-    if (!targetId)
-      throw new Error("Save the sight before saving opening times");
-    setSaving(true);
-    setLoading(true);
-    setError("");
-    try {
-      // Normalize hours and closures prior to saving
-      const hoursToSave = (hours || []).map((h) => ({
-        startMonth: h.startMonth ?? null,
-        startDay: h.startDay ?? null,
-        endMonth: h.endMonth ?? null,
-        endDay: h.endDay ?? null,
-        openTime: h.openTime || "",
-        closeTime: h.closeTime || "",
-        lastEntryMins:
-          typeof h.lastEntryMins === "number"
-            ? h.lastEntryMins
-            : h.lastEntryMins
-            ? Number(h.lastEntryMins)
-            : 0,
-      }));
-
-      const closuresToSave = (closures || []).map((c) => ({
-        type: c.type || "fixed",
-        startDate:
-          c.startDate instanceof Date
-            ? format(c.startDate, "yyyy-MM-dd")
-            : c.startDate || null,
-        endDate:
-          c.endDate instanceof Date
-            ? format(c.endDate, "yyyy-MM-dd")
-            : c.endDate || null,
-        weekday:
-          typeof c.weekday === "number"
-            ? c.weekday
-            : c.weekday
-            ? Number(c.weekday)
-            : undefined,
-        notes: c.notes || "",
-      }));
-
-      await saveOpeningTimes(targetId, {
-        hours: hoursToSave,
-        closures: closuresToSave,
-        officialUrl: officialUrl.trim(),
-      });
-      const refreshed = await loadOpeningTimes(targetId);
-      setHours(
-        (refreshed.hours || []).map((h) => ({
-          startMonth:
-            typeof h.startMonth === "number"
-              ? h.startMonth
-              : h.startMonth
-              ? Number(h.startMonth)
-              : null,
-          startDay:
-            typeof h.startDay === "number"
-              ? h.startDay
-              : h.startDay
-              ? Number(h.startDay)
-              : null,
-          endMonth:
-            typeof h.endMonth === "number"
-              ? h.endMonth
-              : h.endMonth
-              ? Number(h.endMonth)
-              : null,
-          endDay:
-            typeof h.endDay === "number"
-              ? h.endDay
-              : h.endDay
-              ? Number(h.endDay)
-              : null,
+  const persistOpeningTimes = useCallback(
+    async (targetId = sightId) => {
+      if (!targetId)
+        throw new Error("Save the sight before saving opening times");
+      setSaving(true);
+      setLoading(true);
+      setError("");
+      try {
+        // Normalize hours and closures prior to saving
+        const hoursToSave = (hours || []).map((h) => ({
+          startMonth: h.startMonth ?? null,
+          startDay: h.startDay ?? null,
+          endMonth: h.endMonth ?? null,
+          endDay: h.endDay ?? null,
           openTime: h.openTime || "",
           closeTime: h.closeTime || "",
           lastEntryMins:
@@ -306,21 +263,18 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
               : h.lastEntryMins
               ? Number(h.lastEntryMins)
               : 0,
-        }))
-      );
-      setClosures(
-        (refreshed.closures || []).map((c) => ({
+        }));
+
+        const closuresToSave = (closures || []).map((c) => ({
           type: c.type || "fixed",
-          startDate: c.startDate
-            ? c.startDate instanceof Date
-              ? c.startDate
-              : new Date(c.startDate)
-            : null,
-          endDate: c.endDate
-            ? c.endDate instanceof Date
-              ? c.endDate
-              : new Date(c.endDate)
-            : null,
+          startDate:
+            c.startDate instanceof Date
+              ? format(c.startDate, "yyyy-MM-dd")
+              : c.startDate || null,
+          endDate:
+            c.endDate instanceof Date
+              ? format(c.endDate, "yyyy-MM-dd")
+              : c.endDate || null,
           weekday:
             typeof c.weekday === "number"
               ? c.weekday
@@ -328,40 +282,101 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
               ? Number(c.weekday)
               : undefined,
           notes: c.notes || "",
-        }))
-      );
-      setOfficialUrl(refreshed.officialUrl || "");
-      setMessage("Opening hours saved");
-    } catch (e) {
-      setError(e?.message || "Failed to save opening times");
-      throw e;
-    } finally {
-      setSaving(false);
-      setLoading(false);
-    }
-  }
+        }));
 
-  useImperativeHandle(ref, () => ({
-    save: persistOpeningTimes,
-  }));
+        // Unified admin endpoint (parity with AdmissionEditor)
+        const saved = await saveOpeningTimesHttp(targetId, {
+          hours: hoursToSave,
+          closures: closuresToSave,
+          officialUrl: officialUrl.trim(),
+        });
+
+        // Normalize response into editor state without reloading again
+        setHours(
+          (saved.hours || []).map((h) => ({
+            startMonth:
+              typeof h.startMonth === "number"
+                ? h.startMonth
+                : h.startMonth
+                ? Number(h.startMonth)
+                : null,
+            startDay:
+              typeof h.startDay === "number"
+                ? h.startDay
+                : h.startDay
+                ? Number(h.startDay)
+                : null,
+            endMonth:
+              typeof h.endMonth === "number"
+                ? h.endMonth
+                : h.endMonth
+                ? Number(h.endMonth)
+                : null,
+            endDay:
+              typeof h.endDay === "number"
+                ? h.endDay
+                : h.endDay
+                ? Number(h.endDay)
+                : null,
+            openTime: h.openTime || "",
+            closeTime: h.closeTime || "",
+            lastEntryMins:
+              typeof h.lastEntryMins === "number"
+                ? h.lastEntryMins
+                : h.lastEntryMins
+                ? Number(h.lastEntryMins)
+                : 0,
+          }))
+        );
+        setClosures(
+          (saved.closures || []).map((c) => ({
+            type: c.type || "fixed",
+            startDate: c.startDate
+              ? c.startDate instanceof Date
+                ? c.startDate
+                : new Date(c.startDate)
+              : null,
+            endDate: c.endDate
+              ? c.endDate instanceof Date
+                ? c.endDate
+                : new Date(c.endDate)
+              : null,
+            weekday:
+              typeof c.weekday === "number"
+                ? c.weekday
+                : c.weekday
+                ? Number(c.weekday)
+                : undefined,
+            notes: c.notes || "",
+          }))
+        );
+        setOfficialUrl(saved.officialUrl || "");
+        setMessage("Opening hours saved");
+        return saved;
+      } catch (e) {
+        setError(e?.message || "Failed to save opening times");
+        throw e;
+      } finally {
+        setSaving(false);
+        setLoading(false);
+      }
+    },
+    [sightId, hours, closures, officialUrl]
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      save: persistOpeningTimes,
+    }),
+    [persistOpeningTimes]
+  );
 
   useEffect(() => {
     if (!message) return;
     const timer = setTimeout(() => setMessage(""), 3000);
     return () => clearTimeout(timer);
   }, [message]);
-
-  const seasonHasError = (h) => {
-    if (!h.startMonth) return "Start month required";
-    if (!isValidMonthDay(h.startMonth, h.startDay)) return "Start day invalid";
-    if (!h.endMonth) return "End month required";
-    if (!isValidMonthDay(h.endMonth, h.endDay)) return "End day invalid";
-    if ((h.openTime && !h.closeTime) || (!h.openTime && h.closeTime))
-      return "Provide both open and close times";
-    if (h.openTime && h.closeTime && h.closeTime <= h.openTime)
-      return "Close must be later than open";
-    return "";
-  };
 
   return (
     <div className="space-y-6">
@@ -679,7 +694,7 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
               }}
               size="sm"
               className="h-9 px-4"
-              disabled={!sightId || loading || saving}
+              disabled={!canSave}
             >
               {saving ? "Saving…" : "Save"}
             </Button>

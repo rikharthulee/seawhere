@@ -163,6 +163,13 @@ export default function SightsManager() {
                             const m = s.match(/^([0-9]{2}:[0-9]{2})/);
                             return m ? m[1] : s;
                           }
+                          const toPlain = (x) => {
+                            try {
+                              return JSON.parse(JSON.stringify(x));
+                            } catch {
+                              return x;
+                            }
+                          };
                           const init = {
                             ...json.sight,
                             hours: (json.hours || []).map((h) => ({
@@ -179,7 +186,7 @@ export default function SightsManager() {
                               ? json.admission
                               : [],
                           };
-                          setEditing(init);
+                          setEditing(toPlain(init));
                         } catch (e) {
                           alert(e?.message || "Failed to load sight");
                         }
