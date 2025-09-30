@@ -1,11 +1,8 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
-import BulletList from "@tiptap/extension-bullet-list";
-import OrderedList from "@tiptap/extension-ordered-list";
-import ListItem from "@tiptap/extension-list-item";
 import Underline from "@tiptap/extension-underline";
 
 function isEmptyDocJSON(json) {
@@ -15,28 +12,38 @@ function isEmptyDocJSON(json) {
     const content = Array.isArray(json.content) ? json.content : [];
     if (content.length === 0) return true;
     // Consider empty if only empty paragraphs
-    return content.every((n) => n?.type === "paragraph" && (!n.content || n.content.length === 0));
+    return content.every(
+      (n) => n?.type === "paragraph" && (!n.content || n.content.length === 0)
+    );
   } catch {
     return false;
   }
 }
 
-export default function RichTextEditor({ value, onChange, label = "Details", warnOnUnsaved = false }) {
-  const initialJSONRef = useRef(JSON.stringify(value || { type: "doc", content: [] }));
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
+export default function RichTextEditor({
+  value,
+  onChange,
+  label = "Details",
+  warnOnUnsaved = false,
+}) {
+  const initialJSONRef = useRef(
+    JSON.stringify(value || { type: "doc", content: [] })
+  );
+
+  const extensions = useMemo(
+    () => [
       StarterKit.configure({
-        heading: {
-          levels: [2, 3],
-        },
+        heading: { levels: [2, 3] },
       }),
       Link.configure({ openOnClick: true, autolink: true, linkOnPaste: true }),
-      BulletList,
-      OrderedList,
-      ListItem,
       Underline,
     ],
+    []
+  );
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions,
     editorProps: {
       attributes: {},
       transformPastedText(text) {
@@ -69,7 +76,9 @@ export default function RichTextEditor({ value, onChange, label = "Details", war
 
   // Update the baseline when external value changes (e.g. record load)
   useEffect(() => {
-    initialJSONRef.current = JSON.stringify(value || { type: "doc", content: [] });
+    initialJSONRef.current = JSON.stringify(
+      value || { type: "doc", content: [] }
+    );
   }, [value]);
 
   // Optional unsaved-changes warning on refresh/close
@@ -107,63 +116,103 @@ export default function RichTextEditor({ value, onChange, label = "Details", war
         <div className="rte-toolbar">
           <button
             type="button"
-            onMouseDown={(e) => { e.preventDefault(); editor?.chain().focus().toggleBold().run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor?.chain().focus().toggleBold().run();
+            }}
             disabled={!can.bold}
-            className={editor?.isActive('bold') ? 'on' : ''}
+            className={editor?.isActive("bold") ? "on" : ""}
             title="Bold"
-          >B</button>
+          >
+            B
+          </button>
           <button
             type="button"
-            onMouseDown={(e) => { e.preventDefault(); editor?.chain().focus().toggleItalic().run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor?.chain().focus().toggleItalic().run();
+            }}
             disabled={!can.italic}
-            className={editor?.isActive('italic') ? 'on' : ''}
+            className={editor?.isActive("italic") ? "on" : ""}
             title="Italic"
-          ><i>I</i></button>
+          >
+            <i>I</i>
+          </button>
           <span className="sep" />
           <button
             type="button"
-            onMouseDown={(e) => { e.preventDefault(); editor?.chain().focus().toggleUnderline().run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor?.chain().focus().toggleUnderline().run();
+            }}
             disabled={!can.underline}
-            className={editor?.isActive('underline') ? 'on' : ''}
+            className={editor?.isActive("underline") ? "on" : ""}
             title="Underline"
-          ><u>U</u></button>
+          >
+            <u>U</u>
+          </button>
           <span className="sep" />
           <button
             type="button"
-            onMouseDown={(e) => { e.preventDefault(); editor?.chain().focus().toggleHeading({ level: 2 }).run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor?.chain().focus().toggleHeading({ level: 2 }).run();
+            }}
             disabled={!can.h2}
-            className={editor?.isActive('heading', { level: 2 }) ? 'on' : ''}
+            className={editor?.isActive("heading", { level: 2 }) ? "on" : ""}
             title="Heading 2"
-          >H2</button>
+          >
+            H2
+          </button>
           <button
             type="button"
-            onMouseDown={(e) => { e.preventDefault(); editor?.chain().focus().toggleHeading({ level: 3 }).run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor?.chain().focus().toggleHeading({ level: 3 }).run();
+            }}
             disabled={!can.h3}
-            className={editor?.isActive('heading', { level: 3 }) ? 'on' : ''}
+            className={editor?.isActive("heading", { level: 3 }) ? "on" : ""}
             title="Heading 3"
-          >H3</button>
+          >
+            H3
+          </button>
           <span className="sep" />
           <button
             type="button"
-            onMouseDown={(e) => { e.preventDefault(); editor?.chain().focus().toggleBulletList().run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor?.chain().focus().toggleBulletList().run();
+            }}
             disabled={!can.bullet}
-            className={editor?.isActive('bulletList') ? 'on' : ''}
+            className={editor?.isActive("bulletList") ? "on" : ""}
             title="Bulleted list"
-          >• List</button>
+          >
+            • List
+          </button>
           <button
             type="button"
-            onMouseDown={(e) => { e.preventDefault(); editor?.chain().focus().toggleOrderedList().run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor?.chain().focus().toggleOrderedList().run();
+            }}
             disabled={!can.ordered}
-            className={editor?.isActive('orderedList') ? 'on' : ''}
+            className={editor?.isActive("orderedList") ? "on" : ""}
             title="Numbered list"
-          >1. List</button>
+          >
+            1. List
+          </button>
           <span className="sep" />
           <button
             type="button"
-            onMouseDown={(e) => { e.preventDefault(); editor?.chain().focus().clearNodes().unsetAllMarks().run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor?.chain().focus().clearNodes().unsetAllMarks().run();
+            }}
             disabled={!can.clear}
             title="Clear formatting"
-          >Clear</button>
+          >
+            Clear
+          </button>
         </div>
         {/* Editor */}
         <div className="rte-editor">
@@ -171,23 +220,86 @@ export default function RichTextEditor({ value, onChange, label = "Details", war
         </div>
       </div>
       <style jsx>{`
-        label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem; }
-        .rte-wrap { border: 1px solid #e5e7eb; border-radius: 8px; }
-        .rte-toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 0.9rem; }
-        .rte-toolbar button { padding: 4px 8px; border: 1px solid #e5e7eb; border-radius: 6px; background: white; cursor: pointer; }
-        .rte-toolbar button.on { background: #111827; color: white; }
-        .rte-toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .rte-toolbar .sep { width: 1px; height: 20px; background: #e5e7eb; margin: 0 4px; }
-        .rte-editor { padding: 10px; }
+        label {
+          display: block;
+          font-size: 0.9rem;
+          font-weight: 600;
+          margin-bottom: 0.25rem;
+        }
+        .rte-wrap {
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+        }
+        .rte-toolbar {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          align-items: center;
+          padding: 8px;
+          border-bottom: 1px solid #e5e7eb;
+          font-size: 0.9rem;
+        }
+        .rte-toolbar button {
+          padding: 4px 8px;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          background: white;
+          cursor: pointer;
+        }
+        .rte-toolbar button.on {
+          background: #111827;
+          color: white;
+        }
+        .rte-toolbar button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .rte-toolbar .sep {
+          width: 1px;
+          height: 20px;
+          background: #e5e7eb;
+          margin: 0 4px;
+        }
+        .rte-editor {
+          padding: 10px;
+        }
         /* ProseMirror content styling */
-        .rte-editor :global(.ProseMirror) { outline: none; min-height: 10rem; line-height: 1.65; width: 100%; max-width: 100%; }
-        .rte-editor :global(h2) { font-size: 1.375rem; font-weight: 600; margin: 1rem 0 0.5rem 0; }
-        .rte-editor :global(h3) { font-size: 1.125rem; font-weight: 600; margin: 0.75rem 0 0.25rem 0; }
-        .rte-editor :global(ul), .rte-editor :global(ol) { padding-left: 1.25rem; margin: 0.5rem 0; list-style-position: outside; }
-        .rte-editor :global(ul) { list-style-type: disc !important; }
-        .rte-editor :global(ol) { list-style-type: decimal !important; }
-        .rte-editor :global(li) { margin: 0.25rem 0; display: list-item; }
-        .rte-editor :global(p) { margin: 0.5rem 0; }
+        .rte-editor :global(.ProseMirror) {
+          outline: none;
+          min-height: 10rem;
+          line-height: 1.65;
+          width: 100%;
+          max-width: 100%;
+        }
+        .rte-editor :global(h2) {
+          font-size: 1.375rem;
+          font-weight: 600;
+          margin: 1rem 0 0.5rem 0;
+        }
+        .rte-editor :global(h3) {
+          font-size: 1.125rem;
+          font-weight: 600;
+          margin: 0.75rem 0 0.25rem 0;
+        }
+        .rte-editor :global(ul),
+        .rte-editor :global(ol) {
+          padding-left: 1.25rem;
+          margin: 0.5rem 0;
+          list-style-position: outside;
+        }
+        .rte-editor :global(ul) {
+          list-style-type: disc !important;
+        }
+        .rte-editor :global(ol) {
+          list-style-type: decimal !important;
+        }
+        .rte-editor :global(li) {
+          margin: 0.25rem 0;
+          display: list-item;
+        }
+        .rte-editor :global(p) {
+          margin: 0.5rem 0;
+        }
       `}</style>
     </div>
   );

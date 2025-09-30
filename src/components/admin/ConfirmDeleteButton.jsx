@@ -59,6 +59,7 @@ export default function ConfirmDeleteButton({
             <div className="fixed inset-0 z-[200]">
               <div
                 className="absolute inset-0 bg-black/60"
+                aria-hidden="true"
                 onClick={() => !pending && setOpen(false)}
               />
               <div
@@ -68,14 +69,30 @@ export default function ConfirmDeleteButton({
                 )}
               >
                 <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="confirm-title"
+                  aria-describedby="confirm-desc"
                   className={cn(
-                    "w-full max-w-[calc(100%-2rem)] rounded-lg border bg-white p-6 shadow-lg sm:max-w-lg",
-                    fullscreen && "h-full max-w-none rounded-none border-0 bg-background p-6 sm:p-10 overflow-y-auto"
+                    "z-10 w-full max-w-[calc(100%-2rem)] rounded-lg border bg-white p-6 shadow-lg sm:max-w-lg",
+                    fullscreen &&
+                      "h-full max-w-none rounded-none border-0 bg-background p-6 sm:p-10 overflow-y-auto"
                   )}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex flex-col gap-2">
-                    <h2 className="text-left text-lg font-semibold">{title}</h2>
-                    <p className="text-left text-sm text-black/70">{description}</p>
+                    <h2
+                      id="confirm-title"
+                      className="text-left text-lg font-semibold"
+                    >
+                      {title}
+                    </h2>
+                    <p
+                      id="confirm-desc"
+                      className="text-left text-sm text-black/70"
+                    >
+                      {description}
+                    </p>
                   </div>
                   <div className="mt-4 flex justify-end gap-2">
                     <Button

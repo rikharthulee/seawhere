@@ -628,7 +628,6 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
               description="This action cannot be undone. This will permanently delete the item and remove any associated data."
               triggerClassName="ml-auto h-9 px-4"
               triggerSize="sm"
-              fullscreen
               onConfirm={handleDelete}
             />
           ) : null}

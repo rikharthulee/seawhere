@@ -58,6 +58,8 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
   const [divisionId, setDivisionId] = useState(initial?.division_id || "");
   const [prefectures, setPrefectures] = useState([]);
   const [divisions, setDivisions] = useState([]);
+  const [regions, setRegions] = useState([]);
+  const [regionId, setRegionId] = useState("");
   const [formError, setFormError] = useState("");
   const isEditing = !!initial?.id;
 
@@ -70,6 +72,13 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
     [divisions, prefectureId]
   );
   const hasDivisionsForPref = divisionsForPref.length > 0;
+  const prefecturesForRegion = useMemo(
+    () =>
+      regionId
+        ? prefectures.filter((p) => p.region_id === regionId)
+        : prefectures,
+    [prefectures, regionId]
+  );
 
   // Sync state when switching between rows or opening the editor
   useEffect(() => {
@@ -87,6 +96,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
     setAssignTo(initial?.division_id ? "division" : "prefecture");
     setPrefectureId(initial?.prefecture_id || "");
     setDivisionId(initial?.division_id || "");
+    setRegionId("");
   }, [initial]);
 
   // Load selection lists
@@ -99,6 +109,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
         if (res.ok) {
           const json = await res.json();
           if (!cancelled) {
+            setRegions(Array.isArray(json.regions) ? json.regions : []);
             setPrefectures(
               Array.isArray(json.prefectures) ? json.prefectures : []
             );
@@ -124,6 +135,13 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
         }
       } catch {}
       try {
+        const { data: regs } = await supabase
+          .from("regions")
+          .select("id,name,slug,order_index")
+          .order("order_index", { ascending: true });
+        if (!cancelled) setRegions(Array.isArray(regs) ? regs : []);
+      } catch {}
+      try {
         const divQuery = useGeoViews
           ? supabase.from("geo_divisions_v").select("*")
           : supabase
@@ -145,6 +163,12 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
       cancelled = true;
     };
   }, [supabase]);
+  useEffect(() => {
+    if (!prefectureId) return;
+    const pref = prefectures.find((p) => p.id === prefectureId);
+    if (pref?.region_id && regionId !== pref.region_id)
+      setRegionId(pref.region_id);
+  }, [prefectureId, prefectures]);
 
   // If user is assigning to division but selected prefecture has no divisions, switch back to prefecture
   useEffect(() => {
@@ -344,33 +368,87 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
             </div>
             <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
               {assignTo === "prefecture" ? (
-                <div>
-                  <label className="block text-sm text-black/70">
-                    Prefecture
-                  </label>
-                  <Select
-                    value={prefectureId || "__EMPTY__"}
-                    onValueChange={(v) =>
-                      setPrefectureId(v === "__EMPTY__" ? "" : v)
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a prefecture…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__EMPTY__">
-                        Select a prefecture…
-                      </SelectItem>
-                      {prefectures.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
+                <>
+                  <div className="mb-2">
+                    <label className="block text-sm text-black/70">
+                      Region
+                    </label>
+                    <Select
+                      value={regionId || "__EMPTY__"}
+                      onValueChange={(v) => {
+                        const val = v === "__EMPTY__" ? "" : v;
+                        setRegionId(val);
+                        setPrefectureId("");
+                        setDivisionId("");
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All regions…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__EMPTY__">All regions…</SelectItem>
+                        {regions.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-black/70">
+                      Prefecture
+                    </label>
+                    <Select
+                      value={prefectureId || "__EMPTY__"}
+                      onValueChange={(v) =>
+                        setPrefectureId(v === "__EMPTY__" ? "" : v)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a prefecture…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__EMPTY__">
+                          Select a prefecture…
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                        {prefecturesForRegion.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               ) : (
                 <>
+                  <div className="mb-2">
+                    <label className="block text-sm text-black/70">
+                      Region
+                    </label>
+                    <Select
+                      value={regionId || "__EMPTY__"}
+                      onValueChange={(v) => {
+                        const val = v === "__EMPTY__" ? "" : v;
+                        setRegionId(val);
+                        setPrefectureId("");
+                        setDivisionId("");
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All regions…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__EMPTY__">All regions…</SelectItem>
+                        {regions.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div>
                     <label className="block text-sm text-black/70">
                       Prefecture
@@ -388,7 +466,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
                         <SelectItem value="__EMPTY__">
                           All prefectures…
                         </SelectItem>
-                        {prefectures.map((p) => (
+                        {prefecturesForRegion.map((p) => (
                           <SelectItem key={p.id} value={p.id}>
                             {p.name}
                           </SelectItem>
