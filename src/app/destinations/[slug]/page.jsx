@@ -1,3 +1,4 @@
+// Destination detail page – fetches data by slug and renders details
 import { notFound } from "next/navigation";
 import EmblaCarousel from "@/components/EmblaCarousel";
 import SafeImage from "@/components/SafeImage";
@@ -12,12 +13,16 @@ import {
 import GygWidget from "@/components/GygWidget";
 import { getDestinationBySlug } from "@/lib/data/destinations";
 
+// ISR setting: revalidate page every 900 seconds (15 minutes)
 export const revalidate = 900;
+// Use Node.js runtime for this page
 export const runtime = "nodejs";
-
+// Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
 
+// Server component for destination detail
 export default async function DestinationPage(props) {
+  // Extract slug from route params, fetch destination row, resolve hero and gallery images
   const { slug } = (await props?.params) || {};
   if (!slug) notFound();
 
@@ -34,6 +39,7 @@ export default async function DestinationPage(props) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
+      {/* Page header */}
       <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
@@ -46,6 +52,7 @@ export default async function DestinationPage(props) {
         <div className="border-b-2 border-border mt-3" />
       </div>
 
+      {/* Hero image or gallery */}
       <section className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
         <div className="order-1 md:order-2">
           {gallery.length > 0 ? (
@@ -72,12 +79,14 @@ export default async function DestinationPage(props) {
           )}
         </div>
 
+        {/* Credit line */}
         {dst.credit ? (
           <p className="mt-2 text-xs text-muted-foreground text-right order-3 md:order-3">
             {dst.credit}
           </p>
         ) : null}
 
+        {/* Description */}
         <div className="order-2 md:order-1">
           {dst.body_richtext ? (
             <RichText value={dst.body_richtext} />
@@ -89,6 +98,7 @@ export default async function DestinationPage(props) {
         </div>
       </section>
 
+      {/* GYG widget */}
       {dst.gyg_location_id ? (
         <section className="mt-10">
           <h2 className="text-xl font-semibold mb-2">Popular tours</h2>
@@ -96,6 +106,7 @@ export default async function DestinationPage(props) {
         </section>
       ) : null}
 
+      {/* Info cards */}
       <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
         <Card>
           <CardContent className="p-3 space-y-1">

@@ -11,10 +11,15 @@ import {
 } from "@/lib/imageUrl";
 import { getAccommodationBySlug } from "@/lib/data/accommodation";
 
+// Accommodation detail page – fetches data by slug and renders details
+
+// ISR setting: revalidate this page every 900 seconds (15 minutes)
 export const revalidate = 900;
 export const runtime = "nodejs";
 
+// Server component for accommodation detail
 export default async function AccommodationDetailPage(props) {
+  // Extract slug param, fetch accommodation data by slug, resolve hero image and gallery
   const { params } = await props?.params;
   const slug = params?.slug;
   if (!slug) notFound();
@@ -27,6 +32,7 @@ export default async function AccommodationDetailPage(props) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
+      {/* Page header */}
       <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
@@ -39,6 +45,7 @@ export default async function AccommodationDetailPage(props) {
         <div className="border-b-2 border-border mt-3" />
       </div>
 
+      {/* Hero image or gallery */}
       <section className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
         <div className="order-1 md:order-2">
           {gallery.length > 0 ? (
@@ -65,12 +72,14 @@ export default async function AccommodationDetailPage(props) {
           )}
         </div>
 
+        {/* Credit line */}
         {row.credit ? (
           <p className="mt-2 text-xs text-muted-foreground text-right order-3 md:order-3">
             {row.credit}
           </p>
         ) : null}
 
+        {/* Description */}
         <div className="order-2 md:order-1">
           {row.description ? (
             <RichText value={row.description} />
@@ -82,7 +91,9 @@ export default async function AccommodationDetailPage(props) {
         </div>
       </section>
 
+      {/* Overview card and Links card */}
       <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
+        {/* Overview card */}
         <Card>
           <CardContent className="p-3 space-y-1">
             <div className="font-medium text-foreground">Overview</div>
@@ -108,6 +119,8 @@ export default async function AccommodationDetailPage(props) {
             ) : null}
           </CardContent>
         </Card>
+
+        {/* Links card */}
         <Card>
           <CardContent className="p-3 space-y-2">
             <div className="font-medium text-foreground">Links</div>
@@ -137,6 +150,7 @@ export default async function AccommodationDetailPage(props) {
         </Card>
       </section>
 
+      {/* Address block */}
       {row.address ? (
         <section className="mt-6">
           <h2 className="text-xl font-semibold mb-2">Address</h2>
