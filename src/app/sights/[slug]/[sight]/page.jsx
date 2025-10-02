@@ -9,8 +9,8 @@ import {
   getSightBySlugs,
   getSightOpeningHours,
   getSightOpeningExceptions,
+  getSightAdmissionPrices,
 } from "@/lib/data/sights";
-import { fetchAdmissionPrices } from "@/lib/data/admission";
 import { fmtTime, fmtJPY } from "@/lib/format";
 
 export const revalidate = 300;
@@ -115,8 +115,7 @@ function formatAgeRange(row) {
 }
 
 export default async function SightDetailBySlugPage(props) {
-  const { params } = await props?.params;
-  const { slug, sight } = params || {};
+  const { slug, sight } = props?.params || {};
   const result = await getSightBySlugs(slug, sight).catch(() => null);
   if (!result?.sight || !result?.destination) notFound();
   const { sight: p, destination: dest } = result;
@@ -132,7 +131,7 @@ export default async function SightDetailBySlugPage(props) {
     getSightOpeningHours(p.id).catch(() => []),
     getSightOpeningExceptions(p.id).catch(() => []),
   ]);
-  const admissions = await fetchAdmissionPrices(p.id).catch(() => []);
+  const admissions = await getSightAdmissionPrices(p.id).catch(() => []);
   seasons = Array.isArray(r)
     ? r.map((row) => ({
         startMonth: row.start_month ?? null,
