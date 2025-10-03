@@ -12,7 +12,6 @@ import {
   getSightAdmissionPrices,
 } from "@/lib/data/sights";
 import { fmtTime, fmtJPY } from "@/lib/format";
-import { serverParams } from "@/app/_lib/next15";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -115,10 +114,8 @@ function formatAgeRange(row) {
   return `Up to ${max}`;
 }
 
-// @page-kind server
 export default async function SightDetailBySlugPage(props) {
-  const { params } = await serverParams(props);
-  const { slug, sight } = params || {};
+  const { slug, sight } = (await props.params) || {};
   const result = await getSightBySlugs(slug, sight).catch(() => null);
   if (!result?.sight || !result?.destination) notFound();
   const { sight: p, destination: dest } = result;

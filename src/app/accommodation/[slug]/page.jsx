@@ -10,7 +10,6 @@ import {
   resolveImageUrl,
 } from "@/lib/imageUrl";
 import { getAccommodationBySlug } from "@/lib/data/accommodation";
-import { serverParams } from "@/app/_lib/next15";
 
 // Accommodation detail page – fetches data by slug and renders details
 
@@ -18,12 +17,10 @@ import { serverParams } from "@/app/_lib/next15";
 export const revalidate = 900;
 export const runtime = "nodejs";
 
-// @page-kind server
 // Server component for accommodation detail
 export default async function AccommodationDetailPage(props) {
   // Extract slug param, fetch accommodation data by slug, resolve hero image and gallery
-  const { params } = await serverParams(props);
-  const slug = params?.slug;
+  const { slug } = (await props.params) || {};
   if (!slug) notFound();
 
   const row = await getAccommodationBySlug(slug);

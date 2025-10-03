@@ -2,13 +2,11 @@ import { Suspense } from "react";
 import LoginForm from "./LoginForm";
 import { redirect } from "next/navigation";
 import { getDB } from "@/lib/supabase/server";
-import { serverParams } from "@/app/_lib/next15";
 
 export const dynamic = "force-dynamic";
 
-// @page-kind server
 export default async function LoginPage(props) {
-  const { searchParams } = await serverParams(props);
+  const searchParams = props.searchParams ? await props.searchParams : undefined;
   // Server-side: if already authed and authorized, redirect to target immediately.
   try {
     const supabase = await getDB();

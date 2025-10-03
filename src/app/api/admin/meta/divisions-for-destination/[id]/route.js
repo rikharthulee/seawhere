@@ -17,9 +17,20 @@ export async function GET(_req, ctx) {
       });
       if (!error && Array.isArray(data)) rows = data;
     } catch {}
-    return NextResponse.json({ items: rows }, { status: 200 });
+    return new NextResponse(JSON.stringify({ items: rows }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60',
+      },
+    });
   } catch (e) {
-    return NextResponse.json({ items: [] }, { status: 200 });
+    return new NextResponse(JSON.stringify({ items: [] }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
+      },
+    });
   }
 }
-

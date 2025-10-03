@@ -2,6 +2,8 @@
 import { redirect } from "next/navigation";
 import { getDB } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({ children }) {
   const supabase = await getDB();
 

@@ -13,10 +13,9 @@ export async function POST(req) {
     const { error } = await db.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/auth/reset`,
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ ok: true }, { status: 200 });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400, headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ ok: true }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+    return NextResponse.json({ error: "Unexpected error" }, { status: 500, headers: { 'Cache-Control': 'no-store' } });
   }
 }
-

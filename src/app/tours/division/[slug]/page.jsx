@@ -8,15 +8,12 @@ import {
   getDestinationsByDivision,
 } from "@/lib/data/geo";
 import { getToursByDestinationIds } from "@/lib/data/tours";
-import { serverParams } from "@/app/_lib/next15";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
-// @page-kind server
 export default async function ToursByDivisionPage(props) {
-  const { params } = await serverParams(props);
-  const { slug } = params || {};
+  const { slug } = (await props.params) || {};
   const div = await getDivisionBySlugLoose(slug).catch(() => null);
   if (!div) notFound();
   const destinations = await getDestinationsByDivision(div.id).catch(() => []);

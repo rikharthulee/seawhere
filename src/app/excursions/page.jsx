@@ -3,6 +3,7 @@ import { getDB } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 async function getPublishedExcursions() {
   try {

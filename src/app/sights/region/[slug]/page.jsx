@@ -9,15 +9,12 @@ import {
   getDestinationsByPrefectureIds,
 } from "@/lib/data/geo";
 import { getSightsByDestinationIds } from "@/lib/data/sights";
-import { serverParams } from "@/app/_lib/next15";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
-// @page-kind server
 export default async function SightsByRegionPage(props) {
-  const { params } = await serverParams(props);
-  const { slug } = params || {};
+  const { slug } = (await props.params) || {};
   const region = await getRegionBySlug(slug).catch(() => null);
   if (!region) notFound();
   const prefs = await getPrefecturesByRegion(region.id).catch(() => []);

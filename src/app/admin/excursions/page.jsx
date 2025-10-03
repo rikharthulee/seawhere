@@ -4,6 +4,8 @@ import { getDB } from "@/lib/supabase/server";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 
+export const dynamic = "force-dynamic";
+
 function extractImageSrc(row) {
   if (!row || typeof row !== "object") return null;
 

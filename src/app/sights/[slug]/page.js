@@ -6,16 +6,13 @@ import Link from "next/link";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import GygWidget from "@/components/GygWidget";
-import { serverParams } from "@/app/_lib/next15";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
-// @page-kind server
 export default async function SightsByDestinationPage(props) {
-  const { params, searchParams } = await serverParams(props);
-  const { slug } = params || {};
-  const sp = searchParams || {};
+  const { slug } = (await props.params) || {};
+  const sp = (await props.searchParams) || {};
   const divisionSlug =
     typeof sp.division === "string" && sp.division.length ? sp.division : null;
   let dst = await getDestinationBySlugLoose(slug).catch(() => null);

@@ -99,3 +99,17 @@ export async function getSightOpeningExceptions(id) {
   if (error) return [];
   return data || [];
 }
+
+export async function getSightAdmissionPrices(sightId) {
+  const db = await getDB();
+  const { data, error } = await db
+    .from("sight_admission_prices")
+    .select(
+      "id, sight_id, category, price_minor, currency, start_month, end_month, notes, sort_order, is_active"
+    )
+    .eq("sight_id", sightId)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+  if (error) return [];
+  return data || [];
+}

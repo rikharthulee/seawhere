@@ -37,9 +37,7 @@ export async function GET(req) {
   const headers = new Headers();
   const ct = r.headers.get("content-type") || "application/octet-stream";
   headers.set("Content-Type", ct);
-  // Allow caching by the platform edge/CDN
-  const cache = r.headers.get("cache-control");
-  if (cache) headers.set("Cache-Control", cache);
+  // Edge cache for 1 day by default
+  headers.set("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=600");
   return new Response(r.body, { status: r.status, headers });
 }
-

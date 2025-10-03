@@ -12,7 +12,6 @@ import {
 } from "@/lib/imageUrl";
 import GygWidget from "@/components/GygWidget";
 import { getDestinationBySlug } from "@/lib/data/destinations";
-import { serverParams } from "@/app/_lib/next15";
 
 // ISR setting: revalidate page every 900 seconds (15 minutes)
 export const revalidate = 900;
@@ -21,12 +20,10 @@ export const runtime = "nodejs";
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
 
-// @page-kind server
 // Server component for destination detail
 export default async function DestinationPage(props) {
   // Extract slug from route params, fetch destination row, resolve hero and gallery images
-  const { params } = await serverParams(props);
-  const { slug } = params || {};
+  const { slug } = (await props.params) || {};
   if (!slug) notFound();
 
   let dst = null;

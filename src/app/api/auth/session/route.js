@@ -8,10 +8,12 @@ export async function GET() {
   try {
     const db = await getDB();
     const { data, error } = await db.auth.getUser();
-    if (error) return NextResponse.json({ user: null }, { status: 200 });
-    return NextResponse.json({ user: data?.user || null }, { status: 200 });
+    const resp = NextResponse.json({ user: error ? null : (data?.user || null) }, { status: 200 });
+    resp.headers.set('Cache-Control', 'no-store');
+    return resp;
   } catch (e) {
-    return NextResponse.json({ user: null }, { status: 200 });
+    const resp = NextResponse.json({ user: null }, { status: 200 });
+    resp.headers.set('Cache-Control', 'no-store');
+    return resp;
   }
 }
-
