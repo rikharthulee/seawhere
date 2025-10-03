@@ -9,7 +9,7 @@ import {
   imagesToGallery,
   resolveImageUrl,
 } from "@/lib/imageUrl";
-import { getAccommodationBySlug } from "@/lib/data/accommodation";
+import { getAccommodationBySlugPublic } from "@/lib/data/public/accommodation";
 
 // Accommodation detail page – fetches data by slug and renders details
 
@@ -19,11 +19,11 @@ export const runtime = "nodejs";
 
 // Server component for accommodation detail
 export default async function AccommodationDetailPage(props) {
-  // Extract slug param, fetch accommodation data by slug, resolve hero image and gallery
+  // Extract slug param, fetch accommodation data by slug via API
   const { slug } = (await props.params) || {};
   if (!slug) notFound();
 
-  const row = await getAccommodationBySlug(slug);
+  const row = await getAccommodationBySlugPublic(slug);
   if (!row) notFound();
 
   const hero = resolveImageUrl(firstImageFromImages(row.images ?? []));

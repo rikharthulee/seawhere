@@ -3,22 +3,17 @@ import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  getDivisionBySlugLoose,
-  getDestinationsByDivision,
-} from "@/lib/data/geo";
-import { getExperiencesByDestinationIds } from "@/lib/data/experiences";
+import { getDivisionBySlugPublic } from "@/lib/data/public/geo";
+import { listExperiencesByDivisionSlug } from "@/lib/data/public/experiences";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
 export default async function ExperiencesByDivisionPage(props) {
   const { slug } = (await props.params) || {};
-  const div = await getDivisionBySlugLoose(slug).catch(() => null);
+  const div = await getDivisionBySlugPublic(slug);
   if (!div) notFound();
-  const destinations = await getDestinationsByDivision(div.id).catch(() => []);
-  const destIds = (destinations || []).map((d) => d.id).filter(Boolean);
-  const items = await getExperiencesByDestinationIds(destIds).catch(() => []);
+  const items = await listExperiencesByDivisionSlug(slug);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">

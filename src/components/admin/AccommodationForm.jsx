@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MultiImageUpload from "./MultiImageUpload";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
   sortGeoRows,
   shouldUseGeoViews,
 } from "@/lib/geo-normalize";
+import { createClient } from "@/lib/supabase/client";
 
 const numberFromString = z.preprocess((v) => {
   if (v === "" || v === undefined || v === null) return undefined;
@@ -57,6 +58,7 @@ function slugify(s) {
 
 export default function AccommodationForm({ initial, onSaved, onCancel }) {
   const useGeoViews = shouldUseGeoViews();
+  const supabase = useMemo(() => createClient(), []);
   const [name, setName] = useState(initial?.name || "");
   const [slug, setSlug] = useState(initial?.slug || "");
   const [slugTouched, setSlugTouched] = useState(!!initial?.id);

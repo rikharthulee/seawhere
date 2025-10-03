@@ -2,26 +2,24 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
 import {
-  getRegionBySlug,
-  getPrefectureBySlug,
-  getDivisionsByPrefecture,
-  getDestinationsByPrefecture,
-} from "@/lib/data/geo";
+  getRegionBySlugPublic,
+  getPrefectureBySlugPublic,
+  listDivisionsByPrefectureId,
+  listDestinationsByPrefectureId,
+} from "@/lib/data/public/geo";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function PrefecturePage(props) {
   const { region, prefecture } = (await props.params) || {};
 
-  const reg = await getRegionBySlug(region).catch(() => null);
+  const reg = await getRegionBySlugPublic(region);
   if (!reg) notFound();
-  const pref = await getPrefectureBySlug(prefecture, reg.id).catch(() => null);
+  const pref = await getPrefectureBySlugPublic(prefecture);
   if (!pref) notFound();
 
-  const divisions = await getDivisionsByPrefecture(pref.id).catch(() => []);
-  const allPrefDests = await getDestinationsByPrefecture(pref.id).catch(
-    () => []
-  );
+  const divisions = await listDivisionsByPrefectureId(pref.id);
+  const allPrefDests = await listDestinationsByPrefectureId(pref.id);
   const unassignedDests = Array.isArray(allPrefDests)
     ? allPrefDests.filter((d) => !d.division_id)
     : [];

@@ -1,11 +1,9 @@
 import Experiences from "@/components/Experiences";
-import { getPublishedExperiences } from "@/lib/data/experiences";
+// Fetch via API (ISR)
+import { listPublishedExperiences } from "@/lib/data/public/experiences";
 
 export default async function ExperiencesPage() {
-  let items = [];
-  try {
-    items = await getPublishedExperiences();
-  } catch {}
+  const items = await listPublishedExperiences();
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
       <Experiences items={items} />

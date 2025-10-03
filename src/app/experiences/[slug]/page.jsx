@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { getDestinationBySlugLoose } from "@/lib/data/destinations";
-import { getExperiencesForDestination } from "@/lib/data/experiences";
+// Fetch via API (ISR)
+import { listExperiencesByDestinationSlug } from "@/lib/data/public/experiences";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
@@ -17,11 +17,9 @@ export default async function ExperiencesByDestinationPage(props) {
     searchParams && typeof searchParams === "object"
       ? searchParams.division || null
       : null;
-  let dst = await getDestinationBySlugLoose(slug).catch(() => null);
+  const { destination: dst, experiences: exps } =
+    await listExperiencesByDestinationSlug(slug, divisionSlug);
   if (!dst) notFound();
-  const exps = await getExperiencesForDestination(dst.id, divisionSlug).catch(
-    () => []
-  );
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">

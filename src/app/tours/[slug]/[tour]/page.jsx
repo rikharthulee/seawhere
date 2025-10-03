@@ -4,11 +4,7 @@ import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
-import {
-  getTourBySlugs,
-  getTourAvailabilityRules,
-  getTourExceptions,
-} from "@/lib/data/tours";
+import { getTourBySlugsPublic } from "@/lib/data/public/tours";
 import { fmtJPY } from "@/lib/format";
 import GygWidget from "@/components/GygWidget";
 
@@ -27,17 +23,11 @@ function fmtDays(days) {
 
 export default async function TourDetailBySlugPage(props) {
   const { slug, tour } = (await props.params) || {};
-  const result = await getTourBySlugs(slug, tour).catch(() => null);
+  const result = await getTourBySlugsPublic(slug, tour);
   if (!result?.tour || !result?.destination) notFound();
   const { tour: p, destination: dest } = result;
   let rules = [];
   let exceptions = [];
-  const [r, e] = await Promise.all([
-    getTourAvailabilityRules(p.id).catch(() => []),
-    getTourExceptions(p.id).catch(() => []),
-  ]);
-  rules = r || [];
-  exceptions = e || [];
 
   let imgPath = null;
   if (p.images) {

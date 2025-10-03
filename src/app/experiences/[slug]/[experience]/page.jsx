@@ -4,11 +4,8 @@ import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
-import {
-  getExperienceBySlugs,
-  getExperienceAvailabilityRules,
-  getExperienceExceptions,
-} from "@/lib/data/experiences";
+// Fetch via API (ISR)
+import { getExperienceBySlugsPublic } from "@/lib/data/public/experiences";
 import { fmtJPY } from "@/lib/format";
 import GygWidget from "@/components/GygWidget";
 
@@ -27,17 +24,11 @@ function fmtDays(days) {
 
 export default async function ExperienceDetailBySlugPage(props) {
   const { slug, experience } = (await props.params) || {};
-  const result = await getExperienceBySlugs(slug, experience).catch(() => null);
+  const result = await getExperienceBySlugsPublic(slug, experience);
   if (!result?.experience || !result?.destination) notFound();
   const { experience: p, destination: dest } = result;
   let rules = [];
   let exceptions = [];
-  const [r, e] = await Promise.all([
-    getExperienceAvailabilityRules(p.id).catch(() => []),
-    getExperienceExceptions(p.id).catch(() => []),
-  ]);
-  rules = r || [];
-  exceptions = e || [];
 
   let imgPath = null;
   if (p.images) {

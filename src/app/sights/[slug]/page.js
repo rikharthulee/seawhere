@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
-import { getDestinationBySlugLoose } from "@/lib/data/destinations";
-import { getSightsForDestination } from "@/lib/data/sights";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import GygWidget from "@/components/GygWidget";
+import { listSightsByDestinationSlug } from "@/lib/data/public/sights";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -15,11 +14,11 @@ export default async function SightsByDestinationPage(props) {
   const sp = (await props.searchParams) || {};
   const divisionSlug =
     typeof sp.division === "string" && sp.division.length ? sp.division : null;
-  let dst = await getDestinationBySlugLoose(slug).catch(() => null);
-  if (!dst) notFound();
-  const sights = await getSightsForDestination(dst.id, divisionSlug).catch(
-    () => []
+  const { destination: dst, sights } = await listSightsByDestinationSlug(
+    slug,
+    divisionSlug
   );
+  if (!dst) notFound();
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">

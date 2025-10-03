@@ -1,13 +1,9 @@
 import Link from "next/link";
-import { getRegions, getPrefectures } from "@/lib/data/geo";
+import { listRegionsPublic, listPrefecturesPublic } from "@/lib/data/public/geo";
 
 export default async function RegionsPage() {
-  let regions = [];
-  let prefectures = [];
-  try {
-    regions = await getRegions();
-    prefectures = await getPrefectures();
-  } catch {}
+  const regions = await listRegionsPublic();
+  const prefectures = await listPrefecturesPublic();
 
   const prefByRegion = new Map();
   for (const p of prefectures) {
@@ -52,5 +48,5 @@ export default async function RegionsPage() {
   );
 }
 
-export const revalidate = 300;
+export const revalidate = 86400;
 export const runtime = 'nodejs';

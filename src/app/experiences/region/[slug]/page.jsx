@@ -3,25 +3,17 @@ import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  getRegionBySlug,
-  getPrefecturesByRegion,
-  getDestinationsByPrefectureIds,
-} from "@/lib/data/geo";
-import { getExperiencesByDestinationIds } from "@/lib/data/experiences";
+import { getRegionBySlugPublic } from "@/lib/data/public/geo";
+import { listExperiencesByRegionSlug } from "@/lib/data/public/experiences";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
 export default async function ExperiencesByRegionPage(props) {
   const { slug } = (await props.params) || {};
-  const region = await getRegionBySlug(slug).catch(() => null);
+  const region = await getRegionBySlugPublic(slug);
   if (!region) notFound();
-  const prefs = await getPrefecturesByRegion(region.id).catch(() => []);
-  const prefIds = prefs.map((p) => p.id).filter(Boolean);
-  const dests = await getDestinationsByPrefectureIds(prefIds).catch(() => []);
-  const destIds = dests.map((d) => d.id).filter(Boolean);
-  const items = await getExperiencesByDestinationIds(destIds).catch(() => []);
+  const items = await listExperiencesByRegionSlug(slug);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">

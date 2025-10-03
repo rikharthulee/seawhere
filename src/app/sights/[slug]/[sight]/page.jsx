@@ -5,12 +5,7 @@ import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
-import {
-  getSightBySlugs,
-  getSightOpeningHours,
-  getSightOpeningExceptions,
-  getSightAdmissionPrices,
-} from "@/lib/data/sights";
+import { getSightBySlugsPublic } from "@/lib/data/public/sights";
 import { fmtTime, fmtJPY } from "@/lib/format";
 
 export const revalidate = 300;
@@ -116,9 +111,9 @@ function formatAgeRange(row) {
 
 export default async function SightDetailBySlugPage(props) {
   const { slug, sight } = (await props.params) || {};
-  const result = await getSightBySlugs(slug, sight).catch(() => null);
-  if (!result?.sight || !result?.destination) notFound();
-  const { sight: p, destination: dest } = result;
+  const r = await getSightBySlugsPublic(slug, sight);
+  if (!r?.sight || !r?.destination) notFound();
+  const { sight: p, destination: dest } = r;
   const openingTimesUrl = p.opening_times_url || null;
   const lat =
     typeof p.lat === "number" ? p.lat : Number.parseFloat(String(p.lat ?? ""));
@@ -127,13 +122,12 @@ export default async function SightDetailBySlugPage(props) {
   const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
   let seasons = [];
   let closures = [];
-  const [r, e] = await Promise.all([
-    getSightOpeningHours(p.id).catch(() => []),
-    getSightOpeningExceptions(p.id).catch(() => []),
-  ]);
-  const admissions = await getSightAdmissionPrices(p.id).catch(() => []);
-  seasons = Array.isArray(r)
-    ? r.map((row) => ({
+  // Opening hours, exceptions, and admissions are not essential for initial render here;
+  // if needed later, we can expose via API as well. Use empty arrays by default.
+  const [rHours, rExceptions] = [[], []];
+  const admissions = [];
+  seasons = Array.isArray(rHours)
+    ? rHours.map((row) => ({
         startMonth: row.start_month ?? null,
         startDay: row.start_day ?? null,
         endMonth: row.end_month ?? null,
@@ -143,8 +137,8 @@ export default async function SightDetailBySlugPage(props) {
         lastEntryMins: row.last_entry_mins ?? 0,
       }))
     : [];
-  closures = Array.isArray(e)
-    ? e.map((row) => ({
+  closures = Array.isArray(rExceptions)
+    ? rExceptions.map((row) => ({
         type: row.type || "fixed",
         startDate: row.start_date || null,
         endDate: row.end_date || null,

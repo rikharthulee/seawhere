@@ -1,20 +1,12 @@
 import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
-import { getDB } from "@/lib/supabase/server";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Badge } from "@/components/ui/badge";
+import { getExcursionByIdentifierPublic } from "@/lib/data/public/excursions";
 
 export const runtime = "nodejs";
 export const revalidate = 300;
-export const dynamic = "force-dynamic";
-
-function slugify(input) {
-  return (String(input || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "") || "excursion");
-}
+export const dynamic = undefined;
 
 function extractSummary(row) {
   if (!row) return null;
@@ -103,208 +95,17 @@ function pickItemDisplay(entry) {
   return { title, subtitle, image: null, href };
 }
 
-async function fetchExcursions(includeDrafts = false) {
-  const supabase = await getDB();
-
-  let query = supabase
-    .from("excursions")
-    .select(
-      "id, slug, name, summary, description, transport, maps_url, cover_image, updated_at, status, destination_id, created_at"
-    )
-    .order("updated_at", { ascending: false })
-    .limit(200);
-
-  if (!includeDrafts) {
-    query = query.eq("status", "published");
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return data || [];
-}
-
-async function fetchExcursionItems(excursionId) {
-  const supabase = await getDB();
-  // Be permissive with columns because schema may evolve
-  const { data, error } = await supabase
-    .from("excursion_items")
-    .select("id, excursion_id, ref_id, item_type, sort_order")
-    .eq("excursion_id", excursionId)
-    .order("sort_order", { ascending: true })
-    .limit(500);
-
-  if (error) {
-    throw error;
-  }
-  return data || [];
-}
-
-async function hydrateItemsFromRefs(items) {
-  const supabase = await getDB();
-  if (!Array.isArray(items) || items.length === 0) return [];
-
-  // Group ref_ids by item_type
-  const buckets = items.reduce((acc, it) => {
-    const t = String(it.item_type || "").toLowerCase();
-    if (!t) return acc;
-    acc[t] = acc[t] || new Set();
-    if (it.ref_id) acc[t].add(it.ref_id);
-    return acc;
-  }, {});
-
-  // Helper: build id -> row map for a table
-  async function fetchMap(table, cols, ids) {
-    if (!ids || ids.length === 0) return new Map();
-    const { data, error } = await supabase
-      .from(table)
-      .select(cols)
-      .in("id", ids);
-    if (error || !data) return new Map();
-    const m = new Map();
-    for (const row of data) m.set(row.id, row);
-    return m;
-  }
-
-  // Helper: pull first usable URL from a JSONB `images` field
-  function firstImageFromImages(images) {
-    if (!images) return null;
-    try {
-      const arr = Array.isArray(images) ? images : [];
-      for (const img of arr) {
-        if (typeof img === "string" && img) return img;
-        if (img && typeof img === "object") {
-          // common shapes: {url}, {src}, {image}
-          if (typeof img.url === "string" && img.url) return img.url;
-          if (typeof img.src === "string" && img.src) return img.src;
-          if (typeof img.image === "string" && img.image) return img.image;
-        }
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
-
-  // Build maps per supported type based on your schema
-  const maps = {};
-
-  // sights: id, name, summary, images (unified image handling)
-  if (buckets.sight && buckets.sight.size > 0) {
-    maps.sight = await fetchMap(
-      "sights",
-      "id, name, summary, images",
-      Array.from(buckets.sight)
-    );
-  }
-
-  // experiences: id, name, summary, description, images
-  if (buckets.experience && buckets.experience.size > 0) {
-    maps.experience = await fetchMap(
-      "experiences",
-      "id, name, summary, description, images",
-      Array.from(buckets.experience)
-    );
-  }
-
-  // tours: id, name, summary, description, images
-  if (buckets.tour && buckets.tour.size > 0) {
-    maps.tour = await fetchMap(
-      "tours",
-      "id, name, summary, description, images",
-      Array.from(buckets.tour)
-    );
-  }
-
-  // Merge details onto items
-  return items.map((it) => {
-    const t = String(it.item_type || "").toLowerCase();
-    const m = maps[t];
-    const row = m ? m.get(it.ref_id) : null;
-
-    // Name
-    const displayName = row?.name || it.name || it.title || t || "Item";
-
-    // Summary (prefer `summary`, fallback to text `description`)
-    let displaySummary = null;
-    if (row?.summary) displaySummary = row.summary;
-    else if (typeof row?.description === "string" && row.description) {
-      displaySummary = row.description;
-    }
-
-    // Image
-    let image = null;
-    if (t === "sight" || t === "experience" || t === "tour") {
-      image = firstImageFromImages(row?.images);
-    }
-    const displayImage = resolveImageUrl(image);
-
-    return { ...it, displayName, displaySummary, displayImage };
-  });
-}
-
 export default async function ExcursionDetailPage(props) {
   const params = (await props.params) || {};
   const searchParams = props.searchParams ? await props.searchParams : undefined;
 
-  const includeDrafts = String(searchParams?.preview) === "1";
-  const slugParam = decodeURIComponent(params?.slug || "")
-    .trim()
-    .toLowerCase();
-
+  const slugParam = decodeURIComponent(params?.slug || "").trim().toLowerCase();
   const dbgFlagRaw = String(searchParams?.debug || "").toLowerCase();
-  const debugOn =
-    dbgFlagRaw === "1" || dbgFlagRaw === "true" || dbgFlagRaw === "yes";
+  const debugOn = dbgFlagRaw === "1" || dbgFlagRaw === "true" || dbgFlagRaw === "yes";
 
-  const excursions = await fetchExcursions(includeDrafts);
-
-  if (!excursions || excursions.length === 0) {
-    return (
-      <main className="mx-auto w-full max-w-4xl px-4 py-10 space-y-6">
-        <h1 className="text-2xl font-semibold">Excursions</h1>
-        <p className="text-sm text-muted-foreground">
-          No excursions found{includeDrafts ? " (including drafts)" : ""}.
-        </p>
-        {debugOn ? (
-          <pre className="mt-2 max-h-96 overflow-auto rounded border border-border bg-muted p-3 text-xs">
-            {JSON.stringify({ includeDrafts, slugParam, excursions }, null, 2)}
-          </pre>
-        ) : null}
-      </main>
-    );
-  }
-
-  const match = excursions.find((row) => {
-    const explicitSlug = String(row.slug || "")
-      .trim()
-      .toLowerCase();
-    const generatedSlug = slugify(row.name || row.title || row.id);
-    if (explicitSlug && explicitSlug === slugParam) return true;
-    if (generatedSlug === slugParam) return true;
-    if (String(row.id).toLowerCase() === slugParam) return true;
-    return false;
-  });
-
-  if (!match) {
-    if (!includeDrafts) return notFound();
-    return (
-      <main className="mx-auto w-full max-w-4xl px-4 py-10 space-y-8">
-        <header className="space-y-3">
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Excursion not found
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Try adding <code>?preview=1</code> when testing drafts.
-          </p>
-        </header>
-      </main>
-    );
-  }
-
-  const items = await fetchExcursionItems(match.id);
-  const itemsSorted = Array.isArray(items)
-    ? [...items].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    : [];
-  const detailedItems = await hydrateItemsFromRefs(itemsSorted);
+  const result = await getExcursionByIdentifierPublic(slugParam);
+  if (!result?.excursion) return notFound();
+  const { excursion: match, detailedItems } = result;
 
   // Image fallbacks: cover_image -> hero_image -> images[0]
   const coverCandidate = match.cover_image;
@@ -322,7 +123,7 @@ export default async function ExcursionDetailPage(props) {
       : null);
 
   // Group items by type/collection for display
-  const grouped = items.reduce((acc, it) => {
+  const grouped = (Array.isArray(detailedItems) ? detailedItems : []).reduce((acc, it) => {
     const key = (it.collection || it.item_type || "items")
       .toString()
       .toLowerCase();
@@ -514,12 +315,6 @@ export default async function ExcursionDetailPage(props) {
               <h3 className="text-sm font-medium">Excursion</h3>
               <pre className="mt-2 max-h-96 overflow-auto rounded border border-border bg-muted p-3 text-xs">
                 {JSON.stringify(match, null, 2)}
-              </pre>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium">Items</h3>
-              <pre className="mt-2 max-h-96 overflow-auto rounded border border-border bg-muted p-3 text-xs">
-                {JSON.stringify(items, null, 2)}
               </pre>
             </div>
             <div className="md:col-span-2">

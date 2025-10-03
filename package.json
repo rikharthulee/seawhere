@@ -8,7 +8,7 @@
     "build": "npm run lint && npm run lint:service && next build",
     "start": "next start",
     "lint": "next lint",
-    "lint:service": "git grep -n 'lib/supabase/service' -- ':!node_modules' && (echo '❌ service client found' && exit 1) || echo '✅ all clear'"
+    "lint:service": "rg -n -e \"^\\s*import\\s+.*from\\s+['\\\"]@/lib/supabase/service['\\\"]\" -e \"require\\(['\\\"]@/lib/supabase/service['\\\"]\\)\" --glob '!node_modules' --glob '!eslint.config.mjs' && (echo '❌ service client found' && exit 1) || echo '✅ all clear'"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

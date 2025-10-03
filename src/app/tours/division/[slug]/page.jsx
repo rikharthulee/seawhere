@@ -2,23 +2,18 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import { Card } from "@/components/ui/card";
-import {
-  getDivisionBySlugLoose,
-  getDestinationsByDivision,
-} from "@/lib/data/geo";
-import { getToursByDestinationIds } from "@/lib/data/tours";
+import { Card, CardContent } from "@/components/ui/card";
+import { getDivisionBySlugPublic } from "@/lib/data/public/geo";
+import { listToursByDivisionSlug } from "@/lib/data/public/tours";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
 export default async function ToursByDivisionPage(props) {
   const { slug } = (await props.params) || {};
-  const div = await getDivisionBySlugLoose(slug).catch(() => null);
+  const div = await getDivisionBySlugPublic(slug);
   if (!div) notFound();
-  const destinations = await getDestinationsByDivision(div.id).catch(() => []);
-  const destIds = (destinations || []).map((d) => d.id).filter(Boolean);
-  const items = await getToursByDestinationIds(destIds).catch(() => []);
+  const items = await listToursByDivisionSlug(slug);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">

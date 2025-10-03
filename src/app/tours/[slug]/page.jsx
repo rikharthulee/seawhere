@@ -1,10 +1,9 @@
 import { notFound } from "next/navigation";
-import { getDestinationBySlugLoose } from "@/lib/data/destinations";
-import { getToursForDestination } from "@/lib/data/tours";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
+import { listToursByDestinationSlug } from "@/lib/data/public/tours";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -17,11 +16,11 @@ export default async function ToursByDestinationPage(props) {
     searchParams && typeof searchParams === "object"
       ? searchParams.division || null
       : null;
-  let dst = await getDestinationBySlugLoose(slug).catch(() => null);
-  if (!dst) notFound();
-  const tours = await getToursForDestination(dst.id, divisionSlug).catch(
-    () => []
+  const { destination: dst, tours } = await listToursByDestinationSlug(
+    slug,
+    divisionSlug
   );
+  if (!dst) notFound();
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">

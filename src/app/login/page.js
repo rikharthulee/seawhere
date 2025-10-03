@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import LoginForm from "./LoginForm";
 import { redirect } from "next/navigation";
-import { getDB } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -9,17 +8,13 @@ export default async function LoginPage(props) {
   const searchParams = props.searchParams ? await props.searchParams : undefined;
   // Server-side: if already authed and authorized, redirect to target immediately.
   try {
-    const supabase = await getDB();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const res = await fetch("/api/auth/session", { cache: "no-store" });
+    const json = await res.json();
+    const user = json?.user || null;
     if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      if (profile && ["admin", "editor"].includes(profile.role)) {
+      // Keep redirect scope minimal here; detailed role checks happen in admin layout/middleware
+      const role = user?.role || user?.app_metadata?.role || null;
+      if (!role || ["admin", "editor"].includes(role)) {
         const raw =
           searchParams && typeof searchParams === "object"
             ? searchParams.redirect

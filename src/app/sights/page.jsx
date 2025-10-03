@@ -1,15 +1,11 @@
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 300;
 
 import Sights from "@/components/Sights";
-import { getPublishedSights } from "@/lib/data/sights";
+import { listPublishedSights } from "@/lib/data/public/sights";
 
 export default async function SightsPage() {
-  let items = [];
-  try {
-    items = await getPublishedSights();
-  } catch {}
+  const items = await listPublishedSights();
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <Sights items={items} />

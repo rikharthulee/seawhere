@@ -11,27 +11,19 @@ import {
   resolveImageUrl,
 } from "@/lib/imageUrl";
 import GygWidget from "@/components/GygWidget";
-import { getDestinationBySlug } from "@/lib/data/destinations";
+import { getDestinationBySlugPublic } from "@/lib/data/public/destinations";
 
 // ISR setting: revalidate page every 900 seconds (15 minutes)
-export const revalidate = 900;
+export const revalidate = 300;
 // Use Node.js runtime for this page
 export const runtime = "nodejs";
-// Force dynamic rendering for this page
-export const dynamic = "force-dynamic";
-
 // Server component for destination detail
 export default async function DestinationPage(props) {
-  // Extract slug from route params, fetch destination row, resolve hero and gallery images
+  // Extract slug from route params, fetch destination row via API, resolve hero and gallery images
   const { slug } = (await props.params) || {};
   if (!slug) notFound();
 
-  let dst = null;
-  try {
-    dst = await getDestinationBySlug(slug);
-  } catch (e) {
-    console.error("Destination fetch failed", { slug, error: e });
-  }
+  const dst = await getDestinationBySlugPublic(slug);
   if (!dst) notFound();
 
   const hero = resolveImageUrl(firstImageFromImages(dst.images ?? []));

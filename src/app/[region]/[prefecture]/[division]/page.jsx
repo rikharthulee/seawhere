@@ -2,25 +2,25 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
 import {
-  getRegionBySlug,
-  getPrefectureBySlug,
-  getDivisionBySlugLoose,
-  getDestinationsByDivision,
-} from "@/lib/data/geo";
+  getRegionBySlugPublic,
+  getPrefectureBySlugPublic,
+  getDivisionBySlugPublic,
+  listDestinationsByDivisionId,
+} from "@/lib/data/public/geo";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function DivisionPage(props) {
   const { region, prefecture, division } = (await props.params) || {};
 
-  const reg = await getRegionBySlug(region).catch(() => null);
+  const reg = await getRegionBySlugPublic(region);
   if (!reg) notFound();
-  const pref = await getPrefectureBySlug(prefecture, reg.id).catch(() => null);
+  const pref = await getPrefectureBySlugPublic(prefecture);
   if (!pref) notFound();
-  const div = await getDivisionBySlugLoose(division).catch(() => null);
+  const div = await getDivisionBySlugPublic(division);
   if (!div) notFound();
 
-  const destinations = await getDestinationsByDivision(div.id).catch(() => []);
+  const destinations = await listDestinationsByDivisionId(div.id);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
