@@ -4,29 +4,11 @@ import { useState } from "react";
 import { resolveImageUrl, resolveImageProps } from "@/lib/imageUrl";
 
 // Hosts allowed by next.config images.remotePatterns
-const SUPABASE_HOST = (() => {
-  try {
-    const u = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    return u ? new URL(u).hostname : null;
-  } catch {
-    return null;
-  }
-})();
-const SUPABASE_ASSETS_HOST = (() => {
-  try {
-    const u = process.env.NEXT_PUBLIC_SUPABASE_ASSETS_URL;
-    return u ? new URL(u).hostname : null;
-  } catch {
-    return null;
-  }
-})();
 const ALLOWED_HOSTS = new Set([
-  SUPABASE_HOST,
-  SUPABASE_ASSETS_HOST,
   "picsum.photos",
   "images.unsplash.com",
   "plus.unsplash.com",
-].filter(Boolean));
+]);
 
 function isExternal(src) {
   return /^https?:\/\//i.test(src || "");

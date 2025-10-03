@@ -11,6 +11,7 @@ import {
 } from "@/lib/data/experiences";
 import { fmtJPY } from "@/lib/format";
 import GygWidget from "@/components/GygWidget";
+import { serverParams } from "@/app/_lib/next15";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -25,8 +26,9 @@ function fmtDays(days) {
     .join(", ");
 }
 
+// @page-kind server
 export default async function ExperienceDetailBySlugPage(props) {
-  const { params } = await props?.params;
+  const { params } = await serverParams(props);
   const { slug, experience } = params || {};
   const result = await getExperienceBySlugs(slug, experience).catch(() => null);
   if (!result?.experience || !result?.destination) notFound();

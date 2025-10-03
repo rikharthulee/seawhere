@@ -8,12 +8,14 @@ import {
   getDestinationsByPrefecture,
 } from "@/lib/data/geo";
 import { getExperiencesByDestinationIds } from "@/lib/data/experiences";
+import { serverParams } from "@/app/_lib/next15";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
+// @page-kind server
 export default async function ExperiencesByPrefecturePage(props) {
-  const { params } = await props?.params;
+  const { params } = await serverParams(props);
   const { slug } = params || {};
   const pref = await getPrefectureBySlug(slug, undefined).catch(() => null);
   if (!pref?.id) notFound();

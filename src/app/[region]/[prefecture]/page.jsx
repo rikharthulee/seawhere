@@ -9,9 +9,11 @@ import {
 } from "@/lib/data/geo";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
+import { serverParams } from "@/app/_lib/next15";
 
+// @page-kind server
 export default async function PrefecturePage(props) {
-  const { params } = await props?.params;
+  const { params } = await serverParams(props);
   const { region, prefecture } = params || {};
 
   const reg = await getRegionBySlug(region).catch(() => null);

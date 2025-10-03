@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +30,6 @@ function slugify(s) {
 }
 
 export default function DestinationForm({ initial, onSaved, onCancel }) {
-  const supabase = createClient();
   const useGeoViews = shouldUseGeoViews();
   const [name, setName] = useState(initial?.name || "");
   const [slug, setSlug] = useState(initial?.slug || "");
@@ -118,51 +116,13 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
           }
         }
       } catch {}
-      // Fallback chain: Supabase client → REST public
-      try {
-        const prefQuery = useGeoViews
-          ? supabase.from("geo_prefectures_v").select("*")
-          : supabase
-              .from("prefectures")
-              .select("id,name,slug,region_id,order_index")
-              .order("order_index", { ascending: true });
-        const { data: prefs } = await prefQuery;
-        if (!cancelled) {
-          const normalized = Array.isArray(prefs)
-            ? sortGeoRows(prefs.map(normalizePrefectureShape).filter(Boolean))
-            : [];
-          setPrefectures(normalized);
-        }
-      } catch {}
-      try {
-        const { data: regs } = await supabase
-          .from("regions")
-          .select("id,name,slug,order_index")
-          .order("order_index", { ascending: true });
-        if (!cancelled) setRegions(Array.isArray(regs) ? regs : []);
-      } catch {}
-      try {
-        const divQuery = useGeoViews
-          ? supabase.from("geo_divisions_v").select("*")
-          : supabase
-              .from("divisions")
-              .select("id,name,slug,prefecture_id,order_index")
-              .order("order_index", { ascending: true });
-        const { data: divs } = await divQuery;
-        if (!cancelled) {
-          const normalized = Array.isArray(divs)
-            ? sortGeoRows(divs.map(normalizeDivisionShape).filter(Boolean))
-            : [];
-          setDivisions(normalized);
-        }
-      } catch {}
-      // No further fallback; admin meta + client reads should suffice
+      // No client fallbacks — server meta endpoints are required
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+  }, []);
   useEffect(() => {
     if (!prefectureId) return;
     const pref = prefectures.find((p) => p.id === prefectureId);

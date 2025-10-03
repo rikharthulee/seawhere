@@ -1,11 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
 export default function LoginForm() {
-  const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -25,40 +23,17 @@ export default function LoginForm() {
   // If already signed in, or once auth state changes to SIGNED_IN, push immediately
   // This avoids waiting on any server cookie sync or network latency.
   useEffect(() => {
-    let unsub = { subscription: { unsubscribe() {} } };
+    // Check session via server; if authed, redirect immediately
     (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session) {
-        const target = getRedirectTarget();
-        if (typeof window !== "undefined") {
-          window.location.replace(target);
-        } else {
-          router.replace(target);
-          router.refresh();
-        }
-        return;
-      }
-      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === "SIGNED_IN" && session) {
+      try {
+        const res = await fetch("/api/auth/session", { cache: "no-store" });
+        const json = await res.json();
+        if (json?.user) {
           const target = getRedirectTarget();
-          if (typeof window !== "undefined") {
-            window.location.replace(target);
-            // Belt-and-braces fallback in case replace is ignored by the browser
-            setTimeout(() => {
-              try {
-                if (location.pathname === "/login") location.assign(target);
-              } catch {}
-            }, 500);
-          } else {
-            router.replace(target);
-            router.refresh();
-          }
+          window.location.replace(target);
         }
-      });
-      unsub = sub;
+      } catch {}
     })();
-    return () => unsub.subscription?.unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSubmit(e) {
@@ -66,43 +41,20 @@ export default function LoginForm() {
     setErrorMsg("");
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const resp = await fetch("/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ email, password }),
       });
-      if (error) {
-        setErrorMsg(error.message);
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        setErrorMsg(json?.error || "Sign-in failed");
         return;
       }
 
-      // Ensure server cookies are synced before navigating, otherwise
-      // the /admin middleware may redirect back to /login.
-      try {
-        const { data } = await supabase.auth.getSession();
-        const session = data?.session;
-        await fetch("/auth/callback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
-          // keepalive helps ensure the request completes even if navigation begins
-          keepalive: true,
-          body: JSON.stringify({ event: "SIGNED_IN", session }),
-        });
-      } catch (_) {}
-
       const redirect = getRedirectTarget();
-      if (typeof window !== "undefined") {
-        window.location.replace(redirect);
-        // Fallback in case replace is ignored
-        setTimeout(() => {
-          try {
-            if (location.pathname === "/login") location.assign(redirect);
-          } catch {}
-        }, 400);
-      } else {
-        router.replace(redirect);
-        router.refresh();
-      }
+      window.location.replace(redirect);
       return;
     } catch (err) {
       setErrorMsg("Unexpected error. Please try again.");
@@ -119,11 +71,15 @@ export default function LoginForm() {
       return;
     }
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${location.origin}/auth/reset`,
+      const res = await fetch("/auth/reset/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ email }),
       });
-      if (error) {
-        setErrorMsg(error.message);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setErrorMsg(json?.error || "Could not send reset email.");
         return;
       }
       setResetMsg("Password reset email sent. Check your inbox.");

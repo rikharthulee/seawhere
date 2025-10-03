@@ -1,17 +1,20 @@
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-// Use a dedicated assets base for Storage fetches if provided, otherwise fall back to SUPABASE_URL
-const SUPABASE_ASSETS_URL = process.env.NEXT_PUBLIC_SUPABASE_ASSETS_URL || SUPABASE_URL;
-const SUPABASE_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;
-
 export function resolveImageUrl(path) {
   if (!path || typeof path !== "string") return null;
-  if (/^https?:\/\//i.test(path)) return path;
+  if (/^https?:\/\//i.test(path)) {
+    try {
+      const u = new URL(path);
+      const isSb = u.hostname.endsWith(".supabase.co") && u.pathname.includes("/storage/");
+      if (isSb) return `/api/storage/proxy?url=${encodeURIComponent(path)}`;
+    } catch {}
+    return path;
+  }
   // Handle values stored as storage public path without domain
   if (path.startsWith("/storage/v1/object/public/")) {
-    return SUPABASE_ASSETS_URL ? `${SUPABASE_ASSETS_URL}${path}` : path;
+    const clean = path.replace(/^\/+/, "");
+    return `/api/storage/proxy?path=${encodeURIComponent(clean)}`;
   }
   if (path.startsWith("storage/v1/object/public/")) {
-    return SUPABASE_ASSETS_URL ? `${SUPABASE_ASSETS_URL}/${path}` : `/${path}`;
+    return `/api/storage/proxy?path=${encodeURIComponent(path)}`;
   }
   // If a leading slash is present but it refers to a storage key like
   // "/destinations/..." or "/accommodation/..." (or legacy "/locations/..."),
@@ -23,22 +26,13 @@ export function resolveImageUrl(path) {
       trimmed.startsWith("accommodation/") ||
       trimmed.startsWith("locations/")
     ) {
-      if (SUPABASE_ASSETS_URL && SUPABASE_BUCKET) {
-        return `${SUPABASE_ASSETS_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${trimmed}`;
-      }
-      return `/${trimmed}`;
+      return `/api/storage/proxy?key=${encodeURIComponent(trimmed)}`;
     }
     // Otherwise assume it's a file in /public
     return path;
   }
-  if (SUPABASE_ASSETS_URL && SUPABASE_BUCKET) {
-    // Treat the provided value as an exact key inside the public bucket.
-    // No automatic prefixing — caller must provide full key like
-    // "destinations/tokyo/thumb.jpg" or "/destinations/tokyo/thumb.jpg".
-    return `${SUPABASE_ASSETS_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${path}`;
-  }
-  // As a last resort, treat as public/ relative path
-  return `/${path}`;
+  // Treat bare keys as bucket-relative public storage keys via proxy
+  return `/api/storage/proxy?key=${encodeURIComponent(path)}`;
 }
 
 // --- Blur helpers for Next/Image -------------------------------------------

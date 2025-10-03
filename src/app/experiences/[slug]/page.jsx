@@ -5,12 +5,14 @@ import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
+import { serverParams } from "@/app/_lib/next15";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
+// @page-kind server
 export default async function ExperiencesByDestinationPage(props) {
-  const { params, searchParams } = await props?.params;
+  const { params, searchParams } = await serverParams(props);
   const { slug } = params || {};
   const divisionSlug =
     searchParams && typeof searchParams === "object"

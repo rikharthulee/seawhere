@@ -3,6 +3,7 @@ import SafeImage from "@/components/SafeImage";
 import { getDB } from "@/lib/supabase/server";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Badge } from "@/components/ui/badge";
+import { serverParams } from "@/app/_lib/next15";
 
 export const runtime = "nodejs";
 export const revalidate = 300;
@@ -241,15 +242,9 @@ async function hydrateItemsFromRefs(items) {
   });
 }
 
+// @page-kind server
 export default async function ExcursionDetailPage(props) {
-  let routeCtx = {};
-  try {
-    routeCtx = (await props?.params) || {};
-  } catch (_) {
-    routeCtx = {};
-  }
-  const params = routeCtx.params || (await props?.params) || {};
-  const searchParams = routeCtx.searchParams || (await props?.searchParams) || {};
+  const { params, searchParams } = await serverParams(props);
 
   const includeDrafts = String(searchParams?.preview) === "1";
   const slugParam = decodeURIComponent(params?.slug || "")

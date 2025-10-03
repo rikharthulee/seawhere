@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import SafeImage from "@/components/SafeImage";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import DesktopBannerNav from "@/components/DesktopBannerNav";
 import MobileNavbar from "@/components/MobileNavbar";
 import { Button } from "@/components/ui/button";
@@ -15,60 +14,36 @@ export default function Navbar() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [user, setUser] = useState(null);
   const router = useRouter();
-  const supabase = createClient();
   // Track auth state and show Sign out when logged in
   useEffect(() => {
     let mounted = true;
     async function prime() {
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) return;
-      const session = data.session;
-      setIsAuthed(!!session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setUserName(
-          session.user.user_metadata?.name || session.user.email || ""
-        );
-        setAvatarUrl("");
-      } else {
-        setUserName("");
-        setAvatarUrl("");
-      }
-    }
-    prime();
-
-    const { data: sub } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setIsAuthed(!!session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          setUserName(
-            session.user.user_metadata?.name || session.user.email || ""
-          );
+      try {
+        const res = await fetch("/api/auth/session", { cache: "no-store" });
+        const json = await res.json();
+        if (!mounted) return;
+        const u = json?.user || null;
+        setIsAuthed(!!u);
+        setUser(u);
+        if (u) {
+          setUserName(u.user_metadata?.name || u.email || "");
           setAvatarUrl("");
         } else {
           setUserName("");
           setAvatarUrl("");
         }
-      }
-    );
+      } catch {}
+    }
+    prime();
     return () => {
       mounted = false;
-      sub.subscription?.unsubscribe();
     };
-  }, [supabase]);
+  }, []);
 
   async function handleSignOut() {
     setSigningOut(true);
-    try {
-      // Hit server route to clear auth cookies for SSR/middleware
-      await fetch("/auth/signout", { method: "POST" });
-    } catch (_) {
-      // fall back to client sign out
-      try {
-        await supabase.auth.signOut();
-      } catch (_) {}
-    }
+    // Hit server route to clear auth cookies for SSR/middleware
+    try { await fetch("/auth/signout", { method: "POST" }); } catch (_) {}
     // Hard redirect to ensure a clean state everywhere
     if (typeof window !== "undefined") {
       // Use replace to avoid back navigation to an authed page

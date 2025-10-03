@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import MultiImageUpload from "./MultiImageUpload";
 import RichTextEditor from "./RichTextEditor";
@@ -22,7 +21,6 @@ import {
 } from "@/lib/geo-normalize";
 
 export default function SightsForm({ id, initial, onSaved, onCancel }) {
-  const supabase = createClient();
   const useGeoViews = shouldUseGeoViews();
   const isEditing = !!id;
 
@@ -127,48 +125,13 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
           if (!cancelled) setDestinations(json.items || []);
         }
       } catch {}
-      // Client fallback reads in case admin meta is blocked
-      try {
-        const { data: r } = await supabase
-          .from("regions")
-          .select("id,name,slug,order_index")
-          .order("order_index", { ascending: true });
-        if (!cancelled && r && r.length && regions.length === 0) setRegions(r);
-      } catch {}
-      try {
-        const prefQuery = useGeoViews
-          ? supabase.from("geo_prefectures_v").select("*")
-          : supabase
-              .from("prefectures")
-              .select("id,name,slug,region_id,order_index")
-              .order("order_index", { ascending: true });
-        const { data: p } = await prefQuery;
-        if (
-          !cancelled &&
-          Array.isArray(p) &&
-          p.length &&
-          prefectures.length === 0
-        ) {
-          setPrefectures(
-            sortGeoRows(p.map(normalizePrefectureShape).filter(Boolean))
-          );
-        }
-      } catch {}
-      // Division options are loaded via RPC per destination; no general divisions fetch here.
-      try {
-        const { data: dst } = await supabase
-          .from("destinations")
-          .select("id,name,slug,prefecture_id,division_id,status")
-          .order("name", { ascending: true });
-        if (!cancelled && dst && dst.length && destinations.length === 0)
-          setDestinations(dst);
-      } catch {}
+      // No client fallbacks; enforce server meta endpoints only
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     setSlug(initial?.slug || "");
@@ -215,13 +178,14 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         return;
       }
       try {
-        const { data } = await supabase.rpc("get_divisions_for_destination", {
-          dst_id: destinationId,
-        });
-        if (!cancelled) setDivisionsForDest(Array.isArray(data) ? data : []);
-      } catch {
-        if (!cancelled) setDivisionsForDest([]);
-      }
+        const res = await fetch(`/api/admin/meta/divisions-for-destination/${destinationId}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (!cancelled) setDivisionsForDest(Array.isArray(json.items) ? json.items : []);
+        } else {
+          if (!cancelled) setDivisionsForDest([]);
+        }
+      } catch { if (!cancelled) setDivisionsForDest([]); }
     }
     if (
       prevDestIdRef.current !== null &&
@@ -234,7 +198,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
     return () => {
       cancelled = true;
     };
-  }, [destinationId, supabase]);
+  }, [destinationId]);
 
   const prefecturesForRegion = useMemo(
     () => prefectures.filter((p) => p.region_id === regionId),

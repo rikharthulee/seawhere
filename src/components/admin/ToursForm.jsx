@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import MultiImageUpload from "./MultiImageUpload";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import RichTextEditor from "./RichTextEditor";
@@ -14,7 +13,6 @@ import {
 } from "@/lib/geo-normalize";
 
 export default function ToursForm({ id, initial, onSaved, onCancel }) {
-  const supabase = createClient();
   const useGeoViews = shouldUseGeoViews();
   const isEditing = !!id;
 
@@ -82,37 +80,11 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
           if (!cancelled) setDestinations(json.items || []);
         }
       } catch {}
-      // Fallbacks
-      try {
-        const { data: r } = await supabase.from("regions").select("id,name,slug,order_index").order("order_index", { ascending: true });
-        if (!cancelled && r && r.length && regions.length === 0) setRegions(r);
-      } catch {}
-      try {
-        const prefQuery = useGeoViews
-          ? supabase.from("geo_prefectures_v").select("*")
-          : supabase
-              .from("prefectures")
-              .select("id,name,slug,region_id,order_index")
-              .order("order_index", { ascending: true });
-        const { data: p } = await prefQuery;
-        if (!cancelled && Array.isArray(p) && p.length && prefectures.length === 0) {
-          setPrefectures(
-            sortGeoRows(p.map(normalizePrefectureShape).filter(Boolean))
-          );
-        }
-      } catch {}
-      // Division options are loaded via RPC per destination; no general divisions fetch here.
-      try {
-        const { data: dst } = await supabase
-          .from("destinations")
-          .select("id,name,slug,prefecture_id,division_id,status")
-          .order("name", { ascending: true });
-        if (!cancelled && dst && dst.length && destinations.length === 0) setDestinations(dst);
-      } catch {}
+      // No client-side fallbacks; all admin reads must go via server
     }
     load();
     return () => { cancelled = true; };
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     setSlug(initial?.slug || "");
