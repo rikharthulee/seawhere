@@ -16,9 +16,13 @@ export default async function AdminLayout({ children }) {
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (!profile || !["admin", "editor"].includes(profile.role)) {
+  const fallbackRole =
+    user?.app_metadata?.role || user?.role || user?.user_metadata?.role || null;
+  const effectiveRole = profile?.role || fallbackRole;
+
+  if (!effectiveRole || !["admin", "editor"].includes(effectiveRole)) {
     return redirect("/login?unauthorized=1");
   }
 
