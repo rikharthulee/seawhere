@@ -12,41 +12,47 @@ export async function GET(_req, ctx) {
   try {
     const db = await getDB();
 
-    const { data: sight, error } = await db
-      .from("sights")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
-    if (error)
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    const [{ data: sight, error: sightErr }, { data: hours, error: hoursErr }, { data: exceptions, error: exceptionsErr }, { data: admissionRows, error: admissionErr }] =
+      await Promise.all([
+        db
+          .from("sights")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle(),
+        db
+          .from("sight_opening_hours")
+          .select(
+            "id, sight_id, start_month, start_day, end_month, end_day, open_time, close_time, last_entry_mins, days, is_closed"
+          )
+          .eq("sight_id", id)
+          .order("start_month", { ascending: true })
+          .order("start_day", { ascending: true })
+          .order("open_time", { ascending: true }),
+        db
+          .from("sight_opening_exceptions")
+          .select("id, sight_id, type, start_date, end_date, weekday, note")
+          .eq("sight_id", id)
+          .order("start_date", { ascending: true })
+          .order("weekday", { ascending: true }),
+        db
+          .from("sight_admission_prices")
+          .select(
+            "id, idx, subsection, label, min_age, max_age, is_free, amount, currency, requires_id, valid_from, valid_to, note"
+          )
+          .eq("sight_id", id)
+          .order("idx", { ascending: true }),
+      ]);
+
+    if (sightErr)
+      return NextResponse.json({ error: sightErr.message }, { status: 400 });
     if (!sight)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-    const { data: hours } = await db
-      .from("sight_opening_hours")
-      .select(
-        "id, start_month, start_day, end_month, end_day, open_time, close_time, last_entry_mins"
-      )
-      .eq("sight_id", id)
-      .order("start_month", { ascending: true })
-      .order("start_day", { ascending: true });
-
-    const { data: exceptions } = await db
-      .from("sight_opening_exceptions")
-      .select("id, type, start_date, end_date, weekday, note")
-      .eq("sight_id", id)
-      .order("start_date", { ascending: true });
-
-    const { data: admissionRows, error: aErr } = await db
-      .from("sight_admission_prices")
-      .select(
-        "id, idx, subsection, label, min_age, max_age, is_free, amount, currency, requires_id, valid_from, valid_to, note"
-      )
-      .eq("sight_id", id)
-      .order("idx", { ascending: true });
-    if (aErr) {
-      return NextResponse.json({ error: aErr.message }, { status: 400 });
-    }
+    if (hoursErr)
+      return NextResponse.json({ error: hoursErr.message }, { status: 400 });
+    if (exceptionsErr)
+      return NextResponse.json({ error: exceptionsErr.message }, { status: 400 });
+    if (admissionErr)
+      return NextResponse.json({ error: admissionErr.message }, { status: 400 });
 
     return NextResponse.json(
       {
@@ -72,7 +78,15 @@ export async function PUT(request, ctx) {
   }
   try {
     const db = await getDB();
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseErr) {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 }
+      );
+    }
 
     // Admission prices save action (from AdmissionEditor)
     if (body?._action === "saveAdmission") {
@@ -131,62 +145,267 @@ export async function PUT(request, ctx) {
     // Opening times save action (from OpeningTimesEditor)
     if (body?._action === "saveOpeningTimes") {
       const ot = body.openingTimes || {};
-      const hours = Array.isArray(ot.hours) ? ot.hours : [];
-      const closures = Array.isArray(ot.closures) ? ot.closures : [];
-      const officialUrl = ot.officialUrl || null;
+      const rawHours = Array.isArray(ot.hours) ? ot.hours : [];
+      const rawClosures = Array.isArray(ot.closures) ? ot.closures : [];
+      const normalizeUrl = (value) => {
+        if (typeof value !== "string") return null;
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : null;
+      };
+      const hasOfficialUrlField = Object.prototype.hasOwnProperty.call(
+        ot,
+        "officialUrl"
+      );
 
-      // Replace seasons/hours
-      await db.from("sight_opening_hours").delete().eq("sight_id", id);
-      if (hours.length > 0) {
-        const rows = hours.map((h) => ({
+      const { data: sightExists, error: sightLookupErr } = await db
+        .from("sights")
+        .select("id, opening_times_url")
+        .eq("id", id)
+        .maybeSingle();
+      if (sightLookupErr)
+        return NextResponse.json(
+          { error: sightLookupErr.message },
+          { status: 400 }
+        );
+      if (!sightExists) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+
+      const officialUrl = hasOfficialUrlField
+        ? normalizeUrl(ot.officialUrl)
+        : sightExists.opening_times_url ?? null;
+
+      const clampInt = (value, { min, max, defaultValue = null } = {}) => {
+        if (value === null || value === undefined || value === "") {
+          return defaultValue;
+        }
+        const num = Number(value);
+        if (!Number.isFinite(num)) return defaultValue;
+        const int = Math.trunc(num);
+        if (min !== undefined && int < min) return defaultValue;
+        if (max !== undefined && int > max) return defaultValue;
+        return int;
+      };
+
+      const toDateString = (value) => {
+        if (!value) return null;
+        if (value instanceof Date && !Number.isNaN(value.valueOf())) {
+          return value.toISOString().slice(0, 10);
+        }
+        if (typeof value === "string") {
+          const trimmed = value.trim();
+          if (!trimmed) return null;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+          const parsed = new Date(trimmed);
+          if (!Number.isNaN(parsed.valueOf())) {
+            return parsed.toISOString().slice(0, 10);
+          }
+        }
+        return null;
+      };
+
+      const normalizeDays = (value) => {
+        if (!Array.isArray(value)) return [];
+        const unique = new Set();
+        for (const entry of value) {
+          if (typeof entry !== "string") continue;
+          const upper = entry.trim().toUpperCase();
+          if (!upper) continue;
+          unique.add(upper);
+        }
+        return Array.from(unique);
+      };
+
+      const normalizedHours = rawHours.map((hour) => {
+        const openTime =
+          typeof hour?.openTime === "string" ? hour.openTime.trim() : "";
+        const closeTime =
+          typeof hour?.closeTime === "string" ? hour.closeTime.trim() : "";
+        const isClosed = !!hour?.isClosed;
+        const lastEntry = clampInt(hour?.lastEntryMins, {
+          min: 0,
+          max: Number.MAX_SAFE_INTEGER,
+          defaultValue: 0,
+        });
+
+        return {
           sight_id: id,
-          start_month: h.startMonth ?? null,
-          start_day: h.startDay ?? null,
-          end_month: h.endMonth ?? null,
-          end_day: h.endDay ?? null,
-          open_time: h.openTime || null,
-          close_time: h.closeTime || null,
-          last_entry_mins:
-            typeof h.lastEntryMins === "number" ? h.lastEntryMins : null,
-        }));
-        const { error: hErr } = await db
+          start_month: clampInt(hour?.startMonth, { min: 1, max: 12 }),
+          start_day: clampInt(hour?.startDay, { min: 1, max: 31 }),
+          end_month: clampInt(hour?.endMonth, { min: 1, max: 12 }),
+          end_day: clampInt(hour?.endDay, { min: 1, max: 31 }),
+          open_time: isClosed ? null : openTime || null,
+          close_time: isClosed ? null : closeTime || null,
+          last_entry_mins: isClosed ? 0 : lastEntry ?? 0,
+          days: normalizeDays(hour?.days),
+          is_closed: isClosed,
+        };
+      });
+
+      const allowedTypes = new Set(["fixed", "range", "weekly"]);
+      const normalizedClosures = rawClosures.map((closure) => {
+        let type = typeof closure?.type === "string" ? closure.type.toLowerCase() : "fixed";
+        if (!allowedTypes.has(type)) type = "fixed";
+        const weekday =
+          type === "weekly"
+            ? clampInt(closure?.weekday, { min: 0, max: 6 })
+            : null;
+        const startDate =
+          type === "weekly" ? null : toDateString(closure?.startDate ?? null);
+        const endDate =
+          type === "range" ? toDateString(closure?.endDate ?? null) : null;
+        const noteSource =
+          typeof closure?.notes === "string"
+            ? closure.notes
+            : typeof closure?.note === "string"
+            ? closure.note
+            : "";
+
+        return {
+          sight_id: id,
+          type,
+          start_date: startDate,
+          end_date: endDate,
+          weekday,
+          note: (noteSource || "").trim(),
+        };
+      });
+
+      const previousStatePromise = Promise.all([
+        db
           .from("sight_opening_hours")
-          .insert(rows);
-        if (hErr)
-          return NextResponse.json({ error: hErr.message }, { status: 400 });
-      }
-
-      // Replace closures/exceptions
-      await db.from("sight_opening_exceptions").delete().eq("sight_id", id);
-      if (closures.length > 0) {
-        const rows = closures.map((c) => ({
-          sight_id: id,
-          type: c.type || "fixed",
-          start_date: c.startDate || null,
-          end_date: c.endDate || null,
-          weekday: typeof c.weekday === "number" ? c.weekday : null,
-          note: c.notes || null,
-        }));
-        const { error: eErr } = await db
+          .select(
+            "id, sight_id, start_month, start_day, end_month, end_day, open_time, close_time, last_entry_mins, days, is_closed"
+          )
+          .eq("sight_id", id),
+        db
           .from("sight_opening_exceptions")
-          .insert(rows);
-        if (eErr)
-          return NextResponse.json({ error: eErr.message }, { status: 400 });
-      }
+          .select("id, sight_id, type, start_date, end_date, weekday, note")
+          .eq("sight_id", id),
+      ]);
 
-      // Save officialUrl into sights table
-      if (officialUrl !== undefined) {
-        const { error: urlErr } = await db
+      const [
+        { data: previousHours = [], error: previousHoursErr },
+        { data: previousExceptions = [], error: previousExceptionsErr },
+      ] = await previousStatePromise;
+
+      if (previousHoursErr)
+        return NextResponse.json(
+          { error: previousHoursErr.message },
+          { status: 400 }
+        );
+      if (previousExceptionsErr)
+        return NextResponse.json(
+          { error: previousExceptionsErr.message },
+          { status: 400 }
+        );
+
+      const previousOfficialUrl = sightExists.opening_times_url ?? null;
+
+      const restorePreviousState = async () => {
+        await db.from("sight_opening_hours").delete().eq("sight_id", id);
+        if (previousHours.length) {
+          await db.from("sight_opening_hours").insert(previousHours);
+        }
+        await db
+          .from("sight_opening_exceptions")
+          .delete()
+          .eq("sight_id", id);
+        if (previousExceptions.length) {
+          await db.from("sight_opening_exceptions").insert(previousExceptions);
+        }
+        await db
           .from("sights")
-          .update({ opening_times_url: officialUrl })
+          .update({ opening_times_url: previousOfficialUrl })
           .eq("id", id);
-        if (urlErr)
-          return NextResponse.json({ error: urlErr.message }, { status: 400 });
+      };
+
+      const performReplace = async () => {
+        const { error: deleteHoursErr } = await db
+          .from("sight_opening_hours")
+          .delete()
+          .eq("sight_id", id);
+        if (deleteHoursErr) throw deleteHoursErr;
+
+        const { error: deleteExceptionsErr } = await db
+          .from("sight_opening_exceptions")
+          .delete()
+          .eq("sight_id", id);
+        if (deleteExceptionsErr) throw deleteExceptionsErr;
+
+        if (normalizedHours.length) {
+          const { error: insertHoursErr } = await db
+            .from("sight_opening_hours")
+            .insert(normalizedHours);
+          if (insertHoursErr) throw insertHoursErr;
+        }
+
+        if (normalizedClosures.length) {
+          const { error: insertExceptionsErr } = await db
+            .from("sight_opening_exceptions")
+            .insert(normalizedClosures);
+          if (insertExceptionsErr) throw insertExceptionsErr;
+        }
+
+        if (hasOfficialUrlField) {
+          const { error: updateSightErr } = await db
+            .from("sights")
+            .update({ opening_times_url: officialUrl })
+            .eq("id", id);
+          if (updateSightErr) throw updateSightErr;
+        }
+      };
+
+      try {
+        await performReplace();
+      } catch (err) {
+        try {
+          await restorePreviousState();
+        } catch (restoreErr) {
+          console.error("Failed to restore opening times after error", {
+            err: err?.message,
+            restoreErr: restoreErr?.message,
+          });
+        }
+        return NextResponse.json(
+          { error: String(err?.message || err || "Failed to save opening times") },
+          { status: 400 }
+        );
       }
 
-      // Return fresh openingTimes
+      const responseHours = normalizedHours.map((row) => ({
+        startMonth: row.start_month ?? null,
+        startDay: row.start_day ?? null,
+        endMonth: row.end_month ?? null,
+        endDay: row.end_day ?? null,
+        openTime: row.open_time ?? "",
+        closeTime: row.close_time ?? "",
+        lastEntryMins: row.last_entry_mins ?? 0,
+        days: row.days || [],
+        isClosed: !!row.is_closed,
+      }));
+
+      const responseClosures = normalizedClosures.map((row) => ({
+        type: row.type,
+        startDate: row.start_date,
+        endDate: row.end_date,
+        weekday: row.weekday ?? null,
+        notes: row.note || "",
+      }));
+
       return NextResponse.json(
-        { ok: true, openingTimes: { hours, closures, officialUrl } },
+        {
+          openingTimes: {
+            hours: responseHours,
+            closures: responseClosures,
+            officialUrl:
+              hasOfficialUrlField && officialUrl !== null
+                ? officialUrl
+                : hasOfficialUrlField
+                ? ""
+                : previousOfficialUrl ?? "",
+          },
+        },
         { status: 200 }
       );
     }

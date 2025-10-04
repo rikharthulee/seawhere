@@ -24,9 +24,9 @@ CREATE TABLE public.accommodation (
   division_id uuid,
   destination_id uuid,
   CONSTRAINT accommodation_pkey PRIMARY KEY (id),
-  CONSTRAINT accommodation_prefecture_id_fkey FOREIGN KEY (prefecture_id) REFERENCES public.prefectures(id),
+  CONSTRAINT accommodation_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
   CONSTRAINT accommodation_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id),
-  CONSTRAINT accommodation_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
+  CONSTRAINT accommodation_prefecture_id_fkey FOREIGN KEY (prefecture_id) REFERENCES public.prefectures(id)
 );
 CREATE TABLE public.articles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -56,7 +56,7 @@ CREATE TABLE public.category_links (
   category_id uuid NOT NULL,
   entity_type text NOT NULL CHECK (entity_type = ANY (ARRAY['destination'::text, 'poi'::text, 'accommodation'::text, 'article'::text])),
   entity_id uuid NOT NULL,
-  CONSTRAINT category_links_pkey PRIMARY KEY (category_id, entity_id, entity_type),
+  CONSTRAINT category_links_pkey PRIMARY KEY (entity_type, entity_id, category_id),
   CONSTRAINT category_links_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
 );
 CREATE TABLE public.destination_links (
@@ -64,7 +64,7 @@ CREATE TABLE public.destination_links (
   to_location_id uuid NOT NULL,
   relation text NOT NULL CHECK (relation = ANY (ARRAY['nearby'::text, 'day_trip'::text, 'gateway'::text, 'sister_area'::text])),
   weight integer DEFAULT 0,
-  CONSTRAINT destination_links_pkey PRIMARY KEY (relation, to_location_id, from_location_id)
+  CONSTRAINT destination_links_pkey PRIMARY KEY (to_location_id, relation, from_location_id)
 );
 CREATE TABLE public.destinations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -85,8 +85,8 @@ CREATE TABLE public.destinations (
   gyg_location_id numeric,
   images jsonb,
   CONSTRAINT destinations_pkey PRIMARY KEY (id),
-  CONSTRAINT destinations_prefecture_id_fkey FOREIGN KEY (prefecture_id) REFERENCES public.prefectures(id),
-  CONSTRAINT destinations_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id)
+  CONSTRAINT destinations_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id),
+  CONSTRAINT destinations_prefecture_id_fkey FOREIGN KEY (prefecture_id) REFERENCES public.prefectures(id)
 );
 CREATE TABLE public.divisions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -134,10 +134,10 @@ CREATE TABLE public.excursion_transport_legs (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT excursion_transport_legs_pkey PRIMARY KEY (id),
+  CONSTRAINT excursion_transport_legs_excursion_id_fkey FOREIGN KEY (excursion_id) REFERENCES public.excursions(id),
   CONSTRAINT excursion_transport_legs_from_item_id_fkey FOREIGN KEY (from_item_id) REFERENCES public.excursion_items(id),
-  CONSTRAINT excursion_transport_legs_to_item_id_fkey FOREIGN KEY (to_item_id) REFERENCES public.excursion_items(id),
   CONSTRAINT excursion_transport_legs_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.transport_templates(id),
-  CONSTRAINT excursion_transport_legs_excursion_id_fkey FOREIGN KEY (excursion_id) REFERENCES public.excursions(id)
+  CONSTRAINT excursion_transport_legs_to_item_id_fkey FOREIGN KEY (to_item_id) REFERENCES public.excursion_items(id)
 );
 CREATE TABLE public.excursions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -204,8 +204,8 @@ CREATE TABLE public.experiences (
   tags ARRAY,
   division_id uuid,
   CONSTRAINT experiences_pkey PRIMARY KEY (id),
-  CONSTRAINT experiences_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id),
-  CONSTRAINT experiences_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
+  CONSTRAINT experiences_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT experiences_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id)
 );
 CREATE TABLE public.food_drink (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -276,8 +276,8 @@ CREATE TABLE public.itinerary_days (
   CONSTRAINT itinerary_days_pkey PRIMARY KEY (id),
   CONSTRAINT itinerary_days_accommodation_id_fkey FOREIGN KEY (accommodation_id) REFERENCES public.accommodation(id),
   CONSTRAINT itinerary_days_destination_fk FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
-  CONSTRAINT itinerary_days_sub_destination_fk FOREIGN KEY (sub_destination_id) REFERENCES public.destinations(id),
-  CONSTRAINT itinerary_days_itinerary_id_fkey FOREIGN KEY (itinerary_id) REFERENCES public.itineraries(id)
+  CONSTRAINT itinerary_days_itinerary_id_fkey FOREIGN KEY (itinerary_id) REFERENCES public.itineraries(id),
+  CONSTRAINT itinerary_days_sub_destination_fk FOREIGN KEY (sub_destination_id) REFERENCES public.destinations(id)
 );
 CREATE TABLE public.itinerary_flights (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -305,8 +305,8 @@ CREATE TABLE public.itinerary_items (
   accommodation_item_id uuid,
   title_override text,
   CONSTRAINT itinerary_items_pkey PRIMARY KEY (id),
-  CONSTRAINT itinerary_items_itinerary_day_id_fkey FOREIGN KEY (itinerary_day_id) REFERENCES public.itinerary_days(id),
-  CONSTRAINT itinerary_items_accommodation_item_id_fkey FOREIGN KEY (accommodation_item_id) REFERENCES public.accommodation(id)
+  CONSTRAINT itinerary_items_accommodation_item_id_fkey FOREIGN KEY (accommodation_item_id) REFERENCES public.accommodation(id),
+  CONSTRAINT itinerary_items_itinerary_day_id_fkey FOREIGN KEY (itinerary_day_id) REFERENCES public.itinerary_days(id)
 );
 CREATE TABLE public.prefectures (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -528,9 +528,9 @@ CREATE TABLE public.transport_templates (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT transport_templates_pkey PRIMARY KEY (id),
+  CONSTRAINT transport_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
   CONSTRAINT transport_templates_from_transport_id_fkey FOREIGN KEY (from_transport_id) REFERENCES public.transport(id),
-  CONSTRAINT transport_templates_to_transport_id_fkey FOREIGN KEY (to_transport_id) REFERENCES public.transport(id),
-  CONSTRAINT transport_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+  CONSTRAINT transport_templates_to_transport_id_fkey FOREIGN KEY (to_transport_id) REFERENCES public.transport(id)
 );
 CREATE TABLE public.user_roles (
   user_id uuid NOT NULL,

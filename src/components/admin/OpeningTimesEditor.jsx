@@ -29,7 +29,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
 import { cn } from "@/lib/utils";
+
+// Day constants
+const ALL_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI"];
+const WEEKEND = ["SAT", "SUN"];
 
 const MONTH_OPTIONS = [
   "January",
@@ -76,6 +82,8 @@ async function fetchOpeningTimesClient(sightId) {
     openTime: h.open_time || "",
     closeTime: h.close_time || "",
     lastEntryMins: h.last_entry_mins ?? 0,
+    days: Array.isArray(h.days) ? h.days : [],
+    isClosed: !!h.is_closed,
   }));
   const closures = (json.exceptions || []).map((c) => ({
     type: c.type || "fixed",
@@ -93,6 +101,60 @@ function isValidMonthDay(month, day) {
   if (!day) return true; // day optional
   const test = new Date(2024, month - 1, day); // leap year to allow Feb 29
   return test.getMonth() === month - 1 && test.getDate() === day;
+}
+
+const DAY_ORDER = ["SAT", "SUN", "MON", "TUE", "WED", "THU", "FRI"];
+const DAY_LABEL = {
+  MON: "Monday",
+  TUE: "Tuesday",
+  WED: "Wednesday",
+  THU: "Thursday",
+  FRI: "Friday",
+  SAT: "Saturday",
+  SUN: "Sunday",
+};
+
+function fmtMonthRangeLabel(
+  startMonth,
+  endMonth,
+  startDay = null,
+  endDay = null
+) {
+  const sm =
+    MONTH_OPTIONS.find((m) => m.value === (startMonth || 1))?.label ||
+    "January";
+  const em =
+    MONTH_OPTIONS.find((m) => m.value === (endMonth || 12))?.label ||
+    "December";
+  if (startMonth === endMonth) {
+    const sd = startDay ? ` ${startDay}` : "";
+    const ed = endDay && endDay !== startDay ? `–${endDay}` : "";
+    return `${sm}${sd}${ed}`;
+  }
+  return `${sm} – ${em}`;
+}
+
+function fmtTime12h(hhmm = "") {
+  if (!hhmm) return "";
+  const [hStr, mStr] = hhmm.split(":");
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr || "0", 10);
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}${m ? `:${String(m).padStart(2, "0")}` : ""} ${ampm}`;
+}
+
+function pickRuleForDay(rules, dayCode) {
+  // If multiple rules include the same day in the same month-range group, prefer the first one
+  return rules.find((r) => Array.isArray(r.days) && r.days.includes(dayCode));
+}
+
+function normalizeRangeKey(h) {
+  const sm = h.startMonth || 1;
+  const sd = h.startDay || 1;
+  const em = h.endMonth || 12;
+  const ed = h.endDay || 31;
+  return `${sm}:${sd}-${em}:${ed}`;
 }
 
 // --- Small helper: Date picker field using shadcn Calendar + Popover ---
@@ -132,6 +194,77 @@ function DatePickerField({
   );
 }
 
+function OpeningHoursPreview({ hours }) {
+  const groups = (hours || []).reduce((acc, h) => {
+    const key = normalizeRangeKey(h);
+    if (!acc[key]) {
+      acc[key] = {
+        key,
+        rules: [],
+        label: fmtMonthRangeLabel(
+          h.startMonth,
+          h.endMonth,
+          h.startDay,
+          h.endDay
+        ),
+      };
+    }
+    acc[key].rules.push(h);
+    return acc;
+  }, {});
+  const groupList = Object.values(groups);
+  if (groupList.length === 0) return null;
+
+  return (
+    <div className="space-y-6">
+      {groupList.map((g) => (
+        <div key={g.key} className="rounded-lg border">
+          <div className="border-b px-4 py-2 text-sm font-semibold">
+            {g.label}
+          </div>
+          <div className="p-4">
+            <ul className="space-y-1">
+              {DAY_ORDER.map((day) => {
+                const rule = pickRuleForDay(g.rules, day);
+
+                return (
+                  <li
+                    key={day}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <span className="font-medium">{DAY_LABEL[day]}</span>
+                    {(() => {
+                      if (!rule) {
+                        return <span>—</span>;
+                      }
+                      if (rule.isClosed) {
+                        return <span>Closed</span>;
+                      }
+                      const range = `${fmtTime12h(rule.openTime)}–${fmtTime12h(
+                        rule.closeTime
+                      )}`;
+                      return (
+                        <span className="flex items-center gap-2">
+                          <span>{range}</span>
+                          {rule.lastEntryMins > 0 ? (
+                            <span className="text-xs text-muted-foreground">
+                              · Last entry {rule.lastEntryMins} min before
+                            </span>
+                          ) : null}
+                        </span>
+                      );
+                    })()}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
   const [hours, setHours] = useState([]);
   const [closures, setClosures] = useState([]);
@@ -146,6 +279,9 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
     if (!isValidMonthDay(h.startMonth, h.startDay)) return "Start day invalid";
     if (!h.endMonth) return "End month required";
     if (!isValidMonthDay(h.endMonth, h.endDay)) return "End day invalid";
+    if (!Array.isArray(h.days) || h.days.length === 0)
+      return "Select at least one day";
+    if (h.isClosed) return "";
     if ((h.openTime && !h.closeTime) || (!h.openTime && h.closeTime))
       return "Provide both open and close times";
     if (h.openTime && h.closeTime && h.closeTime <= h.openTime)
@@ -207,6 +343,8 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
         openTime: "",
         closeTime: "",
         lastEntryMins: 30,
+        days: [],
+        isClosed: false,
       },
     ]);
   };
@@ -215,6 +353,22 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
     const updated = [...hours];
     updated[i][field] = value;
     setHours(updated);
+  };
+
+  const toggleHourClosed = (index, nextClosed) => {
+    setHours((current) => {
+      const list = Array.isArray(current) ? [...current] : [];
+      const base = list[index] ? { ...list[index] } : {};
+      const isClosed = !!nextClosed;
+      base.isClosed = isClosed;
+      if (isClosed) {
+        base.openTime = "";
+        base.closeTime = "";
+        base.lastEntryMins = 0;
+      }
+      list[index] = base;
+      return list;
+    });
   };
 
   const removeHour = (i) => setHours(hours.filter((_, idx) => idx !== i));
@@ -255,14 +409,17 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
           startDay: h.startDay ?? null,
           endMonth: h.endMonth ?? null,
           endDay: h.endDay ?? null,
-          openTime: h.openTime || "",
-          closeTime: h.closeTime || "",
-          lastEntryMins:
-            typeof h.lastEntryMins === "number"
-              ? h.lastEntryMins
-              : h.lastEntryMins
-              ? Number(h.lastEntryMins)
-              : 0,
+          openTime: h.isClosed ? "" : h.openTime || "",
+          closeTime: h.isClosed ? "" : h.closeTime || "",
+          lastEntryMins: h.isClosed
+            ? 0
+            : typeof h.lastEntryMins === "number"
+            ? h.lastEntryMins
+            : h.lastEntryMins
+            ? Number(h.lastEntryMins)
+            : 0,
+          days: Array.isArray(h.days) ? h.days : [],
+          isClosed: !!h.isClosed,
         }));
 
         const closuresToSave = (closures || []).map((c) => ({
@@ -326,6 +483,8 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                 : h.lastEntryMins
                 ? Number(h.lastEntryMins)
                 : 0,
+            days: Array.isArray(h.days) ? h.days : [],
+            isClosed: !!h.isClosed,
           }))
         );
         setClosures(
@@ -444,9 +603,9 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
               return (
                 <div
                   key={i}
-                  className="grid grid-cols-[repeat(7,minmax(0,1fr))_auto] gap-2 items-end border p-3 rounded-lg text-sm"
+                  className="grid grid-cols-[140px_minmax(360px,3fr)_110px_140px_110px_120px_120px_110px_140px_auto] gap-2 items-end border p-3 rounded-lg text-sm"
                 >
-                  <div className="flex flex-col gap-1 min-w-[120px]">
+                  <div className="flex flex-col gap-1 w-[140px]">
                     <Label>Start Month</Label>
                     <Select
                       value={h.startMonth ? String(h.startMonth) : ""}
@@ -466,6 +625,64 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                       </SelectContent>
                     </Select>
                   </div>
+                  {/* Days selection column */}
+                  <div className="flex flex-col gap-1 min-w-[360px] w-full">
+                    <Label>Days</Label>
+                    <div className="flex flex-wrap gap-1">
+                      {ALL_DAYS.map((d) => {
+                        const checked = Array.isArray(h.days)
+                          ? h.days.includes(d)
+                          : false;
+                        return (
+                          <label
+                            key={d}
+                            className="flex items-center gap-1.5 text-xs border rounded px-2 py-1 whitespace-nowrap shrink-0 min-w-[64px] justify-center"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const next = new Set(h.days || []);
+                                if (e.target.checked) next.add(d);
+                                else next.delete(d);
+                                updateHour(i, "days", Array.from(next));
+                              }}
+                            />
+                            <span>{d}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => updateHour(i, "days", [...WEEKDAYS])}
+                      >
+                        Weekdays
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => updateHour(i, "days", [...WEEKEND])}
+                      >
+                        Weekend
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => updateHour(i, "days", [])}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
                   <div className="flex flex-col gap-1 min-w-[110px]">
                     <Label>Start Day</Label>
                     <Input
@@ -484,7 +701,7 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                       placeholder="Day"
                     />
                   </div>
-                  <div className="flex flex-col gap-1 min-w-[120px]">
+                  <div className="flex flex-col gap-1 w-[140px]">
                     <Label>End Month</Label>
                     <Select
                       value={h.endMonth ? String(h.endMonth) : ""}
@@ -531,6 +748,7 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                         updateHour(i, "openTime", e.target.value)
                       }
                       className="h-9 w-full px-3 text-sm"
+                      disabled={!!h.isClosed}
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -542,7 +760,25 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                         updateHour(i, "closeTime", e.target.value)
                       }
                       className="h-9 w-full px-3 text-sm"
+                      disabled={!!h.isClosed}
                     />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor={`closed-${i}`}>Closed</Label>
+                    <div className="flex h-9 items-center gap-2 rounded border px-3">
+                      <input
+                        id={`closed-${i}`}
+                        type="checkbox"
+                        checked={!!h.isClosed}
+                        onChange={(event) =>
+                          toggleHourClosed(i, event.target.checked)
+                        }
+                        className="h-4 w-4"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {h.isClosed ? "Closed" : "Open"}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex flex-col gap-1">
                     <Label>Last Entry (mins)</Label>
@@ -562,13 +798,14 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                         )
                       }
                       className="h-9 w-full px-3 text-sm"
+                      disabled={!!h.isClosed}
                     />
                   </div>
-                  <div className="flex flex-col justify-end gap-1">
+                  <div className="flex items-end justify-end gap-1">
                     <Button
                       variant="destructive"
                       onClick={() => removeHour(i)}
-                      className="h-9 px-3 text-sm"
+                      className="h-9 px-3 text-sm w-auto"
                       size="sm"
                       disabled={!sightId || saving || loading}
                     >
@@ -698,6 +935,12 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
             >
               {saving ? "Saving…" : "Save"}
             </Button>
+          </div>
+
+          {/* Read-only preview of what travellers will see */}
+          <div className="space-y-2 border-t pt-4">
+            <Label className="text-sm font-medium">Preview</Label>
+            <OpeningHoursPreview hours={hours} />
           </div>
 
           <div className="space-y-2 border-t pt-4">
