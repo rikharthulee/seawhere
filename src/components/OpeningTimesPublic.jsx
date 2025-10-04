@@ -213,17 +213,19 @@ export default function OpeningTimesPublic({ openingTimes }) {
                               {formatTimeTo12h(rule.openTime)} –{" "}
                               {formatTimeTo12h(rule.closeTime)}
                             </span>
-                            {rule.lastEntryMins > 0 ? (
-                              <span className="text-xs text-muted-foreground">
-                                · Last entry {rule.lastEntryMins} min before
-                              </span>
-                            ) : null}
                           </span>
                         )}
                       </li>
                     );
                   })}
                 </ul>
+                {group.rules.some((r) => r.lastEntryMins > 0) ? (
+                  <div className="px-3 pb-2 text-xs text-muted-foreground">
+                    Last entry{" "}
+                    {Math.max(...group.rules.map((r) => r.lastEntryMins || 0))}{" "}
+                    min before closing
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

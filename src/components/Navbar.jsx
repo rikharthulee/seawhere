@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import SafeImage from "@/components/SafeImage";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DesktopBannerNav from "@/components/DesktopBannerNav";
 import MobileNavbar from "@/components/MobileNavbar";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -81,14 +83,29 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-sm border-b lg:static lg:bg-transparent lg:backdrop-blur-0 lg:border-b-0">
       <nav className="mx-auto max-w-6xl px-4 py-2">
         <div className="flex items-center justify-between lg:hidden">
+          <Link
+            href="/"
+            className="flex items-center gap-2"
+            aria-label="JapanMan home"
+          >
+            <Image
+              src="/crane.png"
+              alt="JapanMan logo"
+              width={40}
+              height={40}
+              className="h-10 w-10 object-contain"
+              priority
+            />
+            <span className="text-lg font-semibold text-foreground">JapanMan</span>
+          </Link>
+
           {/* Burger (mobile only) */}
           <button
             className="inline-flex items-center justify-center rounded-md p-2 ring-1 ring-black/10"
-            aria-label="Open menu"
+            aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
           >
-            {/* Icon swaps between burger and close */}
             <svg
               className={`h-5 w-5 transition ${open ? "hidden" : "block"}`}
               viewBox="0 0 24 24"
@@ -108,7 +125,6 @@ export default function Navbar() {
               <path d="M6 6l12 12M18 6l-12 12" />
             </svg>
           </button>
-          <div />
         </div>
       </nav>
 
