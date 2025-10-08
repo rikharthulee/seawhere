@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import { getCuratedExcursionPublicByIdentifier } from "@/lib/data/public/excursions";
+import { getCuratedExcursionBySlugPublic } from "@/lib/data/public/excursions";
 
 export const revalidate = 300; // ISR every 5 minutes
 
@@ -31,11 +31,11 @@ function normalizeItem(it) {
   };
 }
 
-export default async function Page({ params }) {
+export default async function Page({ params, searchParams }) {
   const { slug } = await params;
-  const { excursion, items, transport } =
-    await getCuratedExcursionPublicByIdentifier(slug);
-  if (!excursion) return notFound();
+  const { debug } = (await searchParams) || {};
+  const { excursion, items, transport } = await getCuratedExcursionBySlugPublic(slug);
+  if (!excursion && !debug) return notFound();
 
   const flow = [];
   const len = Math.max(items.length, transport.length);
@@ -46,16 +46,23 @@ export default async function Page({ params }) {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 space-y-8">
+      {(!excursion && debug) ? (
+        <pre className="rounded-md border bg-muted p-3 text-xs overflow-x-auto">{JSON.stringify({ slug, debug, excursion, items, transport }, null, 2)}</pre>
+      ) : null}
       <header className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          {excursion.name}
-        </h1>
-        {excursion.summary && (
+        {excursion ? (
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            {excursion.name}
+          </h1>
+        ) : (
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Excursion</h1>
+        )}
+        {excursion?.summary && (
           <p className="text-base text-muted-foreground sm:text-lg">
             {excursion.summary}
           </p>
         )}
-        {Array.isArray(excursion.tags) && excursion.tags.length > 0 && (
+        {Array.isArray(excursion?.tags) && excursion.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {excursion.tags.map((t) => (
               <Badge key={t} variant="secondary" className="capitalize">
@@ -66,7 +73,7 @@ export default async function Page({ params }) {
         )}
       </header>
 
-      {excursion.cover_image && (
+      {excursion?.cover_image && (
         <div className="relative h-72 w-full overflow-hidden rounded-xl border">
           <SafeImage
             src={resolveImageUrl(excursion.cover_image)}
@@ -196,3 +203,4 @@ export default async function Page({ params }) {
     </main>
   );
 }
+

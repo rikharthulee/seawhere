@@ -33,9 +33,7 @@ export default function Excursions({ items = [] }) {
             }
           }
           const img = resolveImageUrl(imgPath);
-          const destSlug = p?.destinations?.slug || p?.destination?.slug || null;
-          const canLink = !!(p.slug && destSlug);
-          const href = canLink ? `/excursions/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` : null;
+          const href = p?.slug ? `/excursions/${encodeURIComponent(p.slug)}` : null;
           return (
             <Tile.Link key={p.id} href={href || "#"}>
               <Tile.Image>

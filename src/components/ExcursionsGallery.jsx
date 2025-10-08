@@ -69,14 +69,14 @@ export default function ExcursionsGallery({ rows = [], basePath = "/excursions" 
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
           {sorted.map((excursion) => {
-            const slug = excursion.slug || slugify(excursion.name || excursion.title) || excursion.id;
+            const slug = excursion.slug;
             const imageSrc =
               resolveImageUrl(excursion.cover_image) ||
               placeholderDataUrl(excursion.name || excursion.title);
             return (
               <Tile.Link
                 key={excursion.id}
-                href={`${basePath}/${encodeURIComponent(slug)}`}
+                href={slug ? `${basePath}/${encodeURIComponent(slug)}` : `#`}
               >
                 <Tile.Image>
                   <SafeImage

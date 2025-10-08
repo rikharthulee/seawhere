@@ -55,6 +55,27 @@ const eslintConfig = [
       ],
     },
   },
+  // Admin/internal must not import from public helpers
+  {
+    files: [
+      "src/app/admin/**/*.{js,jsx,ts,tsx}",
+      "src/lib/data/**/*.{js,jsx,ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/data/public/*", "@/lib/data/public/**"],
+              message:
+                "Admin/internal code must not import from public helpers.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;

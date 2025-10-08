@@ -81,10 +81,13 @@ This project includes an admin Excursion Builder and public Excursion pages. Bel
   - Builder search endpoint to look up selectable entities (sights/experiences/tours) by text query.
 
 - `src/lib/data/public/excursions.js`
-  - Public data helpers used by SSR pages. Loads a published excursion by slug/id, hydrates `excursion_items` by resolving referenced entities (name, summary, first image, opening_times_url), and returns the list of items plus any transport entries.
+  - Public SSR helpers (anon). Provide two strict helpers, not mixed:
+    - `getCuratedExcursionBySlugPublic(slug)` for public pages
+    - `getCuratedExcursionByIdPublic(id)` for internal use
+  - Both hydrate `excursion_items` by resolving referenced entities via `eq('id', uuid)`.
 
 - `src/app/excursions/[slug]/page.jsx`
-  - Public excursion detail page. Interleaves hydrated items and transport by `sort_order`. Renders name, thumbnail, summary, and an “Opening times” link when available.
+  - Public excursion detail page (slug-based). Interleaves hydrated items and transport by `sort_order`. Renders name, thumbnail, summary, and an “Opening times” link when available. Accepts `?debug=1` to show a small debug block when an entity is not visible via RLS.
 
 Data flow summary
 - Admin builder → admin APIs → writes `excursions` + `excursion_items`.
