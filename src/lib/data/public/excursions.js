@@ -36,18 +36,24 @@ async function hydrateExcursionItems(db, excursionId) {
   if (list.length === 0) return [];
 
   const buckets = list.reduce((acc, it) => {
-    const t = String(it.item_type || "").toLowerCase();
+    const t = String(it.item_type || "").toLowerCase().trim();
     if (!t) return acc;
     acc[t] = acc[t] || new Set();
     if (it.ref_id) acc[t].add(it.ref_id);
     return acc;
   }, {});
 
+  const normId = (v) => String(v || "").trim().toLowerCase();
+
   async function fetchMap(table, cols, ids) {
     if (!ids || ids.length === 0) return new Map();
-    const { data } = await db.from(table).select(cols).in("id", Array.from(ids));
+    const { data } = await db
+      .from(table)
+      .select(cols)
+      .in("id", Array.from(ids))
+      .order("id", { ascending: true });
     const map = new Map();
-    for (const row of data || []) map.set(row.id, row);
+    for (const row of data || []) map.set(normId(row.id), row);
     return map;
   }
 
@@ -67,52 +73,62 @@ async function hydrateExcursionItems(db, excursionId) {
   }
 
   const maps = {};
-  if (buckets.sight) {
-    maps.sight = await fetchMap(
-      "sights",
-      "id, name, summary, description, images, duration_minutes, maps_url",
-      buckets.sight
-    );
-  }
-  if (buckets.experience) {
-    maps.experience = await fetchMap(
-      "experiences",
-      "id, name, summary, description, images, duration_minutes, maps_url",
-      buckets.experience
-    );
-  }
-  if (buckets.tour) {
-    maps.tour = await fetchMap(
-      "tours",
-      "id, name, summary, description, images, duration_minutes, maps_url",
-      buckets.tour
+  const tableByKind = { sight: "sights", experience: "experiences", tour: "tours" };
+  for (const kind of Object.keys(buckets)) {
+    const table = tableByKind[kind];
+    if (!table) continue;
+    maps[kind] = await fetchMap(
+      table,
+      "id, slug, name, summary, description, images, duration_minutes, maps_url, opening_times_url",
+      buckets[kind]
     );
   }
 
-  return list.map((it) => {
-    const t = String(it.item_type || "").toLowerCase();
-    const m = maps[t];
-    const row = m ? m.get(it.ref_id) : null;
-    const displayName = row?.name || it.name || it.title || t || "Item";
-    let displaySummary = null;
-    if (row?.summary) displaySummary = row.summary;
-    else if (typeof row?.description === "string" && row.description) {
-      displaySummary = row.description;
-    }
-    const image = firstImageFromImages(row?.images);
-    return {
-      ...it,
-      displayName,
-      displaySummary,
-      displayImage: image || null,
-      duration_minutes: row?.duration_minutes ?? null,
-      maps_url: row?.maps_url || null,
-    };
-  });
+  const cols = "id, slug, name, summary, description, images, duration_minutes, maps_url, opening_times_url";
+  const resolved = await Promise.all(
+    list.map(async (it) => {
+      const t = String(it.item_type || "").toLowerCase().trim();
+      const m = maps[t];
+      let row = m ? m.get(normId(it.ref_id)) || null : null;
+      if (!row && tableByKind[t]) {
+        // Fallback: direct fetch by id (handles edge cases with type/ID normalization)
+        const { data } = await db
+          .from(tableByKind[t])
+          .select(cols)
+          .eq("id", it.ref_id)
+          .maybeSingle();
+        row = data || null;
+      }
+      const displayName = row?.name || it.name || it.title || t || "Item";
+      let displaySummary = null;
+      if (row?.summary) displaySummary = row.summary;
+      else if (typeof row?.description === "string" && row.description) {
+        displaySummary = row.description;
+      }
+      const image = firstImageFromImages(row?.images);
+      return {
+        ...it,
+        displayName,
+        displaySummary,
+        displayImage: image || null,
+        duration_minutes: row?.duration_minutes ?? null,
+        maps_url: row?.maps_url || null,
+        opening_times_url: row?.opening_times_url || null,
+        slug: row?.slug || null,
+      };
+    })
+  );
+  return resolved;
 }
 
 export async function getExcursionByIdentifierPublic(identifier) {
   const db = getPublicDB();
+
+  const isUuid = (val) =>
+    typeof val === "string" &&
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(
+      val.trim()
+    );
 
   async function fetchBySlug(slug) {
     const { data, error } = await db
@@ -131,14 +147,14 @@ export async function getExcursionByIdentifierPublic(identifier) {
   if (identifier) {
     match = await fetchBySlug(String(identifier).trim().toLowerCase());
   }
-  if (!match) {
+  if (!match && isUuid(identifier)) {
     const { data, error } = await db
       .from("excursions")
       .select(
         "id, slug, name, summary, description, transport, maps_url, cover_image, updated_at, status"
       )
       .eq("status", "published")
-      .eq("id", String(identifier))
+      .eq("id", identifier.trim())
       .maybeSingle();
     if (error) throw error;
     match = data || null;
@@ -167,4 +183,3 @@ export async function getExcursionByIdentifierPublic(identifier) {
 
   return { excursion: match, detailedItems: items };
 }
-

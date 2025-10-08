@@ -74,15 +74,23 @@ async function fetchOpeningTimesClient(sightId) {
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+  function trimTime(t) {
+    if (!t) return "";
+    const s = String(t);
+    const m = s.match(/^([0-9]{1,2}:[0-9]{2})/);
+    return m ? m[1] : s;
+  }
   const hours = (json.hours || []).map((h) => ({
     startMonth: typeof h.start_month === "number" ? h.start_month : null,
     startDay: typeof h.start_day === "number" ? h.start_day : null,
     endMonth: typeof h.end_month === "number" ? h.end_month : null,
     endDay: typeof h.end_day === "number" ? h.end_day : null,
-    openTime: h.open_time || "",
-    closeTime: h.close_time || "",
+    openTime: trimTime(h.open_time || ""),
+    closeTime: trimTime(h.close_time || ""),
     lastEntryMins: h.last_entry_mins ?? 0,
-    days: Array.isArray(h.days) ? h.days : [],
+    days: Array.isArray(h.days)
+      ? h.days.map((d) => String(d || "").trim().toUpperCase()).filter(Boolean)
+      : [],
     isClosed: !!h.is_closed,
   }));
   const closures = (json.exceptions || []).map((c) => ({
@@ -145,8 +153,13 @@ function fmtTime12h(hhmm = "") {
 }
 
 function pickRuleForDay(rules, dayCode) {
-  // If multiple rules include the same day in the same month-range group, prefer the first one
-  return rules.find((r) => Array.isArray(r.days) && r.days.includes(dayCode));
+  // Prefer explicit day match; otherwise fall back to a rule with no days (treat as all-days)
+  if (!Array.isArray(rules)) return null;
+  const explicit = rules.find(
+    (r) => Array.isArray(r.days) && r.days.includes(dayCode)
+  );
+  if (explicit) return explicit;
+  return rules.find((r) => !Array.isArray(r.days) || r.days.length === 0) || null;
 }
 
 function normalizeRangeKey(h) {
@@ -279,8 +292,6 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
     if (!isValidMonthDay(h.startMonth, h.startDay)) return "Start day invalid";
     if (!h.endMonth) return "End month required";
     if (!isValidMonthDay(h.endMonth, h.endDay)) return "End day invalid";
-    if (!Array.isArray(h.days) || h.days.length === 0)
-      return "Select at least one day";
     if (h.isClosed) return "";
     if ((h.openTime && !h.closeTime) || (!h.openTime && h.closeTime))
       return "Provide both open and close times";
@@ -418,7 +429,11 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
             : h.lastEntryMins
             ? Number(h.lastEntryMins)
             : 0,
-          days: Array.isArray(h.days) ? h.days : [],
+          days: Array.isArray(h.days)
+            ? h.days
+                .map((d) => String(d || "").trim().toUpperCase())
+                .filter(Boolean)
+            : [],
           isClosed: !!h.isClosed,
         }));
 
@@ -483,7 +498,11 @@ const OpeningTimes = forwardRef(function OpeningTimes({ sightId }, ref) {
                 : h.lastEntryMins
                 ? Number(h.lastEntryMins)
                 : 0,
-            days: Array.isArray(h.days) ? h.days : [],
+            days: Array.isArray(h.days)
+              ? h.days
+                  .map((d) => String(d || "").trim().toUpperCase())
+                  .filter(Boolean)
+              : [],
             isClosed: !!h.isClosed,
           }))
         );

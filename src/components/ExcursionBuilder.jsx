@@ -294,7 +294,14 @@ function newExcursionDraft() {
     name: "",
     status: "draft",
     description: "",
-    maps_url: "",
+    destination: "",
+    // NEW: excursion-level meta
+    tags: [],
+    cost_band: "",
+    seasonality: "",
+    dow_tips: "",
+    accessible: false,
+    with_kids: false,
     items: [],
   };
 }
@@ -314,6 +321,7 @@ export default function ExcursionsBuilderJS() {
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [coverImage, setCoverImage] = useState("");
+  const [openMap, setOpenMap] = useState(false);
   // Option A: new state for selected item and patching
   const [selectedItemId, setSelectedItemId] = useState(null);
   const selectedItem = useMemo(
@@ -346,7 +354,13 @@ export default function ExcursionsBuilderJS() {
   }
 
   function toDbPayload(statusOverride) {
-    const allowed = new Set(["sight", "experience", "tour", "accommodation"]);
+    const allowed = new Set([
+      "sight",
+      "experience",
+      "tour",
+      "accommodation",
+      "food_drink",
+    ]);
     const items = (excursion.items || []).map((it) => ({
       ...it,
       sort_order: Number(it.sort_order) || 0,
@@ -365,11 +379,20 @@ export default function ExcursionsBuilderJS() {
 
     return {
       name: excursion.name,
-      maps_url: excursion.maps_url || null,
+      slug: slug || slugify(excursion.name || ""),
+      cover_image: coverImage || null,
       status: statusOverride || excursion.status || "draft",
       description,
       transport,
       items: dbItems,
+      // NEW: excursion-level meta
+      destination: excursion.destination || null,
+      tags: Array.isArray(excursion.tags) ? excursion.tags : [],
+      cost_band: excursion.cost_band || null,
+      seasonality: excursion.seasonality || "",
+      dow_tips: excursion.dow_tips || "",
+      accessible: Boolean(excursion.accessible),
+      with_kids: Boolean(excursion.with_kids),
     };
   }
 
@@ -435,6 +458,8 @@ export default function ExcursionsBuilderJS() {
       item_type: p.kind,
       ref_id: p.id,
       name: p.name,
+      latitude: p.latitude ?? p.lat ?? p.lat_deg ?? null,
+      longitude: p.longitude ?? p.lng ?? p.lon ?? p.lon_deg ?? null,
     };
     setExcursion((prev) => ({
       ...prev,
@@ -614,7 +639,14 @@ export default function ExcursionsBuilderJS() {
       name: data?.name || "",
       status: data?.status || "draft",
       description: descriptionField,
-      maps_url: data?.maps_url || "",
+      destination: data?.destination || "",
+      // NEW: meta with reasonable fallbacks
+      tags: Array.isArray(data?.tags) ? data.tags : [],
+      cost_band: data?.cost_band || "",
+      seasonality: data?.seasonality || "",
+      dow_tips: data?.dow_tips || "",
+      accessible: Boolean(data?.accessible),
+      with_kids: Boolean(data?.with_kids),
       items: sortByOrder([...curated, ...transportItems, ...noteItems]),
     });
     setSavedId(data?.id || null);
@@ -682,6 +714,123 @@ export default function ExcursionsBuilderJS() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [excursionIdParam, resetToNewExcursion]);
 
+  // Map plotting state and helpers
+  const curatedKinds = useMemo(
+    () =>
+      new Set(["sight", "experience", "tour", "accommodation", "food_drink"]),
+    []
+  );
+  const mapPoints = useMemo(() => {
+    return (excursion.items || [])
+      .filter((it) => curatedKinds.has(it.item_type))
+      .map((it) => {
+        const lat =
+          typeof it.latitude === "number" ? it.latitude : Number(it.latitude);
+        const lng =
+          typeof it.longitude === "number"
+            ? it.longitude
+            : Number(it.longitude);
+        return {
+          id: it.id,
+          title: it.name || it.title || it.item_type,
+          item_type: it.item_type,
+          lat: isFinite(lat) ? lat : null,
+          lng: isFinite(lng) ? lng : null,
+        };
+      })
+      .filter((pt) => pt.lat !== null && pt.lng !== null);
+  }, [excursion.items, curatedKinds]);
+
+  function buildGmapsMultiUrl(points) {
+    if (!points || points.length === 0) return null;
+    if (points.length === 1) {
+      const p = points[0];
+      return `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`;
+    }
+    const origin = `${points[0].lat},${points[0].lng}`;
+    const destination = `${points[points.length - 1].lat},${
+      points[points.length - 1].lng
+    }`;
+    const waypoints = points
+      .slice(1, -1)
+      .map((p) => `${p.lat},${p.lng}`)
+      .join("|");
+    const wpParam = waypoints
+      ? `&waypoints=${encodeURIComponent(waypoints)}`
+      : "";
+    return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${wpParam}`;
+  }
+
+  useEffect(() => {
+    if (!openMap) return;
+    if (typeof window === "undefined") return;
+    const container = document.getElementById("excursion-map");
+    if (!container) return;
+    if (!mapPoints.length) return;
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    function init() {
+      if (!window.google || !window.google.maps) return;
+      const center = { lat: mapPoints[0].lat, lng: mapPoints[0].lng };
+      const map = new window.google.maps.Map(container, {
+        center,
+        zoom: 12,
+        mapTypeControl: false,
+        streetViewControl: false,
+      });
+      const bounds = new window.google.maps.LatLngBounds();
+      mapPoints.forEach((pt) => {
+        const pos = { lat: pt.lat, lng: pt.lng };
+        const marker = new window.google.maps.Marker({
+          position: pos,
+          map,
+          title: pt.title,
+        });
+        bounds.extend(pos);
+      });
+      if (mapPoints.length > 1) {
+        map.fitBounds(bounds);
+      }
+    }
+
+    if (window.google && window.google.maps) {
+      init();
+      return;
+    }
+
+    if (!apiKey) {
+      // No API key: leave container with a simple message
+      container.innerHTML =
+        "<div style='padding:12px;font-size:14px;color:var(--muted-foreground)'>Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable the interactive map. You can still use the “Open in Google Maps” link below.</div>";
+      return;
+    }
+
+    const scriptId = "gmaps-js";
+    if (!document.getElementById(scriptId)) {
+      const s = document.createElement("script");
+      s.id = scriptId;
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+      s.async = true;
+      s.onload = init;
+      document.body.appendChild(s);
+    } else {
+      init();
+    }
+  }, [openMap, mapPoints]);
+
+  // Compute total duration in minutes for all items
+  const totalMinutes = useMemo(() => {
+    const items = excursion.items || [];
+    const sum = items.reduce((acc, it) => {
+      const n =
+        typeof it.duration_minutes === "number"
+          ? it.duration_minutes
+          : Number(it.duration_minutes) || 0;
+      return acc + (n > 0 ? n : 0);
+    }, 0);
+    return sum;
+  }, [excursion.items]);
+
   // Option A: sticky header, 2-pane grid, persistent preview, inline inspector
   return (
     <div className="mx-auto max-w-5xl p-4 space-y-6">
@@ -689,6 +838,30 @@ export default function ExcursionsBuilderJS() {
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur border-b border-muted mb-4 pb-2 pt-3 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Excursions Builder</h1>
         <div className="space-x-2">
+          {savedId ? (
+            <Button
+              variant="destructive"
+              disabled={saving}
+              onClick={async () => {
+                if (!savedId) return;
+                const ok = window.confirm("Delete this excursion? This cannot be undone.");
+                if (!ok) return;
+                try {
+                  const res = await fetch(`/api/admin/excursions/${savedId}`, { method: "DELETE" });
+                  if (!res.ok) {
+                    const json = await res.json().catch(() => ({}));
+                    throw new Error(json?.error || `Delete failed (${res.status})`);
+                  }
+                  router.replace(`/admin/excursions`, { scroll: false });
+                } catch (e) {
+                  alert(e?.message || "Failed to delete excursion");
+                }
+              }}
+              title="Delete excursion"
+            >
+              Delete
+            </Button>
+          ) : null}
           <Button
             variant="outline"
             disabled={saving}
@@ -702,6 +875,18 @@ export default function ExcursionsBuilderJS() {
             onClick={() => save("draft")}
           >
             {saving ? "Saving…" : "Save draft"}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={mapPoints.length === 0}
+            onClick={() => setOpenMap(true)}
+            title={
+              mapPoints.length
+                ? "Show markers for curated items"
+                : "Add POIs with coordinates to enable"
+            }
+          >
+            View map
           </Button>
           <Button disabled={saving} onClick={() => save("published")}>
             Publish
@@ -751,6 +936,16 @@ export default function ExcursionsBuilderJS() {
             />
           </div>
           <div>
+            <Label>Destination</Label>
+            <Input
+              value={excursion.destination || ""}
+              onChange={(e) =>
+                setExcursion({ ...excursion, destination: e.target.value })
+              }
+              placeholder="e.g. Tokyo, Kyoto"
+            />
+          </div>
+          <div>
             <Label>Slug</Label>
             <Input
               value={slug}
@@ -775,15 +970,6 @@ export default function ExcursionsBuilderJS() {
               placeholder="https://..."
             />
           </div>
-          <div>
-            <Label>Maps URL (overall)</Label>
-            <Input
-              value={excursion.maps_url}
-              onChange={(e) =>
-                setExcursion({ ...excursion, maps_url: e.target.value })
-              }
-            />
-          </div>
           <div className="md:col-span-2">
             <Label>Description</Label>
             <Textarea
@@ -794,6 +980,82 @@ export default function ExcursionsBuilderJS() {
               }
             />
           </div>
+          {/* --- NEW FIELDS --- */}
+          <div>
+            <Label>Tags</Label>
+            <Input
+              value={(excursion.tags || []).join(", ")}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const tags = raw
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean);
+                setExcursion({ ...excursion, tags });
+              }}
+              placeholder="family, rainy day, foodie"
+            />
+          </div>
+          <div>
+            <Label>Cost band</Label>
+            <select
+              className="w-full rounded-md border bg-background p-2"
+              value={excursion.cost_band || ""}
+              onChange={(e) =>
+                setExcursion({ ...excursion, cost_band: e.target.value })
+              }
+            >
+              <option value="">— select —</option>
+              <option value="€">€ (budget)</option>
+              <option value="€€">€€ (mid)</option>
+              <option value="€€€">€€€ (high)</option>
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <Label>Seasonality (notes)</Label>
+            <Textarea
+              rows={2}
+              value={excursion.seasonality || ""}
+              onChange={(e) =>
+                setExcursion({ ...excursion, seasonality: e.target.value })
+              }
+              placeholder="e.g., Best in spring and autumn; avoid Golden Week crowds."
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Day‑of‑week tips</Label>
+            <Textarea
+              rows={2}
+              value={excursion.dow_tips || ""}
+              onChange={(e) =>
+                setExcursion({ ...excursion, dow_tips: e.target.value })
+              }
+              placeholder="e.g., Museum closed on Tuesdays; shift to park on Tue."
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={Boolean(excursion.accessible)}
+                onChange={(e) =>
+                  setExcursion({ ...excursion, accessible: e.target.checked })
+                }
+              />
+              Wheelchair‑friendly
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={Boolean(excursion.with_kids)}
+                onChange={(e) =>
+                  setExcursion({ ...excursion, with_kids: e.target.checked })
+                }
+              />
+              Good with kids
+            </label>
+          </div>
+          {/* --- END NEW FIELDS --- */}
         </CardContent>
       </Card>
 
@@ -1179,6 +1441,26 @@ export default function ExcursionsBuilderJS() {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>Preview</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Estimated total duration:{" "}
+            {totalMinutes ? minsToLabel(totalMinutes) : "—"}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {(excursion.tags || []).map((t, idx) => (
+              <Badge key={t + idx} variant="secondary" className="capitalize">
+                {t}
+              </Badge>
+            ))}
+            {excursion.cost_band ? (
+              <Badge variant="outline">{excursion.cost_band}</Badge>
+            ) : null}
+            {excursion.accessible ? (
+              <Badge variant="secondary">Accessible</Badge>
+            ) : null}
+            {excursion.with_kids ? (
+              <Badge variant="secondary">With kids</Badge>
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent>
           <ExcursionTimeline
@@ -1188,6 +1470,43 @@ export default function ExcursionsBuilderJS() {
           />
         </CardContent>
       </Card>
+      {/* Map Sheet */}
+      <Sheet open={openMap} onOpenChange={setOpenMap}>
+        <SheetContent side="right" className="w-full sm:max-w-3xl">
+          <SheetHeader>
+            <SheetTitle>Excursion Map</SheetTitle>
+          </SheetHeader>
+          <div className="mt-3 space-y-3">
+            <div
+              id="excursion-map"
+              className="w-full rounded-lg border"
+              style={{ height: 420 }}
+            />
+            <div className="text-sm text-muted-foreground">
+              {mapPoints.length
+                ? `${mapPoints.length} point${
+                    mapPoints.length > 1 ? "s" : ""
+                  } plotted from your curated items.`
+                : "No plottable points yet."}
+            </div>
+            {mapPoints.length > 0 && (
+              <a
+                href={buildGmapsMultiUrl(mapPoints)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center text-sm underline"
+              >
+                Open in Google Maps
+              </a>
+            )}
+          </div>
+          <SheetFooter className="mt-4">
+            <Button variant="secondary" onClick={() => setOpenMap(false)}>
+              Close
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -65,32 +65,21 @@ function formatSeasonLabel({ startMonth, startDay, endMonth, endDay }) {
 function formatDayList(value) {
   if (!Array.isArray(value)) return [];
   return value
-    .map((item) =>
-      String(item || "")
-        .trim()
-        .toUpperCase()
-    )
+    .map((item) => String(item || "").trim().toUpperCase())
     .filter(Boolean);
 }
 
 function pickRuleForDay(rules, dayCode) {
   if (!Array.isArray(rules)) return null;
-
-  let fallback = null;
-  for (const rule of rules) {
-    if (!rule) continue;
-    if (!Array.isArray(rule.days)) {
-      rule.days = formatDayList(rule.days);
-    }
-    const days = Array.isArray(rule.days) ? rule.days : [];
-    if (days.length === 0 && !fallback) {
-      fallback = rule;
-    }
-    if (days.includes(dayCode)) {
-      return rule;
-    }
-  }
-  return fallback;
+  const normalized = rules.map((r) => ({ ...r, days: formatDayList(r?.days) }));
+  // 1) Prefer explicit match for the given day
+  const matched = normalized.find((r) => r.days.includes(dayCode));
+  if (matched) return matched;
+  // 2) Fallback: use a rule with no explicit day list (treat as "all days")
+  const defaultRule = normalized.find((r) => r.days.length === 0);
+  if (defaultRule) return defaultRule;
+  // 3) Final fallback: if there are no explicit day rules at all, pick the first
+  return normalized.length > 0 ? normalized[0] : null;
 }
 
 function formatTimeTo12h(value) {

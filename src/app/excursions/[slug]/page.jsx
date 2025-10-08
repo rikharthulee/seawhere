@@ -4,6 +4,39 @@ import { resolveImageUrl } from "@/lib/imageUrl";
 import { Badge } from "@/components/ui/badge";
 import { getExcursionByIdentifierPublic } from "@/lib/data/public/excursions";
 
+// Normalize a possibly nested entity to a simple display object
+function firstImage(srcLike) {
+  if (!srcLike) return null;
+  if (typeof srcLike === "string") return srcLike;
+  if (Array.isArray(srcLike) && srcLike.length) {
+    const first = srcLike[0];
+    if (typeof first === "string") return first;
+    if (first?.src) return first.src;
+  }
+  if (srcLike?.src) return srcLike.src;
+  return null;
+}
+
+function normalizeDetailedItem(it) {
+  const entity = it?.entity || null;
+  const name = it?.displayName || entity?.name || it?.name || null;
+  const summary = it?.displaySummary || entity?.summary || it?.summary || null;
+  const openingTimes =
+    it?.opening_times_url || entity?.opening_times_url || null;
+  const imgCandidate =
+    it?.displayImage ||
+    firstImage(entity?.images) ||
+    firstImage(it?.images) ||
+    null;
+  return {
+    ...it,
+    displayName: name,
+    displaySummary: summary,
+    opening_times_url: openingTimes,
+    displayImage: resolveImageUrl(imgCandidate),
+  };
+}
+
 export const runtime = "nodejs";
 export const revalidate = 300;
 export const dynamic = undefined;
@@ -97,11 +130,16 @@ function pickItemDisplay(entry) {
 
 export default async function ExcursionDetailPage(props) {
   const params = (await props.params) || {};
-  const searchParams = props.searchParams ? await props.searchParams : undefined;
+  const searchParams = props.searchParams
+    ? await props.searchParams
+    : undefined;
 
-  const slugParam = decodeURIComponent(params?.slug || "").trim().toLowerCase();
+  const slugParam = decodeURIComponent(params?.slug || "")
+    .trim()
+    .toLowerCase();
   const dbgFlagRaw = String(searchParams?.debug || "").toLowerCase();
-  const debugOn = dbgFlagRaw === "1" || dbgFlagRaw === "true" || dbgFlagRaw === "yes";
+  const debugOn =
+    dbgFlagRaw === "1" || dbgFlagRaw === "true" || dbgFlagRaw === "yes";
 
   const result = await getExcursionByIdentifierPublic(slugParam);
   if (!result?.excursion) return notFound();
@@ -123,14 +161,17 @@ export default async function ExcursionDetailPage(props) {
       : null);
 
   // Group items by type/collection for display
-  const grouped = (Array.isArray(detailedItems) ? detailedItems : []).reduce((acc, it) => {
-    const key = (it.collection || it.item_type || "items")
-      .toString()
-      .toLowerCase();
-    acc[key] = acc[key] || [];
-    acc[key].push(it);
-    return acc;
-  }, {});
+  const grouped = (Array.isArray(detailedItems) ? detailedItems : []).reduce(
+    (acc, it) => {
+      const key = (it.collection || it.item_type || "items")
+        .toString()
+        .toLowerCase();
+      acc[key] = acc[key] || [];
+      acc[key].push(it);
+      return acc;
+    },
+    {}
+  );
 
   const orderedGroups = [
     "sights",
@@ -179,72 +220,139 @@ export default async function ExcursionDetailPage(props) {
 
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Itinerary</h2>
-        {detailedItems.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No items yet.</p>
-        ) : (
-          <div className="mt-3 space-y-3">
-            {detailedItems.map((it) => (
-              <div
-                key={it.id}
-                className="overflow-hidden rounded-xl border border-border bg-card/60"
-              >
-                <div className="p-4 flex items-start gap-4">
-                  {it.displayImage ? (
-                    <div className="relative h-16 w-16 rounded-full overflow-hidden border flex-none">
-                      <SafeImage
-                        src={it.displayImage}
-                        alt={it.displayName}
-                        fill
-                        className="object-cover"
-                      />
+        {(() => {
+          const itemsWithSort = (detailedItems || []).map((it) => ({
+            kind: "item",
+            sort: Number(it.sort_order) || 0,
+            it,
+          }));
+          const legsWithSort = (transportEntries || []).map((t, i) => ({
+            kind: "leg",
+            sort: Number(t.sort_order ?? i * 10) || i * 10,
+            t,
+          }));
+          const flow = [...itemsWithSort, ...legsWithSort].sort(
+            (a, b) => a.sort - b.sort
+          );
+          if (flow.length === 0) {
+            return (
+              <p className="text-sm text-muted-foreground">No items yet.</p>
+            );
+          }
+          return (
+            <div className="mt-3 space-y-3">
+              {flow.map((row, idx) => {
+                if (row.kind === "item") {
+                  const itRaw = row.it;
+                  const it = normalizeDetailedItem(itRaw);
+                  return (
+                    <div
+                      key={`it-${it.id || itRaw.id || idx}-${idx}`}
+                      className="overflow-hidden rounded-xl border border-border bg-card/60"
+                    >
+                      <div className="p-4 flex items-start gap-4">
+                        {it.displayImage ? (
+                          <div className="relative h-16 w-16 rounded-full overflow-hidden border flex-none">
+                            <SafeImage
+                              src={it.displayImage}
+                              alt={it.displayName || "Item image"}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-16 w-16 rounded-full bg-muted border flex-none" />
+                        )}
+                        <div className="flex-1 space-y-2 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="capitalize">
+                              {String(it.item_type || "").replace("_", " ")}
+                            </Badge>
+                            {typeof it.duration_minutes === "number" &&
+                            it.duration_minutes > 0 ? (
+                              <span className="text-xs text-muted-foreground">
+                                {it.duration_minutes} min
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="font-medium truncate">
+                            {it.displayName || "(untitled)"}
+                          </p>
+                          {it.displaySummary ? (
+                            <p className="text-sm text-muted-foreground line-clamp-3">
+                              {it.displaySummary}
+                            </p>
+                          ) : null}
+                          {it.details ? (
+                            <p className="text-sm text-muted-foreground line-clamp-3">
+                              {it.details}
+                            </p>
+                          ) : null}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {it.maps_url ? (
+                              <a
+                                href={it.maps_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs text-primary underline"
+                              >
+                                Maps link
+                              </a>
+                            ) : null}
+                            {it.opening_times_url ? (
+                              <a
+                                href={it.opening_times_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs text-primary underline"
+                              >
+                                Opening times
+                              </a>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                      {debugOn && !it.entity && (
+                        <div className="border-t border-border bg-amber-50/40 px-4 py-2 text-xs text-amber-900">
+                          Entity not resolved (check ref_id/visibility):{" "}
+                          {String(itRaw?.item_type)} · {String(itRaw?.ref_id)}
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="h-16 w-16 rounded-full bg-muted border flex-none" />
-                  )}
-
-                  <div className="flex-1 space-y-2 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="capitalize">
-                        {String(it.item_type || "").replace("_", " ")}
-                      </Badge>
-                      {typeof it.duration_minutes === "number" &&
-                      it.duration_minutes > 0 ? (
-                        <span className="text-xs text-muted-foreground">
-                          {it.duration_minutes} min
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <p className="font-medium truncate">{it.displayName}</p>
-
-                    {it.displaySummary ? (
-                      <p className="text-sm text-muted-foreground line-clamp-3">
-                        {it.displaySummary}
-                      </p>
+                  );
+                }
+                const t = row.t;
+                const title =
+                  t.title || t.mode || t.primary_mode || "Transport";
+                return (
+                  <div
+                    key={`leg-${idx}`}
+                    className="rounded-lg border border-border bg-card/60 p-4 text-sm text-muted-foreground"
+                  >
+                    <p className="font-medium text-foreground">{title}</p>
+                    {t.details || t.summary ? (
+                      <p className="text-xs mt-1">{t.details || t.summary}</p>
                     ) : null}
-
-                    {it.details ? (
-                      <p className="text-sm text-muted-foreground line-clamp-3">
-                        {it.details}
-                      </p>
-                    ) : null}
-
-                    {it.maps_url ? (
-                      <a
-                        href={it.maps_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-primary underline"
-                      >
-                        Maps link
-                      </a>
+                    {t.duration_minutes ||
+                    t.est_duration_min ||
+                    t.est_cost_min ? (
+                      <div className="text-xs mt-2">
+                        {t.duration_minutes || t.est_duration_min
+                          ? `~${t.duration_minutes || t.est_duration_min} min`
+                          : null}
+                        {t.est_cost_min
+                          ? ` · ${t.currency || "JPY"} ${t.est_cost_min}${
+                              t.est_cost_max ? `–${t.est_cost_max}` : ""
+                            }`
+                          : null}
+                      </div>
                     ) : null}
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          );
+        })()}
       </section>
 
       {notes.length > 0 ? (
@@ -258,40 +366,7 @@ export default async function ExcursionDetailPage(props) {
         </section>
       ) : null}
 
-      {transportEntries.length > 0 ? (
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">Suggested Transport</h2>
-          <div className="space-y-3">
-            {transportEntries.map((entry, idx) => (
-              <div
-                key={idx}
-                className="rounded-lg border border-border bg-card/60 p-4 text-sm text-muted-foreground"
-              >
-                {entry.title ? (
-                  <p className="font-medium text-foreground">{entry.title}</p>
-                ) : null}
-                <ul className="mt-2 space-y-1 text-xs">
-                  {entry.mode ? <li>Mode: {entry.mode}</li> : null}
-                  {entry.duration_minutes ? (
-                    <li>Duration: {entry.duration_minutes} minutes</li>
-                  ) : null}
-                  {entry.details ? <li>{entry.details}</li> : null}
-                  {!entry.title &&
-                  !entry.mode &&
-                  !entry.duration_minutes &&
-                  !entry.details ? (
-                    <li>
-                      {typeof entry === "string"
-                        ? entry
-                        : JSON.stringify(entry)}
-                    </li>
-                  ) : null}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
+      {/* Transport is now interleaved above */}
 
       {mapUrl ? (
         <section className="space-y-2 text-sm">

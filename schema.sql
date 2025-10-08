@@ -152,6 +152,7 @@ CREATE TABLE public.excursions (
   destination_id uuid,
   slug text,
   cover_image text,
+  tags ARRAY DEFAULT '{}'::text[],
   CONSTRAINT excursions_pkey PRIMARY KEY (id),
   CONSTRAINT excursions_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
 );
@@ -402,11 +403,13 @@ CREATE TABLE public.sight_opening_hours (
   start_day integer CHECK (start_day >= 1 AND start_day <= 31),
   end_month integer NOT NULL CHECK (end_month >= 1 AND end_month <= 12),
   end_day integer CHECK (end_day >= 1 AND end_day <= 31),
-  open_time time without time zone NOT NULL,
-  close_time time without time zone NOT NULL,
+  open_time time without time zone,
+  close_time time without time zone,
   last_entry_mins integer NOT NULL DEFAULT 0 CHECK (last_entry_mins >= 0),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  days jsonb,
+  is_closed boolean DEFAULT false,
   CONSTRAINT sight_opening_hours_pkey PRIMARY KEY (id),
   CONSTRAINT sight_opening_hours_sight_id_fkey FOREIGN KEY (sight_id) REFERENCES public.sights(id)
 );
