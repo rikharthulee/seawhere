@@ -43,10 +43,15 @@ export async function PUT(request, ctx) {
     const body = await request.json();
 
     const payload = {
-      name: body.name,
-      maps_url: body.maps_url || null,
-      status: body.status || "draft",
+      name: body.name || null,
+      slug: body.slug || null,
+      summary: body.summary || null,
       description: body.description || null,
+      cover_image: body.cover_image || null,
+      maps_url: body.maps_url || null,
+      destination_id: body.destination_id || null,
+      status: body.status || "draft",
+      tags: Array.isArray(body.tags) ? body.tags : null,
       transport: body.transport || null,
     };
     const { error } = await db.from("excursions").update(payload).eq("id", id);

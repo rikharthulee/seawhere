@@ -53,3 +53,45 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
   ```
 
 - Public destination pages should read published rows only and avoid caching 404s during content entry. Use `revalidate = 0` and filter `status = 'published'` when appropriate.
+
+## Excursion Builder Overview
+
+This project includes an admin Excursion Builder and public Excursion pages. Below are the key files and their roles end‑to‑end.
+
+- `src/app/admin/excursions/builder/page.jsx`
+  - Admin route that renders the builder UI. Thin wrapper around the component.
+
+- `src/components/admin/ExcursionBuilder.jsx`
+  - Main builder UI. Create/edit an excursion’s core fields; add/remove/reorder items; add transport; live preview; save/delete.
+  - Calls admin APIs to POST/PUT/DELETE excursions and their items and uses `GET /api/excursions/search` to find sights/experiences/tours to add.
+
+- `src/app/admin/excursions/page.jsx`
+  - Admin index page listing excursions (draft/published) with links to the builder and public view.
+
+- `src/app/api/admin/excursions/route.js`
+  - POST: create a new excursion row and optional items.
+  - GET: list excursions for the admin index (name/status/updated_at filters).
+
+- `src/app/api/admin/excursions/[id]/route.js`
+  - GET: load a single excursion with its `excursion_items` (sorted).
+  - PUT: update the excursion and replace its `excursion_items` in one go.
+  - DELETE: delete excursion and its items.
+
+- `src/app/api/excursions/search/route.js`
+  - Builder search endpoint to look up selectable entities (sights/experiences/tours) by text query.
+
+- `src/lib/data/public/excursions.js`
+  - Public data helpers used by SSR pages. Loads a published excursion by slug/id, hydrates `excursion_items` by resolving referenced entities (name, summary, first image, opening_times_url), and returns the list of items plus any transport entries.
+
+- `src/app/excursions/[slug]/page.jsx`
+  - Public excursion detail page. Interleaves hydrated items and transport by `sort_order`. Renders name, thumbnail, summary, and an “Opening times” link when available.
+
+Data flow summary
+- Admin builder → admin APIs → writes `excursions` + `excursion_items`.
+- Public page → public helper → reads published `excursions` + `excursion_items`, resolves refs to `sights/experiences/tours`, and renders the flow.
+
+RLS and visibility (production)
+- Public pages use the anon Supabase client and require policies that allow `SELECT` when the parent excursion is published.
+  - `excursions`: anon `SELECT` where `status = 'published'`.
+  - `excursion_items`: anon `SELECT` where an associated excursion is published.
+  - `sights/experiences/tours`: anon `SELECT` for published rows (or “referenced by a published excursion”).

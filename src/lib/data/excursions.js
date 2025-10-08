@@ -167,3 +167,13 @@ export async function getExcursionOpeningExceptions(id) {
     return [];
   }
 }
+
+// -----------------------------
+// Public curated excursion loader (strict, no fallbacks)
+// -----------------------------
+
+const PUBLIC_ENTITY_COLUMNS =
+  "id,slug,name,summary,images,opening_times_url,lat,lng";
+
+// Note: Public helpers live in src/lib/data/public/excursions.js.
+// This module is for admin/internal helpers only.

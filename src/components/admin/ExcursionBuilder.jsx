@@ -844,13 +844,19 @@ export default function ExcursionsBuilderJS() {
               disabled={saving}
               onClick={async () => {
                 if (!savedId) return;
-                const ok = window.confirm("Delete this excursion? This cannot be undone.");
+                const ok = window.confirm(
+                  "Delete this excursion? This cannot be undone."
+                );
                 if (!ok) return;
                 try {
-                  const res = await fetch(`/api/admin/excursions/${savedId}`, { method: "DELETE" });
+                  const res = await fetch(`/api/admin/excursions/${savedId}`, {
+                    method: "DELETE",
+                  });
                   if (!res.ok) {
                     const json = await res.json().catch(() => ({}));
-                    throw new Error(json?.error || `Delete failed (${res.status})`);
+                    throw new Error(
+                      json?.error || `Delete failed (${res.status})`
+                    );
                   }
                   router.replace(`/admin/excursions`, { scroll: false });
                 } catch (e) {
@@ -1023,7 +1029,7 @@ export default function ExcursionsBuilderJS() {
             />
           </div>
           <div className="md:col-span-2">
-            <Label>Day‑of‑week tips</Label>
+            <Label>Day-of-week tips</Label>
             <Textarea
               rows={2}
               value={excursion.dow_tips || ""}

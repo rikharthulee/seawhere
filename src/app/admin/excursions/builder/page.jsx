@@ -1,5 +1,5 @@
 "use client";
-import ExcursionsBuilder from "@/components/ExcursionBuilder";
+import ExcursionsBuilder from "@/components/admin/ExcursionBuilder";
 
 export const runtime = "nodejs";
 
