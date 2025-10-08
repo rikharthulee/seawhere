@@ -33,16 +33,9 @@ export default async function SightsByRegionPage(props) {
         {Array.isArray(pois) && pois.length > 0 ? (
           pois.map((p) => {
             const img = resolveImageUrl(firstImageFromImages(p?.images));
-            const destSlug = p?.destinations?.slug || null;
-            const canLink = !!(destSlug && p.slug);
-            const Tag = canLink ? Link : "div";
-            const linkProps = canLink
-              ? {
-                  href: `/sights/${encodeURIComponent(
-                    destSlug
-                  )}/${encodeURIComponent(p.slug)}`,
-                }
-              : {};
+            const href = p.slug ? `/sights/${encodeURIComponent(p.slug)}` : null;
+            const Tag = href ? Link : "div";
+            const linkProps = href ? { href } : {};
             return (
               <Card
                 asChild

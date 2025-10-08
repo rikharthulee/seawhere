@@ -12,3 +12,14 @@ export const EXCURSION_PUBLIC_COLUMNS =
 // Link-table minimal shape for curated items
 export const EXCURSION_LINK_COLUMNS = 'item_type,ref_id,sort_order';
 
+// Sights
+export const SIGHT_PUBLIC_COLUMNS =
+  'id,slug,name,summary,description,body_richtext,images,destination_id,lat,lng,status,duration_minutes,provider,deeplink,gyg_id,price_amount,price_currency,tags,opening_times_url';
+
+// Experiences
+export const EXPERIENCE_PUBLIC_COLUMNS =
+  'id,slug,name,summary,description,body_richtext,images,destination_id,status,provider,price_amount,price_currency,duration_minutes,tags';
+
+// Tours
+export const TOUR_PUBLIC_COLUMNS =
+  'id,slug,name,summary,description,body_richtext,images,destination_id,status,provider,price_amount,price_currency,duration_minutes,tags';

@@ -1,4 +1,11 @@
 import { getPublicDB } from "@/lib/supabase/public";
+import { EXPERIENCE_PUBLIC_COLUMNS } from "@/lib/data/public/selects";
+
+function isUUID(v) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    String(v || "").trim()
+  );
+}
 
 export async function listPublishedExperiences() {
   const db = getPublicDB();
@@ -39,25 +46,76 @@ export async function listExperiencesByDestinationSlug(destSlug, divisionSlug = 
   return { destination: dst, experiences: data ?? [] };
 }
 
-export async function getExperienceBySlugsPublic(destSlug, expSlug) {
+export async function getExperienceBySlugPublic(slug) {
   const db = getPublicDB();
-  const { data: dst } = await db
-    .from("destinations")
-    .select("id, slug, name")
-    .eq("slug", String(destSlug || "").trim())
-    .maybeSingle();
-  if (!dst?.id) return null;
-  const { data, error } = await db
+  const normalized = String(slug || "").trim();
+  if (!normalized) {
+    console.warn("[public:experiences] invalid slug", { slug });
+    return { experience: null, destination: null };
+  }
+
+  const { data, error, status } = await db
     .from("experiences")
-    .select(
-      "id, slug, name, summary, description, images, destination_id, status, provider, price_amount, price_currency, duration_minutes, tags"
-    )
-    .eq("destination_id", dst.id)
-    .eq("slug", expSlug)
+    .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name )`)
+    .eq("slug", normalized)
     .eq("status", "published")
     .maybeSingle();
-  if (error || !data) return null;
-  return { experience: data, destination: dst };
+
+  if (error) {
+    console.error("[public:experiences] select failed", {
+      table: "experiences",
+      status,
+      msg: error.message,
+    });
+    return { experience: null, destination: null };
+  }
+
+  if (!data) {
+    console.warn("[public:experiences] entity not visible", {
+      table: "experiences",
+      slug: normalized,
+    });
+    return { experience: null, destination: null };
+  }
+
+  const { destinations: destination, ...experience } = data;
+  return { experience, destination: destination || null };
+}
+
+export async function getExperienceByIdPublic(id) {
+  const db = getPublicDB();
+  const normalized = String(id || "").trim();
+  if (!isUUID(normalized)) {
+    console.warn("[public:experiences] invalid id", { id });
+    return { experience: null, destination: null };
+  }
+
+  const { data, error, status } = await db
+    .from("experiences")
+    .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name )`)
+    .eq("id", normalized)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[public:experiences] select failed", {
+      table: "experiences",
+      status,
+      msg: error.message,
+    });
+    return { experience: null, destination: null };
+  }
+
+  if (!data) {
+    console.warn("[public:experiences] entity not visible", {
+      table: "experiences",
+      id: normalized,
+    });
+    return { experience: null, destination: null };
+  }
+
+  const { destinations: destination, ...experience } = data;
+  return { experience, destination: destination || null };
 }
 
 export async function listExperiencesByRegionSlug(regionSlug) {

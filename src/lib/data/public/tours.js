@@ -3,6 +3,13 @@ import {
   listDestinationsByPrefectureId,
   listDestinationsByDivisionId,
 } from "@/lib/data/public/geo";
+import { TOUR_PUBLIC_COLUMNS } from "@/lib/data/public/selects";
+
+function isUUID(v) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    String(v || "").trim()
+  );
+}
 
 export async function listPublishedTours() {
   const db = getPublicDB();
@@ -43,25 +50,76 @@ export async function listToursByDestinationSlug(destinationSlug, divisionSlug =
   return { destination: dst, tours: data ?? [] };
 }
 
-export async function getTourBySlugsPublic(destinationSlug, tourSlug) {
+export async function getTourBySlugPublic(slug) {
   const db = getPublicDB();
-  const { data: dst } = await db
-    .from("destinations")
-    .select("id, slug, name")
-    .eq("slug", String(destinationSlug || "").trim())
-    .maybeSingle();
-  if (!dst?.id) return null;
-  const { data, error } = await db
+  const normalized = String(slug || "").trim();
+  if (!normalized) {
+    console.warn("[public:tours] invalid slug", { slug });
+    return { tour: null, destination: null };
+  }
+
+  const { data, error, status } = await db
     .from("tours")
-    .select(
-      "id, slug, name, summary, description, images, destination_id, status, provider, price_amount, price_currency, duration_minutes"
-    )
-    .eq("destination_id", dst.id)
-    .eq("slug", tourSlug)
+    .select(`${TOUR_PUBLIC_COLUMNS}, destinations ( id, slug, name )`)
+    .eq("slug", normalized)
     .eq("status", "published")
     .maybeSingle();
-  if (error || !data) return null;
-  return { tour: data, destination: dst };
+
+  if (error) {
+    console.error("[public:tours] select failed", {
+      table: "tours",
+      status,
+      msg: error.message,
+    });
+    return { tour: null, destination: null };
+  }
+
+  if (!data) {
+    console.warn("[public:tours] entity not visible", {
+      table: "tours",
+      slug: normalized,
+    });
+    return { tour: null, destination: null };
+  }
+
+  const { destinations: destination, ...tour } = data;
+  return { tour, destination: destination || null };
+}
+
+export async function getTourByIdPublic(id) {
+  const db = getPublicDB();
+  const normalized = String(id || "").trim();
+  if (!isUUID(normalized)) {
+    console.warn("[public:tours] invalid id", { id });
+    return { tour: null, destination: null };
+  }
+
+  const { data, error, status } = await db
+    .from("tours")
+    .select(`${TOUR_PUBLIC_COLUMNS}, destinations ( id, slug, name )`)
+    .eq("id", normalized)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[public:tours] select failed", {
+      table: "tours",
+      status,
+      msg: error.message,
+    });
+    return { tour: null, destination: null };
+  }
+
+  if (!data) {
+    console.warn("[public:tours] entity not visible", {
+      table: "tours",
+      id: normalized,
+    });
+    return { tour: null, destination: null };
+  }
+
+  const { destinations: destination, ...tour } = data;
+  return { tour, destination: destination || null };
 }
 
 export async function listToursByRegionSlug(regionSlug) {
@@ -135,4 +193,3 @@ export async function listToursByDivisionSlug(divSlug) {
   if (error) throw error;
   return data ?? [];
 }
-

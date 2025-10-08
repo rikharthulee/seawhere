@@ -61,6 +61,7 @@ const eslintConfig = [
       "src/app/admin/**/*.{js,jsx,ts,tsx}",
       "src/lib/data/**/*.{js,jsx,ts,tsx}",
     ],
+    ignores: ["src/lib/data/public/**/*"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -74,6 +75,12 @@ const eslintConfig = [
           ],
         },
       ],
+    },
+  },
+  {
+    files: ["src/lib/data/public/**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
 ];

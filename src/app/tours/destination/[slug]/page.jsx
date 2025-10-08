@@ -1,28 +1,35 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
-import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
+import Link from "next/link";
+import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
-import { getPrefectureBySlugPublic } from "@/lib/data/public/geo";
-import { listSightsByPrefectureSlug } from "@/lib/data/public/sights";
+import { listToursByDestinationSlug } from "@/lib/data/public/tours";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
-export default async function SightsByPrefecturePage(props) {
-  const { slug } = (await props.params) || {};
-  const pref = await getPrefectureBySlugPublic(slug);
-  if (!pref?.id) notFound();
-  const pois = await listSightsByPrefectureSlug(slug);
+export default async function ToursByDestinationPage(props) {
+  const params = (await props.params) || {};
+  const searchParams = props.searchParams ? await props.searchParams : undefined;
+  const { slug } = params || {};
+  const divisionSlug =
+    searchParams && typeof searchParams === "object"
+      ? searchParams.division || null
+      : null;
+  const { destination: dst, tours } = await listToursByDestinationSlug(
+    slug,
+    divisionSlug
+  );
+  if (!dst) notFound();
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
-            Sights in {pref.name}
+            Tours in {dst.name}
           </h1>
-          <Link href="/sights" className="underline ml-4">
+          <Link href="/tours" className="underline ml-4">
             Back
           </Link>
         </div>
@@ -30,20 +37,31 @@ export default async function SightsByPrefecturePage(props) {
       </div>
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {Array.isArray(pois) && pois.length > 0 ? (
-          pois.map((p) => {
-            const img = resolveImageUrl(firstImageFromImages(p?.images));
-            const href = p.slug ? `/sights/${encodeURIComponent(p.slug)}` : null;
-            const Tag = href ? Link : "div";
-            const linkProps = href ? { href } : {};
+        {Array.isArray(tours) && tours.length > 0 ? (
+          tours.map((p) => {
+            let imgPath = p.image || null;
+            if (!imgPath && p.images) {
+              if (Array.isArray(p.images) && p.images.length > 0) {
+                const first = p.images[0];
+                imgPath =
+                  (first && (first.url || first.src)) ||
+                  (typeof first === "string" ? first : null);
+              } else if (typeof p.images === "string") {
+                imgPath = p.images;
+              }
+            }
+            const img = resolveImageUrl(imgPath);
+            const href = p.slug ? `/tours/${encodeURIComponent(p.slug)}` : null;
+            const CardTag = href ? Link : "div";
+            const cardProps = href ? { href } : {};
             return (
               <Card
+                key={p.id}
                 asChild
                 className="overflow-hidden transition-shadow hover:shadow-md"
               >
-                <Tag
-                  key={p.id}
-                  {...linkProps}
+                <CardTag
+                  {...cardProps}
                   className="block focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <div className="aspect-[4/3] relative bg-muted">
@@ -65,16 +83,17 @@ export default async function SightsByPrefecturePage(props) {
                       </p>
                     ) : null}
                   </CardContent>
-                </Tag>
+                </CardTag>
               </Card>
             );
           })
         ) : (
           <div className="col-span-full text-muted-foreground">
-            No sights found for this prefecture.
+            No tours yet for this destination.
           </div>
         )}
       </section>
     </main>
   );
 }
+

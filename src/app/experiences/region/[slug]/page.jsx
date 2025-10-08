@@ -44,16 +44,11 @@ export default async function ExperiencesByRegionPage(props) {
               }
             }
             const img = resolveImageUrl(imgPath);
-            const destSlug = p?.destinations?.slug || null;
-            const canLink = !!(destSlug && p.slug);
-            const Tag = canLink ? Link : "div";
-            const linkProps = canLink
-              ? {
-                  href: `/experiences/${encodeURIComponent(
-                    destSlug
-                  )}/${encodeURIComponent(p.slug)}`,
-                }
-              : {};
+            const href = p.slug
+              ? `/experiences/${encodeURIComponent(p.slug)}`
+              : null;
+            const Tag = href ? Link : "div";
+            const linkProps = href ? { href } : {};
             return (
               <Card
                 asChild

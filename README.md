@@ -1,6 +1,4 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
-
-## Getting Started
+# Getting Started
 
 First, run the development server:
 
@@ -59,41 +57,71 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 This project includes an admin Excursion Builder and public Excursion pages. Below are the key files and their roles end‑to‑end.
 
 - `src/app/admin/excursions/builder/page.jsx`
+
   - Admin route that renders the builder UI. Thin wrapper around the component.
 
 - `src/components/admin/ExcursionBuilder.jsx`
+
   - Main builder UI. Create/edit an excursion’s core fields; add/remove/reorder items; add transport; live preview; save/delete.
   - Calls admin APIs to POST/PUT/DELETE excursions and their items and uses `GET /api/excursions/search` to find sights/experiences/tours to add.
 
 - `src/app/admin/excursions/page.jsx`
+
   - Admin index page listing excursions (draft/published) with links to the builder and public view.
 
 - `src/app/api/admin/excursions/route.js`
+
   - POST: create a new excursion row and optional items.
   - GET: list excursions for the admin index (name/status/updated_at filters).
 
 - `src/app/api/admin/excursions/[id]/route.js`
+
   - GET: load a single excursion with its `excursion_items` (sorted).
   - PUT: update the excursion and replace its `excursion_items` in one go.
   - DELETE: delete excursion and its items.
 
 - `src/app/api/excursions/search/route.js`
+
   - Builder search endpoint to look up selectable entities (sights/experiences/tours) by text query.
 
 - `src/lib/data/public/excursions.js`
-  - Public SSR helpers (anon). Provide two strict helpers, not mixed:
-    - `getCuratedExcursionBySlugPublic(slug)` for public pages
+
+  - Public SSR helpers (anon). Two strict entry points, not mixed:
+    - `getCuratedExcursionBySlugPublic(slug)` for public routes
     - `getCuratedExcursionByIdPublic(id)` for internal use
   - Both hydrate `excursion_items` by resolving referenced entities via `eq('id', uuid)`.
 
 - `src/app/excursions/[slug]/page.jsx`
-  - Public excursion detail page (slug-based). Interleaves hydrated items and transport by `sort_order`. Renders name, thumbnail, summary, and an “Opening times” link when available. Accepts `?debug=1` to show a small debug block when an entity is not visible via RLS.
+  - Public excursion detail page (slug-based). Interleaves hydrated items and transport by `sort_order`. Renders name, thumbnail, summary, and an “Opening times” link when available.
+
+- `src/app/excursions/page.jsx`
+  - Quick slug index plus gallery to spot-check published excursions.
+
+- `src/lib/data/public/sights.js`
+  - `getSightBySlugPublic(slug)` / `getSightByIdPublic(id)` (strict, anon) with hydrated opening times + admissions.
+
+- `src/app/sights/[slug]/page.jsx`
+  - Public sight detail page (slug-first). Destination listings now live under `/sights/destination/[slug]`.
+
+- `src/lib/data/public/experiences.js`
+  - `getExperienceBySlugPublic(slug)` / `getExperienceByIdPublic(id)` (strict, anon).
+
+- `src/app/experiences/[slug]/page.jsx`
+  - Public experience detail page (slug-first). Destination listings now live under `/experiences/destination/[slug]`.
+
+- `src/lib/data/public/tours.js`
+  - `getTourBySlugPublic(slug)` / `getTourByIdPublic(id)` (strict, anon).
+
+- `src/app/tours/[slug]/page.jsx`
+  - Public tour detail page (slug-first). Destination listings now live under `/tours/destination/[slug]`.
 
 Data flow summary
+
 - Admin builder → admin APIs → writes `excursions` + `excursion_items`.
 - Public page → public helper → reads published `excursions` + `excursion_items`, resolves refs to `sights/experiences/tours`, and renders the flow.
 
 RLS and visibility (production)
+
 - Public pages use the anon Supabase client and require policies that allow `SELECT` when the parent excursion is published.
   - `excursions`: anon `SELECT` where `status = 'published'`.
   - `excursion_items`: anon `SELECT` where an associated excursion is published.

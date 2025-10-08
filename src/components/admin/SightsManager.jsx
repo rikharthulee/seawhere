@@ -194,7 +194,7 @@ export default function SightsManager() {
                     >
                       Edit
                     </Button>
-                    {destMap[it.destination_id]?.slug && it.slug ? (
+                    {it.slug ? (
                       <Button
                         asChild
                         variant="outline"
@@ -202,9 +202,7 @@ export default function SightsManager() {
                         className="h-8 w-20"
                       >
                         <Link
-                          href={`/sights/${encodeURIComponent(
-                            destMap[it.destination_id].slug
-                          )}/${encodeURIComponent(it.slug)}`}
+                          href={`/sights/${encodeURIComponent(it.slug)}`}
                           target="_blank"
                         >
                           View

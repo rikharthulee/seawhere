@@ -10,8 +10,8 @@
     "lint": "next lint",
     "lint:service": "rg -n -e \"^\\s*import\\s+.*from\\s+['\\\"]@/lib/supabase/service['\\\"]\" -e \"require\\(['\\\"]@/lib/supabase/service['\\\"]\\)\" --glob '!node_modules' --glob '!eslint.config.mjs' && (echo '❌ service client found' && exit 1) || echo '✅ all clear'",
     "lint:public-imports": "rg --pcre2 -n \"from\\s+['\\\"]@/lib/data/(?!public/)\" src/app --glob '!src/app/admin/**' && (echo '❌ Import boundary violation in public pages' && exit 1) || echo '✅ public import boundaries ok'",
-    "lint:admin-imports": "rg -n \"from\\s+['\\\"]@/lib/data/public/\" src/app/admin src/lib/data && (echo '❌ Admin/internal importing public helpers' && exit 1) || echo '✅ admin/public boundaries ok'",
-    "lint:public-batched": "rg -n \\\"\\.in\\\\('id',\\\" src/lib/data/public && (echo '❌ Batched id selects found in public helpers' && exit 1) || echo '✅ no public batched id selects'"
+    "lint:admin-imports": "rg -n \"from\\s+['\\\"]@/lib/data/public/\" src/app/admin src/lib/data --glob '!src/lib/data/public/**' && (echo '❌ Admin/internal importing public helpers' && exit 1) || echo '✅ admin/public boundaries ok'",
+    "lint:public-batched": "node scripts/check-public-batched.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

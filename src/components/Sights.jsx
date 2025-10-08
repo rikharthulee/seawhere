@@ -22,10 +22,7 @@ export default function Sights({ items = [] }) {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {sorted.map((p) => {
           const img = resolveImageUrl(firstImageFromImages(p?.images));
-          const destSlug =
-            p?.destinations?.slug || p?.destination?.slug || null;
-          const canLink = !!(p.slug && destSlug);
-          const href = canLink ? `/sights/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` : null;
+          const href = p?.slug ? `/sights/${encodeURIComponent(p.slug)}` : null;
           return (
             <Tile.Link key={p.id} href={href || "#"}>
               <Tile.Image>

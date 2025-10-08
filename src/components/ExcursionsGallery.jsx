@@ -3,16 +3,6 @@ import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Tile } from "@/components/ui/tile";
 
-function slugify(input) {
-  return (
-    String(input || "")
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)+/g, "") || "excursion"
-  );
-}
-
 function initialsFrom(title = "?") {
   const parts = String(title).trim().split(/\s+/).slice(0, 2);
   return parts.map((p) => p[0]?.toUpperCase() || "").join("") || "?";

@@ -115,10 +115,10 @@ export default function ExperiencesManager() {
                         alert(e?.message || "Failed to load experience");
                       }
                       }}>Edit</Button>
-                      {destMap[it.destination_id]?.slug && it.slug ? (
+                      {it.slug ? (
                         <Button asChild variant="outline" size="sm" className="h-8 w-20">
                           <Link
-                            href={`/experiences/${encodeURIComponent(destMap[it.destination_id].slug)}/${encodeURIComponent(it.slug)}`}
+                            href={`/experiences/${encodeURIComponent(it.slug)}`}
                             target="_blank"
                           >
                             View

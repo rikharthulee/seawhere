@@ -116,10 +116,10 @@ export default function ToursManager() {
                         alert(e?.message || "Failed to load tour");
                       }
                       }}>Edit</Button>
-                      {destMap[it.destination_id]?.slug && it.slug ? (
+                      {it.slug ? (
                         <Button asChild variant="outline" size="sm" className="h-8 w-20">
                           <Link
-                            href={`/tours/${encodeURIComponent(destMap[it.destination_id].slug)}/${encodeURIComponent(it.slug)}`}
+                            href={`/tours/${encodeURIComponent(it.slug)}`}
                             target="_blank"
                           >
                             View

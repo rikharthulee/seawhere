@@ -1,26 +1,31 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
+import Link from "next/link";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
-import { getPrefectureBySlugPublic } from "@/lib/data/public/geo";
-import { listSightsByPrefectureSlug } from "@/lib/data/public/sights";
+import GygWidget from "@/components/GygWidget";
+import { listSightsByDestinationSlug } from "@/lib/data/public/sights";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
-export default async function SightsByPrefecturePage(props) {
+export default async function SightsByDestinationPage(props) {
   const { slug } = (await props.params) || {};
-  const pref = await getPrefectureBySlugPublic(slug);
-  if (!pref?.id) notFound();
-  const pois = await listSightsByPrefectureSlug(slug);
+  const sp = (await props.searchParams) || {};
+  const divisionSlug =
+    typeof sp.division === "string" && sp.division.length ? sp.division : null;
+  const { destination: dst, sights } = await listSightsByDestinationSlug(
+    slug,
+    divisionSlug
+  );
+  if (!dst) notFound();
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
-            Sights in {pref.name}
+            Sights in {dst.name}
           </h1>
           <Link href="/sights" className="underline ml-4">
             Back
@@ -30,20 +35,20 @@ export default async function SightsByPrefecturePage(props) {
       </div>
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {Array.isArray(pois) && pois.length > 0 ? (
-          pois.map((p) => {
+        {Array.isArray(sights) && sights.length > 0 ? (
+          sights.map((p) => {
             const img = resolveImageUrl(firstImageFromImages(p?.images));
             const href = p.slug ? `/sights/${encodeURIComponent(p.slug)}` : null;
-            const Tag = href ? Link : "div";
-            const linkProps = href ? { href } : {};
+            const CardTag = href ? Link : "div";
+            const cardProps = href ? { href } : {};
             return (
               <Card
+                key={p.id}
                 asChild
                 className="overflow-hidden transition-shadow hover:shadow-md"
               >
-                <Tag
-                  key={p.id}
-                  {...linkProps}
+                <CardTag
+                  {...cardProps}
                   className="block focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <div className="aspect-[4/3] relative bg-muted">
@@ -65,16 +70,22 @@ export default async function SightsByPrefecturePage(props) {
                       </p>
                     ) : null}
                   </CardContent>
-                </Tag>
+                </CardTag>
               </Card>
             );
           })
         ) : (
           <div className="col-span-full text-muted-foreground">
-            No sights found for this prefecture.
+            No sights yet for this destination.
           </div>
         )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold mb-2">Popular tours</h2>
+        <GygWidget />
       </section>
     </main>
   );
 }
+

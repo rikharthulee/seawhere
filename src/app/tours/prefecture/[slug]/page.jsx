@@ -45,16 +45,9 @@ export default async function ToursByPrefecturePage(props) {
               }
             }
             const img = resolveImageUrl(imgPath);
-            const destSlug = p?.destinations?.slug || null;
-            const canLink = !!(destSlug && p.slug);
-            const Tag = canLink ? Link : "div";
-            const linkProps = canLink
-              ? {
-                  href: `/tours/${encodeURIComponent(
-                    destSlug
-                  )}/${encodeURIComponent(p.slug)}`,
-                }
-              : {};
+            const href = p.slug ? `/tours/${encodeURIComponent(p.slug)}` : null;
+            const Tag = href ? Link : "div";
+            const linkProps = href ? { href } : {};
             return (
               <Card
                 asChild

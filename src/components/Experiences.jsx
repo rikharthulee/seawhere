@@ -33,10 +33,9 @@ export default function Experiences({ items = [] }) {
             }
           }
           const img = resolveImageUrl(imgPath);
-          const destSlug = p?.destinations?.slug || p?.destination?.slug || null;
-          const canLink = !!(p.slug && destSlug);
-          const CardTag = canLink ? Link : "div";
-          const cardProps = canLink ? { href: `/experiences/${encodeURIComponent(destSlug)}/${encodeURIComponent(p.slug)}` } : {};
+          const href = p?.slug ? `/experiences/${encodeURIComponent(p.slug)}` : null;
+          const CardTag = href ? Link : "div";
+          const cardProps = href ? { href } : {};
           return (
             <Card key={p.id} asChild className="group overflow-hidden transition-shadow hover:shadow-md">
               <CardTag {...cardProps} className="block focus:outline-none focus:ring-2 focus:ring-ring">

@@ -1,5 +1,12 @@
 import { getPublicDB } from "@/lib/supabase/public";
 import { listDestinationsByPrefectureId, listDestinationsByDivisionId } from "@/lib/data/public/geo";
+import { SIGHT_PUBLIC_COLUMNS } from "@/lib/data/public/selects";
+
+function isUUID(v) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    String(v || "").trim()
+  );
+}
 
 export async function listPublishedSights() {
   const db = getPublicDB();
@@ -40,38 +47,27 @@ export async function listSightsByDestinationSlug(destinationSlug, divisionSlug 
   return { destination: dst, sights: data ?? [] };
 }
 
-export async function getSightBySlugsPublic(destinationSlug, sightSlug) {
-  const db = getPublicDB();
-  const { data: dst } = await db
-    .from("destinations")
-    .select("id, slug, name")
-    .eq("slug", String(destinationSlug || "").trim())
-    .maybeSingle();
-  if (!dst?.id) return null;
-  const { data, error } = await db
-    .from("sights")
-    .select(
-      "id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency, tags, opening_times_url"
-    )
-    .eq("destination_id", dst.id)
-    .eq("slug", sightSlug)
-    .eq("status", "published")
-    .maybeSingle();
-  if (error || !data) return null;
+const trimTime = (value) => {
+  if (!value) return "";
+  const match = String(value).match(/^([0-9]{1,2}:[0-9]{2})/);
+  return match ? match[1] : String(value);
+};
+
+async function loadSightMeta(db, sightId) {
   const [hoursRes, exceptionsRes, admissionsRes] = await Promise.all([
     db
       .from("sight_opening_hours")
       .select(
         "start_month, start_day, end_month, end_day, open_time, close_time, last_entry_mins, days, is_closed"
       )
-      .eq("sight_id", data.id)
+      .eq("sight_id", sightId)
       .order("start_month", { ascending: true })
       .order("start_day", { ascending: true })
       .order("open_time", { ascending: true }),
     db
       .from("sight_opening_exceptions")
       .select("type, start_date, end_date, weekday, note")
-      .eq("sight_id", data.id)
+      .eq("sight_id", sightId)
       .order("start_date", { ascending: true })
       .order("weekday", { ascending: true }),
     db
@@ -79,15 +75,9 @@ export async function getSightBySlugsPublic(destinationSlug, sightSlug) {
       .select(
         "id, idx, subsection, label, min_age, max_age, is_free, amount, currency, requires_id, valid_from, valid_to, note"
       )
-      .eq("sight_id", data.id)
+      .eq("sight_id", sightId)
       .order("idx", { ascending: true }),
   ]);
-
-  const trimTime = (value) => {
-    if (!value) return "";
-    const match = String(value).match(/^([0-9]{1,2}:[0-9]{2})/);
-    return match ? match[1] : String(value);
-  };
 
   const normalizedHours = (hoursRes?.data ?? []).map((row) => {
     const isClosed = !!row.is_closed;
@@ -121,17 +111,116 @@ export async function getSightBySlugsPublic(destinationSlug, sightSlug) {
     };
   });
 
-  const openingTimes = {
-    hours: normalizedHours,
-    closures: normalizedClosures,
-    officialUrl: data.opening_times_url || "",
+  return {
+    openingTimes: {
+      hours: normalizedHours,
+      closures: normalizedClosures,
+      officialUrl: "",
+    },
+    admissions: admissionsRes?.data ?? [],
+  };
+}
+
+export async function getSightBySlugPublic(slug) {
+  const db = getPublicDB();
+  const normalized = String(slug || "").trim();
+  if (!normalized) {
+    console.warn("[public:sights] invalid slug", { slug });
+    return { sight: null, destination: null, admissions: [], openingTimes: null };
+  }
+
+  const { data, error, status } = await db
+    .from("sights")
+    .select(
+      `${SIGHT_PUBLIC_COLUMNS}, destinations ( id, slug, name )`
+    )
+    .eq("slug", normalized)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[public:sights] select failed", {
+      table: "sights",
+      status,
+      msg: error.message,
+    });
+    return { sight: null, destination: null, admissions: [], openingTimes: null };
+  }
+
+  if (!data) {
+    console.warn("[public:sights] entity not visible", {
+      table: "sights",
+      slug: normalized,
+    });
+    return { sight: null, destination: null, admissions: [], openingTimes: null };
+  }
+
+  const { destinations: destinationRaw, ...sight } = data;
+  const destination = destinationRaw || null;
+
+  const { openingTimes, admissions } = await loadSightMeta(db, sight.id);
+
+  const mergedOpeningTimes = {
+    ...(openingTimes || {}),
+    officialUrl: sight.opening_times_url || openingTimes?.officialUrl || "",
   };
 
   return {
-    sight: data,
-    destination: dst,
-    admissions: admissionsRes?.data ?? [],
-    openingTimes,
+    sight,
+    destination,
+    admissions,
+    openingTimes: mergedOpeningTimes,
+  };
+}
+
+export async function getSightByIdPublic(id) {
+  const db = getPublicDB();
+  const normalized = String(id || "").trim();
+  if (!isUUID(normalized)) {
+    console.warn("[public:sights] invalid id", { id });
+    return { sight: null, destination: null, admissions: [], openingTimes: null };
+  }
+
+  const { data, error, status } = await db
+    .from("sights")
+    .select(
+      `${SIGHT_PUBLIC_COLUMNS}, destinations ( id, slug, name )`
+    )
+    .eq("id", normalized)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[public:sights] select failed", {
+      table: "sights",
+      status,
+      msg: error.message,
+    });
+    return { sight: null, destination: null, admissions: [], openingTimes: null };
+  }
+
+  if (!data) {
+    console.warn("[public:sights] entity not visible", {
+      table: "sights",
+      id: normalized,
+    });
+    return { sight: null, destination: null, admissions: [], openingTimes: null };
+  }
+
+  const { destinations: destinationRaw, ...sight } = data;
+  const destination = destinationRaw || null;
+
+  const { openingTimes, admissions } = await loadSightMeta(db, sight.id);
+  const mergedOpeningTimes = {
+    ...(openingTimes || {}),
+    officialUrl: sight.opening_times_url || openingTimes?.officialUrl || "",
+  };
+
+  return {
+    sight,
+    destination,
+    admissions,
+    openingTimes: mergedOpeningTimes,
   };
 }
 

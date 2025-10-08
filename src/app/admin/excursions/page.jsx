@@ -3,6 +3,7 @@ import { headers, cookies } from "next/headers";
 import { getDB } from "@/lib/supabase/server";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
+import SafeImage from "@/components/SafeImage";
 
 export const dynamic = "force-dynamic";
 
@@ -107,12 +108,13 @@ function ExcursionCard({ excursion }) {
       <Link href={href} className="flex h-full flex-col">
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
           {excursion.image ? (
-            <img
+            <SafeImage
               src={excursion.image}
               alt={excursion.title}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              loading="lazy"
-              decoding="async"
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              sizes="(min-width: 768px) 33vw, 100vw"
+              priority={false}
             />
           ) : (
             <div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">
