@@ -63,7 +63,14 @@ function normalizeExcursions(rows = []) {
         image: extractImageSrc(row),
         updatedAt: row.updated_at || row.updatedAt || row.modified_at,
         status: row.status,
-        hasTransport: Array.isArray(row.transport) && row.transport.length > 0,
+        hasTransport: (() => {
+          const relationCount =
+            Array.isArray(row.excursion_transport_legs) &&
+            row.excursion_transport_legs.length > 0
+              ? Number(row.excursion_transport_legs[0]?.count || 0)
+              : 0;
+          return relationCount > 0;
+        })(),
         hasMap: Boolean(row.maps_url),
       };
     });
@@ -214,10 +221,10 @@ export default async function AdminExcursionsIndex() {
         "name",
         "summary",
         "description",
-        "transport",
         "maps_url",
         "status",
         "updated_at",
+        "excursion_transport_legs(count)",
       ];
 
       const { data, error } = await supabase

@@ -6,6 +6,12 @@ import { getCuratedExcursionBySlugPublic } from "@/lib/data/public/excursions";
 
 export const revalidate = 300; // ISR every 5 minutes
 
+const COST_BAND_LABELS = {
+  budget: "€ (budget)",
+  midrange: "€€ (mid)",
+  premium: "€€€ (high)",
+};
+
 function firstImage(srcLike) {
   if (!srcLike) return null;
   if (typeof srcLike === "string") return srcLike;
@@ -20,14 +26,26 @@ function firstImage(srcLike) {
 
 function normalizeItem(it) {
   const e = it?.entity || null;
+  const isNote = (it?.item_type || "").toLowerCase() === "note";
+  const noteTitle = isNote ? (e?.title || it?.title || "Note") : null;
+  const noteDetails = isNote ? (e?.details ?? it?.details ?? "") : null;
+  const displayImage = isNote
+    ? null
+    : resolveImageUrl(firstImage(e?.images) || firstImage(it?.images));
   return {
     ...it,
-    displayName: e?.name || it?.name || "(untitled)",
-    displaySummary: e?.summary || it?.summary || "",
-    opening_times_url: e?.opening_times_url || it?.opening_times_url || null,
-    displayImage: resolveImageUrl(
-      firstImage(e?.images) || firstImage(it?.images)
-    ),
+    isNote,
+    displayName: isNote
+      ? noteTitle
+      : e?.name || it?.name || "(untitled)",
+    displaySummary: isNote
+      ? noteDetails || ""
+      : e?.summary || it?.summary || "",
+    opening_times_url: isNote
+      ? null
+      : e?.opening_times_url || it?.opening_times_url || null,
+    displayImage,
+    details: isNote ? noteDetails : it?.details || null,
   };
 }
 
@@ -62,15 +80,39 @@ export default async function Page({ params, searchParams }) {
             {excursion.summary}
           </p>
         )}
-        {Array.isArray(excursion?.tags) && excursion.tags.length > 0 && (
+        {(Array.isArray(excursion?.tags) && excursion.tags.length > 0) ||
+        excursion?.cost_band ||
+        excursion?.wheelchair_friendly ||
+        excursion?.good_with_kids ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            {excursion.tags.map((t) => (
-              <Badge key={t} variant="secondary" className="capitalize">
-                {t}
+            {Array.isArray(excursion?.tags) &&
+              excursion.tags.map((t) => (
+                <Badge key={`tag-${t}`} variant="secondary" className="capitalize">
+                  {t}
+                </Badge>
+              ))}
+            {excursion?.cost_band &&
+              (COST_BAND_LABELS[excursion.cost_band] || excursion.cost_band) && (
+                <Badge
+                  key="meta-cost"
+                  variant="outline"
+                  className="capitalize"
+                >
+                  {COST_BAND_LABELS[excursion.cost_band] || excursion.cost_band}
+                </Badge>
+              )}
+            {excursion?.wheelchair_friendly ? (
+              <Badge key="meta-accessible" variant="secondary">
+                Accessible
               </Badge>
-            ))}
+            ) : null}
+            {excursion?.good_with_kids ? (
+              <Badge key="meta-kids" variant="secondary">
+                Good with kids
+              </Badge>
+            ) : null}
           </div>
-        )}
+        ) : null}
       </header>
 
       {excursion?.cover_image && (
@@ -85,6 +127,15 @@ export default async function Page({ params, searchParams }) {
         </div>
       )}
 
+      {excursion?.notes ? (
+        <section className="space-y-2 rounded-xl border bg-card/40 p-4">
+          <h2 className="text-xl font-semibold">Notes</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+            {excursion.notes}
+          </p>
+        </section>
+      ) : null}
+
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Itinerary</h2>
         {flow.length === 0 ? (
@@ -94,6 +145,34 @@ export default async function Page({ params, searchParams }) {
             {flow.map((row, idx) => {
               if (row.kind === "item") {
                 const it = row.it;
+                if (it.isNote) {
+                  const hasCustomTitle =
+                    it.displayName && it.displayName.trim().toLowerCase() !== "note";
+                  return (
+                    <div
+                      key={`note-${idx}`}
+                      className="rounded-xl border border-dashed bg-muted/50 p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <Badge variant="outline">Note</Badge>
+                        <div className="flex-1 space-y-2 min-w-0">
+                          {hasCustomTitle ? (
+                            <p className="font-medium">{it.displayName}</p>
+                          ) : null}
+                          {it.details ? (
+                            <p className="text-sm text-muted-foreground whitespace-pre-line">
+                              {it.details}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground italic">
+                              No details yet.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <div
                     key={`it-${idx}`}
@@ -179,7 +258,7 @@ export default async function Page({ params, searchParams }) {
                         : ""}
                       {leg.est_cost_min
                         ? ` · ${leg.currency || "JPY"} ${leg.est_cost_min}${
-                            leg.est_cost_max ? `–${leg.est_cost_max}` : ""
+                            leg.est_cost_max ? `-${leg.est_cost_max}` : ""
                           }`
                         : ""}
                     </div>
@@ -203,4 +282,3 @@ export default async function Page({ params, searchParams }) {
     </main>
   );
 }
-

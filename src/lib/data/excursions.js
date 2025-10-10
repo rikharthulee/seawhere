@@ -7,7 +7,7 @@ export async function getPublishedExcursions() {
     const { data, error } = await db
       .from("excursions")
       .select(
-        "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )"
+        "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name ), cost_band, notes, wheelchair_friendly, good_with_kids"
       )
       .eq("status", "published")
       .order("name", { ascending: true });
@@ -30,7 +30,7 @@ export async function getExcursionsForDestination(destId) {
     const { data, error } = await db
       .from("excursions")
       .select(
-        "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id"
+        "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, cost_band, notes, wheelchair_friendly, good_with_kids"
       )
       .eq("destination_id", destId)
       .eq("status", "published")
@@ -54,7 +54,7 @@ export async function getExcursionsByDestinationIds(ids = []) {
     const { data, error } = await db
       .from("excursions")
       .select(
-        "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name )"
+        "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id, destinations ( slug, name ), cost_band, notes, wheelchair_friendly, good_with_kids"
       )
       .in("destination_id", ids)
       .eq("status", "published")
@@ -101,7 +101,7 @@ export async function getExcursionBySlugs(destinationSlug, excursionSlug) {
     const { data, error } = await db
       .from("excursions")
       .select(
-        "id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency"
+        "id, slug, name, summary, description, body_richtext, images, destination_id, lat, lng, status, duration_minutes, provider, deeplink, gyg_id, price_amount, price_currency, cost_band, notes, wheelchair_friendly, good_with_kids"
       )
       .eq("destination_id", dst.id)
       .eq("slug", excSlug)

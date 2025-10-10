@@ -4,6 +4,7 @@ import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
+import RichText from "@/components/RichText";
 import { getTourBySlugPublic } from "@/lib/data/public/tours";
 import { fmtJPY } from "@/lib/format";
 import GygWidget from "@/components/GygWidget";
@@ -151,7 +152,7 @@ export default async function TourBySlugPage(props) {
             ) : null}
             {tour.description ? (
               <div className="prose prose-sm max-w-none text-muted-foreground">
-                <p>{tour.description}</p>
+                <RichText value={tour.description} />
               </div>
             ) : null}
             {Array.isArray(tour.tags) && tour.tags.length > 0 ? (
@@ -238,4 +239,3 @@ export default async function TourBySlugPage(props) {
     </main>
   );
 }
-

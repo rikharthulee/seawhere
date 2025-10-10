@@ -3,6 +3,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
-  }
+    },
+    "checkJs": false,
+    "types": []
+  },
+  "typeAcquisition": {
+    "enable": false,
+    "include": [],
+    "exclude": ["react 3", "markdown-it 3"]
+  },
+  "exclude": ["node_modules", ".next", "dist"]
 }

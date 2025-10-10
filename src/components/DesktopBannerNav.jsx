@@ -20,7 +20,7 @@ export default function DesktopBannerNav({ links, isAuthed }) {
     "/accommodation",
     "/experiences",
     "/transportation",
-    "/fooddrink",
+    "/food-drink",
   ]);
 
   const exploreDescriptions = {
@@ -30,7 +30,7 @@ export default function DesktopBannerNav({ links, isAuthed }) {
     "/accommodation": "Hotels, ryokan and boutiques",
     "/experiences": "Classes, shows & activities",
     "/transportation": "Stations, hubs & travel links",
-    "/fooddrink": "Eat & drink: ramen to kaiseki",
+    "/food-drink": "Eat & drink: ramen to kaiseki",
   };
 
   const exploreItems = links.filter((l) => exploreHrefs.has(l.href));

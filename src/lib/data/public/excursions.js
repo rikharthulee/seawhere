@@ -1,5 +1,5 @@
 import { getPublicDB } from '@/lib/supabase/public';
-import { ENTITY_PUBLIC_COLUMNS, EXCURSION_PUBLIC_COLUMNS, EXCURSION_LINK_COLUMNS } from '@/lib/data/public/selects';
+import { ENTITY_PUBLIC_COLUMNS, EXCURSION_PUBLIC_COLUMNS, EXCURSION_LINK_COLUMNS, NOTE_PUBLIC_COLUMNS } from '@/lib/data/public/selects';
 
 function isUUID(v){ return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v||'').trim()); }
 function tableForType(t){
@@ -7,18 +7,68 @@ function tableForType(t){
     case 'sight': return 'sights';
     case 'experience': return 'experiences';
     case 'tour': return 'tours';
+    case 'note': return 'excursion_notes';
     default: return null;
   }
 }
-function normalizeTransport(value){
-  if(!value) return [];
-  if(Array.isArray(value)) return value;
-  if(typeof value === 'string'){ try{
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : Array.isArray(parsed?.items) ? parsed.items : (parsed && typeof parsed==='object') ? [parsed] : [];
-  } catch { return []; } }
-  if(typeof value === 'object'){ return Array.isArray(value.items) ? value.items : [value]; }
-  return [];
+
+function normalizeTransportSteps(rawSteps = null){
+  if(!rawSteps) return { steps: [], maps_url: null, details: null };
+  if(Array.isArray(rawSteps)) return { steps: rawSteps, maps_url: null, details: null };
+  if(typeof rawSteps === 'object'){
+    const mapsUrl =
+      typeof rawSteps.maps_url === 'string' && rawSteps.maps_url.trim()
+        ? rawSteps.maps_url.trim()
+        : typeof rawSteps?.meta?.maps_url === 'string'
+          ? rawSteps.meta.maps_url.trim()
+          : null;
+    const details =
+      typeof rawSteps.details === 'string' && rawSteps.details.trim()
+        ? rawSteps.details.trim()
+        : typeof rawSteps?.meta?.details === 'string'
+          ? rawSteps.meta.details.trim()
+          : null;
+    const steps = Array.isArray(rawSteps.steps) ? rawSteps.steps : [];
+    return { steps, maps_url: mapsUrl, details };
+  }
+  return { steps: [], maps_url: null, details: null };
+}
+
+function mapTransportLeg(row){
+  if(!row || typeof row !== 'object') return null;
+  const { steps: parsedSteps, maps_url, details } = normalizeTransportSteps(row.steps);
+  return {
+    id: row.id,
+    excursion_id: row.excursion_id,
+    from_item_id: row.from_item_id,
+    to_item_id: row.to_item_id,
+    template_id: row.template_id,
+    primary_mode: typeof row.primary_mode === 'string' ? row.primary_mode.toLowerCase() : null,
+    title: row.title || null,
+    summary: row.summary || details || null,
+    steps: parsedSteps,
+    est_duration_min: typeof row.est_duration_min === 'number' ? row.est_duration_min : null,
+    est_distance_m: typeof row.est_distance_m === 'number' ? row.est_distance_m : null,
+    est_cost_min: row.est_cost_min ?? null,
+    est_cost_max: row.est_cost_max ?? null,
+    currency: row.currency || null,
+    notes: row.notes || null,
+    maps_url,
+    sort_order: typeof row.sort_order === 'number' ? row.sort_order : null,
+  };
+}
+
+async function fetchTransportLegs(supabase, excursionId){
+  const { data, error } = await supabase
+    .from('excursion_transport_legs')
+    .select('id,excursion_id,from_item_id,to_item_id,template_id,primary_mode,title,summary,steps,est_duration_min,est_distance_m,est_cost_min,est_cost_max,currency,notes,sort_order')
+    .eq('excursion_id', excursionId)
+    .order('sort_order', { ascending: true });
+  if(error){
+    console.error('[public:excursions] transport select failed', { table: 'excursion_transport_legs', msg: error.message, excursionId });
+    return [];
+  }
+  return (data || []).map(mapTransportLeg).filter(Boolean);
 }
 
 // Strict per-item hydrator. No batching, no normalization, no fallback requests.
@@ -28,7 +78,8 @@ export async function hydrateExcursionItems(supabase, items=[]){
     const id = typeof it?.ref_id==='string' ? it.ref_id.trim() : it?.ref_id;
     if(!table){ console.warn('[public:excursions] unknown item_type', {idx, item_type: it?.item_type}); return {...it, entity:null, table:null}; }
     if(!isUUID(id)){ console.warn('[public:excursions] invalid id', { idx, id: it?.ref_id }); return {...it, entity:null, table}; }
-    const { data, error, status } = await supabase.from(table).select(ENTITY_PUBLIC_COLUMNS).eq('id', id).maybeSingle();
+    const columns = table === 'excursion_notes' ? NOTE_PUBLIC_COLUMNS : ENTITY_PUBLIC_COLUMNS;
+    const { data, error, status } = await supabase.from(table).select(columns).eq('id', id).maybeSingle();
     if(error){ console.error('[public:excursions] select failed', {table, status, msg:error.message}); return {...it, entity:null, table}; }
     if(!data){ console.warn('[public:excursions] entity not visible', { table, id }); return {...it, entity:null, table}; }
     return {...it, entity:data, table};
@@ -66,12 +117,13 @@ export async function getCuratedExcursionBySlugPublic(slug){
 
   if(itemsErr){
     console.error('[public:excursions] select failed', { table: 'excursion_items', msg: itemsErr.message });
-    return { excursion: ex, items: [], transport: normalizeTransport(ex.transport) };
+    const transportFallback = await fetchTransportLegs(supabase, ex.id);
+    return { excursion: ex, items: [], transport: transportFallback };
   }
 
   const items = await hydrateExcursionItems(supabase, rawItems || []);
-  const transport = normalizeTransport(ex.transport);
-  return { excursion: ex, items, transport };
+  const transportLegs = await fetchTransportLegs(supabase, ex.id);
+  return { excursion: ex, items, transport: transportLegs };
 }
 
 export async function getCuratedExcursionByIdPublic(id){
@@ -105,12 +157,13 @@ export async function getCuratedExcursionByIdPublic(id){
 
   if(itemsErr){
     console.error('[public:excursions] select failed', { table: 'excursion_items', msg: itemsErr.message });
-    return { excursion: ex, items: [], transport: normalizeTransport(ex.transport) };
+    const transportFallback = await fetchTransportLegs(supabase, ex.id);
+    return { excursion: ex, items: [], transport: transportFallback };
   }
 
   const items = await hydrateExcursionItems(supabase, rawItems || []);
-  const transport = normalizeTransport(ex.transport);
-  return { excursion: ex, items, transport };
+  const transportLegs = await fetchTransportLegs(supabase, ex.id);
+  return { excursion: ex, items, transport: transportLegs };
 }
 
 // Simple public listing for the index page

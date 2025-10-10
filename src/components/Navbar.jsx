@@ -66,7 +66,7 @@ export default function Navbar() {
     { href: "/accommodation", label: "Accommodation" },
     { href: "/experiences", label: "Experiences" },
     { href: "/transportation", label: "Transportation" },
-    { href: "/fooddrink", label: "Food & Drink" },
+    { href: "/food-drink", label: "Food & Drink" },
     { href: "/blog", label: "Blog" },
     { href: "/about", label: "About" },
     { href: "/faq", label: "FAQ" },

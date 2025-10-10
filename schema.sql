@@ -64,7 +64,7 @@ CREATE TABLE public.destination_links (
   to_location_id uuid NOT NULL,
   relation text NOT NULL CHECK (relation = ANY (ARRAY['nearby'::text, 'day_trip'::text, 'gateway'::text, 'sister_area'::text])),
   weight integer DEFAULT 0,
-  CONSTRAINT destination_links_pkey PRIMARY KEY (to_location_id, relation, from_location_id)
+  CONSTRAINT destination_links_pkey PRIMARY KEY (relation, from_location_id, to_location_id)
 );
 CREATE TABLE public.destinations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -108,11 +108,19 @@ CREATE TABLE public.exchange_rates (
 CREATE TABLE public.excursion_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   excursion_id uuid,
-  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['sight'::text, 'experience'::text, 'tour'::text])),
+  item_type text NOT NULL,
   ref_id uuid NOT NULL,
   sort_order integer DEFAULT 0,
   CONSTRAINT excursion_items_pkey PRIMARY KEY (id),
   CONSTRAINT excursion_items_excursion_id_fkey FOREIGN KEY (excursion_id) REFERENCES public.excursions(id)
+);
+CREATE TABLE public.excursion_notes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text,
+  details text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT excursion_notes_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.excursion_transport_legs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -143,7 +151,6 @@ CREATE TABLE public.excursions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL,
   description jsonb,
-  transport jsonb,
   maps_url text,
   status text DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'published'::text])),
   created_at timestamp with time zone DEFAULT now(),
@@ -153,6 +160,10 @@ CREATE TABLE public.excursions (
   slug text,
   cover_image text,
   tags ARRAY DEFAULT '{}'::text[],
+  cost_band USER-DEFINED,
+  notes text,
+  wheelchair_friendly boolean NOT NULL DEFAULT false,
+  good_with_kids boolean NOT NULL DEFAULT false,
   CONSTRAINT excursions_pkey PRIMARY KEY (id),
   CONSTRAINT excursions_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
 );
@@ -220,6 +231,11 @@ CREATE TABLE public.food_drink (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   division_id uuid,
+  slug text,
+  price_band text,
+  tags ARRAY,
+  booking_url text,
+  status text,
   CONSTRAINT food_drink_pkey PRIMARY KEY (id),
   CONSTRAINT food_drink_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
   CONSTRAINT food_drink_division_id_fkey FOREIGN KEY (division_id) REFERENCES public.divisions(id)

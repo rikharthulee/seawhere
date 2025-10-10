@@ -17,19 +17,39 @@ export interface PublicExcursionItemLink {
   sort_order: number | null;
 }
 
+export interface PublicExcursionTransportLeg {
+  id: string;
+  primary_mode: string | null;
+  title: string | null;
+  summary: string | null;
+  steps: unknown[];
+  est_duration_min: number | null;
+  est_distance_m: number | null;
+  est_cost_min: number | null;
+  est_cost_max: number | null;
+  currency: string | null;
+  notes: string | null;
+  maps_url: string | null;
+  sort_order: number | null;
+}
+
 export interface PublicExcursion {
   id: string;
   slug: string;
   name: string;
   summary: string | null;
-  description: string | null;
+  description: unknown; // string | JSON doc | null
   cover_image: string | null;
   maps_url: string | null;
   destination_id: string | null;
   status: string;
   tags: string[] | null;
   updated_at: string | null;
-  transport: unknown;
+  cost_band: string | null;
+  notes: string | null;
+  wheelchair_friendly: boolean | null;
+  good_with_kids: boolean | null;
+  transport: PublicExcursionTransportLeg[];
 }
 
 export interface PublicSight {
@@ -37,7 +57,7 @@ export interface PublicSight {
   slug: string;
   name: string;
   summary: string | null;
-  description: string | null;
+  description: unknown; // string | JSON doc | null
   body_richtext: unknown;
   images: unknown;
   destination_id: string | null;
@@ -59,7 +79,7 @@ export interface PublicExperience {
   slug: string;
   name: string;
   summary: string | null;
-  description: string | null;
+  description: unknown; // string | JSON doc | null
   images: unknown;
   destination_id: string | null;
   status: string;
@@ -75,7 +95,7 @@ export interface PublicTour {
   slug: string;
   name: string;
   summary: string | null;
-  description: string | null;
+  description: unknown; // string | JSON doc | null
   images: unknown;
   destination_id: string | null;
   status: string;

@@ -41,6 +41,9 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
   const [tags, setTags] = useState(
     Array.isArray(initial?.tags) ? initial.tags : []
   );
+  const [tagsText, setTagsText] = useState(
+    Array.isArray(initial?.tags) ? (initial.tags || []).join(", ") : ""
+  );
   const [durationMinutes, setDurationMinutes] = useState(
     initial?.duration_minutes ?? ""
   );
@@ -144,7 +147,9 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
     setStatus(initial?.status || "draft");
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
-    setTags(Array.isArray(initial?.tags) ? initial.tags : []);
+    const nextTags = Array.isArray(initial?.tags) ? initial.tags : [];
+    setTags(nextTags);
+    setTagsText((nextTags || []).join(", "));
     setDurationMinutes(initial?.duration_minutes ?? "");
     setProvider(initial?.provider || "internal");
     setDeeplink(initial?.deeplink || "");
@@ -235,7 +240,11 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         status,
         lat: lat === "" ? null : Number(lat),
         lng: lng === "" ? null : Number(lng),
-        tags: Array.isArray(tags) ? tags : [],
+        tags: Array.isArray(tags)
+          ? tags
+              .map((t) => (typeof t === "string" ? t.trim() : ""))
+              .filter(Boolean)
+          : [],
         duration_minutes:
           durationMinutes === "" ? null : Number(durationMinutes),
         provider: provider || null,
@@ -521,21 +530,20 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         />
 
         <div>
-          <label className="block text-sm font-medium">
-            Tags (comma-separated)
-          </label>
+          <label className="block text-sm font-medium">Tags (comma-separated)</label>
           <input
             className="w-full rounded border p-2"
-            value={(tags || []).join(", ")}
-            onChange={(e) =>
-              setTags(
-                e.target.value
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean)
-              )
-            }
-            placeholder="e.g. temple,shrine,park"
+            value={tagsText}
+            onChange={(e) => {
+              const raw = e.target.value || "";
+              setTagsText(raw);
+              const parsed = raw
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+              setTags(parsed);
+            }}
+            placeholder="e.g. temple, shrine, park"
           />
         </div>
 

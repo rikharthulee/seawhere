@@ -5,7 +5,7 @@ export interface AdminExcursion extends Record<string, unknown> {
   slug: string;
   name: string;
   summary?: string | null;
-  description?: string | null;
+  description?: unknown; // string | JSON doc | null
   body_richtext?: unknown;
   images?: unknown;
   destination_id?: string | null;
@@ -26,7 +26,7 @@ export interface AdminSight extends Record<string, unknown> {
   destination_id?: string | null;
   name: string;
   summary?: string | null;
-  description?: string | null;
+  description?: unknown; // string | JSON doc | null
   body_richtext?: unknown;
   lat?: number | null;
   lng?: number | null;
@@ -47,7 +47,7 @@ export interface AdminExperience extends Record<string, unknown> {
   destination_id?: string | null;
   name: string;
   summary?: string | null;
-  description?: string | null;
+  description?: unknown; // string | JSON doc | null
   images?: unknown;
   status?: string;
   provider?: string | null;
@@ -63,7 +63,7 @@ export interface AdminTour extends Record<string, unknown> {
   destination_id?: string | null;
   name: string;
   summary?: string | null;
-  description?: string | null;
+  description?: unknown; // string | JSON doc | null
   images?: unknown;
   status?: string;
   provider?: string | null;

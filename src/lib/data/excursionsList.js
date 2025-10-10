@@ -6,7 +6,7 @@ export async function getExcursionsList(limit = 200) {
   const { data, error } = await client
     .from("excursions")
     .select(
-      "id, name, summary, description, transport, maps_url, status, created_at, updated_at, destination_id"
+      "id, name, summary, description, maps_url, status, created_at, updated_at, destination_id"
     )
     .eq("status", "published")
     .order("updated_at", { ascending: false })

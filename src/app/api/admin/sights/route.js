@@ -60,44 +60,9 @@ export async function POST(request) {
 
     const sightId = data.id;
 
-    // Insert opening hours
-    const hours = Array.isArray(body.opening_hours) ? body.opening_hours : [];
-    if (hours.length > 0) {
-      const rows = hours.map((h, idx) => ({
-        sight_id: sightId,
-        weekday:
-          typeof h.weekday === "number" ? h.weekday : Number(h.weekday) || 0,
-        idx: h.idx ?? idx,
-        open_time: h.open_time || null,
-        close_time: h.close_time || null,
-        is_closed: !!h.is_closed,
-        valid_from: h.valid_from || null,
-        valid_to: h.valid_to || null,
-      }));
-      const { error: hErr } = await db.from("sight_opening_hours").insert(rows);
-      if (hErr)
-        return NextResponse.json({ error: hErr.message }, { status: 400 });
-    }
-
-    // Insert exceptions
-    const exceptions = Array.isArray(body.opening_exceptions)
-      ? body.opening_exceptions
-      : [];
-    if (exceptions.length > 0) {
-      const rows = exceptions.map((e) => ({
-        sight_id: sightId,
-        date: e.date,
-        is_closed: e.is_closed === undefined ? true : !!e.is_closed,
-        open_time: e.open_time || null,
-        close_time: e.close_time || null,
-        note: e.note || null,
-      }));
-      const { error: eErr } = await db
-        .from("sight_opening_exceptions")
-        .insert(rows);
-      if (eErr)
-        return NextResponse.json({ error: eErr.message }, { status: 400 });
-    }
+    // Opening hours/exceptions are saved via the OpeningTimes editor using the
+    // dedicated PUT action on /api/admin/sights/[id]. No inserts here to avoid
+    // schema mismatch and duplicate writes.
 
     return NextResponse.json({ id: sightId }, { status: 200 });
   } catch (e) {

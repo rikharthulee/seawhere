@@ -35,6 +35,16 @@ import {
 
 const uid = () => Math.random().toString(36).slice(2);
 
+const COST_BAND_OPTIONS = [
+  { value: "budget", label: "€ (budget)" },
+  { value: "midrange", label: "€€ (mid)" },
+  { value: "premium", label: "€€€ (high)" },
+];
+
+const COST_BAND_LABEL_BY_VALUE = new Map(
+  COST_BAND_OPTIONS.map((opt) => [opt.value, opt.label])
+);
+
 function slugify(input) {
   return (
     String(input || "")
@@ -83,6 +93,83 @@ function defaultSearch(query) {
         (p.destination || "").toLowerCase().includes(q)
     )
   );
+}
+
+function normalizeTransportItem(raw, idx = 0, baseOffset = 0) {
+  if (!raw || typeof raw !== "object") return null;
+  const mode =
+    typeof raw.mode === "string" && raw.mode.trim()
+      ? raw.mode.trim().toLowerCase()
+      : typeof raw.primary_mode === "string"
+        ? raw.primary_mode.trim().toLowerCase()
+        : "other";
+  const rawDuration =
+    raw.duration_minutes ??
+    raw.est_duration_min ??
+    raw.duration ??
+    raw.time ??
+    null;
+  const durationMinutes =
+    rawDuration === "" || rawDuration === null || rawDuration === undefined
+      ? ""
+      : Number(rawDuration);
+  const rawDistance =
+    raw.distance_km ??
+    (typeof raw.est_distance_m === "number"
+      ? raw.est_distance_m / 1000
+      : raw.distance || null);
+  const distanceKm =
+    rawDistance === "" || rawDistance === null || rawDistance === undefined
+      ? ""
+      : Number(rawDistance);
+  const mapsUrl =
+    typeof raw.maps_url === "string"
+      ? raw.maps_url
+      : typeof raw.mapsUrl === "string"
+        ? raw.mapsUrl
+        : typeof raw?.meta?.maps_url === "string"
+          ? raw.meta.maps_url
+          : null;
+  const detailText =
+    typeof raw.details === "string"
+      ? raw.details
+      : typeof raw.summary === "string"
+        ? raw.summary
+        : typeof raw.notes === "string"
+          ? raw.notes
+          : "";
+  const sortCandidate =
+    raw.sort_order ??
+    raw.sortOrder ??
+    (baseOffset + idx + 1) * 10;
+  const sortOrder =
+    typeof sortCandidate === "number"
+      ? sortCandidate || (baseOffset + idx + 1) * 10
+      : Number(sortCandidate) || (baseOffset + idx + 1) * 10;
+
+  return {
+    ...raw,
+    id: raw.id || `transport-${idx}-${uid()}`,
+    item_type: "transport",
+    mode,
+    primary_mode: raw.primary_mode || mode.toUpperCase(),
+    duration_minutes: Number.isFinite(durationMinutes)
+      ? Math.max(0, Math.round(durationMinutes))
+      : "",
+    est_duration_min: Number.isFinite(durationMinutes)
+      ? Math.max(0, Math.round(durationMinutes))
+      : null,
+    distance_km: Number.isFinite(distanceKm)
+      ? Math.max(0, Number(distanceKm.toFixed(2)))
+      : "",
+    est_distance_m: Number.isFinite(distanceKm)
+      ? Math.max(0, Math.round(distanceKm * 1000))
+      : null,
+    maps_url: mapsUrl || "",
+    details: detailText,
+    summary: raw.summary || detailText || "",
+    sort_order: sortOrder,
+  };
 }
 
 function POIPickerSheet({
@@ -294,12 +381,11 @@ function newExcursionDraft() {
     name: "",
     status: "draft",
     description: "",
-    destination: "",
+    destination_id: "",
     // NEW: excursion-level meta
     tags: [],
     cost_band: "",
     seasonality: "",
-    dow_tips: "",
     accessible: false,
     with_kids: false,
     items: [],
@@ -361,21 +447,96 @@ export default function ExcursionsBuilderJS() {
       "accommodation",
       "food_drink",
     ]);
-    const items = (excursion.items || []).map((it) => ({
+    const items = (excursion.items || []).map((it, idx) => ({
       ...it,
-      sort_order: Number(it.sort_order) || 0,
+      sort_order: Number.isFinite(Number(it.sort_order))
+        ? Number(it.sort_order)
+        : (idx + 1) * 10,
     }));
-    const dbItems = items
+
+    const transport = items.filter((it) => it.item_type === "transport");
+
+    const entityItems = items
       .filter((it) => allowed.has(it.item_type))
       .map((it) => ({
         item_type: it.item_type,
-        ref_id: it.ref_id,
         sort_order: it.sort_order,
+        ref_id:
+          typeof it.ref_id === "string" && it.ref_id.trim()
+            ? it.ref_id.trim()
+            : null,
+      }))
+      .filter((it) => it.ref_id);
+
+    const noteItems = items
+      .filter((it) => it.item_type === "note")
+      .map((it) => ({
+        item_type: "note",
+        sort_order: it.sort_order,
+        ref_id:
+          typeof it.ref_id === "string" && it.ref_id.trim()
+            ? it.ref_id.trim()
+            : null,
+        title:
+          typeof it.title === "string" && it.title.trim().length > 0
+            ? it.title.trim()
+            : null,
+        details:
+          typeof it.details === "string" && it.details.length > 0
+            ? it.details
+            : null,
       }));
 
-    const transport = items.filter((it) => it.item_type === "transport");
-    const notes = items.filter((it) => it.item_type === "note");
-    const description = { text: excursion.description || "", notes };
+    const dbItems = [...entityItems, ...noteItems].sort(
+      (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
+    );
+
+    const meta = {};
+    const seasonalityValue =
+      typeof excursion.seasonality === "string"
+        ? excursion.seasonality.trim()
+        : "";
+    if (seasonalityValue) {
+      meta.seasonality = seasonalityValue;
+    }
+    const description = {
+      text: excursion.description || "",
+      ...(Object.keys(meta).length > 0 ? { meta } : {}),
+    };
+
+    const destinationIdRaw = excursion.destination_id;
+    let destination_id = null;
+    if (
+      typeof destinationIdRaw === "string" &&
+      destinationIdRaw.trim().length > 0
+    ) {
+      destination_id = destinationIdRaw.trim();
+    } else if (
+      destinationIdRaw !== null &&
+      destinationIdRaw !== undefined &&
+      destinationIdRaw !== ""
+    ) {
+      destination_id = destinationIdRaw;
+    }
+
+    const tags =
+      Array.isArray(excursion.tags) && excursion.tags.length > 0
+        ? excursion.tags
+            .map((tag) =>
+              typeof tag === "string" ? tag.trim() : String(tag || "")
+            )
+            .filter(Boolean)
+        : [];
+
+    const notesSummary = seasonalityValue
+      ? `Seasonality: ${seasonalityValue}`
+      : null;
+
+    const costBandValue = COST_BAND_OPTIONS.some(
+      (opt) => opt.value === excursion.cost_band
+    )
+      ? excursion.cost_band
+      : "";
 
     return {
       name: excursion.name,
@@ -385,14 +546,16 @@ export default function ExcursionsBuilderJS() {
       description,
       transport,
       items: dbItems,
-      // NEW: excursion-level meta
-      destination: excursion.destination || null,
-      tags: Array.isArray(excursion.tags) ? excursion.tags : [],
-      cost_band: excursion.cost_band || null,
-      seasonality: excursion.seasonality || "",
-      dow_tips: excursion.dow_tips || "",
-      accessible: Boolean(excursion.accessible),
-      with_kids: Boolean(excursion.with_kids),
+      destination_id,
+      tags,
+      cost_band: costBandValue || null,
+      notes: notesSummary,
+      wheelchair_friendly:
+        typeof excursion.accessible === "boolean"
+          ? excursion.accessible
+          : null,
+      good_with_kids:
+        typeof excursion.with_kids === "boolean" ? excursion.with_kids : null,
     };
   }
 
@@ -562,6 +725,9 @@ export default function ExcursionsBuilderJS() {
     () => sortByOrder(excursion.items),
     [excursion.items]
   );
+  const costBandLabel = COST_BAND_LABEL_BY_VALUE.get(
+    excursion.cost_band || ""
+  );
 
   function handleDragStart(event, id) {
     setDraggingId(id);
@@ -601,53 +767,117 @@ export default function ExcursionsBuilderJS() {
           ? data.description.notes
           : []
         : [];
+    const descriptionMeta =
+      data?.description && typeof data.description === "object"
+        ? data.description.meta || {}
+        : {};
+    const legacyNotes =
+      typeof data?.notes === "string" ? data.notes.trim() : "";
+    let seasonality =
+      typeof descriptionMeta.seasonality === "string"
+        ? descriptionMeta.seasonality.trim()
+        : "";
+    const dowTipsLegacy =
+      typeof descriptionMeta.dow_tips === "string"
+        ? descriptionMeta.dow_tips.trim()
+        : "";
+    if (!seasonality && dowTipsLegacy) {
+      seasonality = dowTipsLegacy;
+    }
+    if (!seasonality && legacyNotes) {
+      seasonality = legacyNotes;
+    }
 
-    const curated = Array.isArray(data?.items)
-      ? data.items.map((it, idx) => ({
-          id:
-            typeof it.id === "string" || typeof it.id === "number"
-              ? `cur-${it.id}`
-              : `cur-${it.item_type}-${it.ref_id}-${idx}`,
-          item_type: it.item_type,
-          ref_id: it.ref_id,
-          sort_order: Number(it.sort_order) || (idx + 1) * 10,
-          name: it.name || "",
-          destination: it.destination || null,
-        }))
-      : [];
+    const rawItems = Array.isArray(data?.items) ? data.items : [];
+    const curated = rawItems.map((it, idx) => {
+      const sortOrder = Number(it.sort_order) || (idx + 1) * 10;
+      const baseId =
+        typeof it.id === "string" || typeof it.id === "number"
+          ? `cur-${it.id}`
+          : `cur-${it.item_type}-${it.ref_id}-${idx}`;
+      if ((it.item_type || "").toLowerCase() === "note") {
+        return {
+          id: baseId,
+          item_type: "note",
+          ref_id:
+            typeof it.ref_id === "string" && it.ref_id.trim()
+              ? it.ref_id.trim()
+              : null,
+          sort_order: sortOrder,
+          title: typeof it.title === "string" ? it.title : "Note",
+          details:
+            typeof it.details === "string" ? it.details : "",
+        };
+      }
+      return {
+        id: baseId,
+        item_type: it.item_type,
+        ref_id: it.ref_id,
+        sort_order: sortOrder,
+        name: it.name || "",
+        destination: it.destination || null,
+        duration_minutes: it.duration_minutes || null,
+        maps_url: it.maps_url || null,
+        details: it.details || null,
+      };
+    });
+    const hasLinkedNotes = curated.some((item) => item.item_type === "note");
 
     const transportItems = Array.isArray(data?.transport)
-      ? data.transport.map((t, idx) => ({
-          ...t,
-          id: t.id || `transport-${idx}-${uid()}`,
-          item_type: "transport",
-          sort_order: Number(t.sort_order) || (curated.length + idx + 1) * 10,
-        }))
+      ? data.transport
+          .map((t, idx) => normalizeTransportItem(t, idx, curated.length))
+          .filter(Boolean)
       : [];
 
-    const noteItems = notesFromDescription.map((n, idx) => ({
-      ...n,
-      id: n.id || `note-${idx}-${uid()}`,
-      item_type: "note",
-      sort_order:
-        Number(n.sort_order) ||
-        (curated.length + transportItems.length + idx + 1) * 10,
-    }));
+    const fallbackNoteItems = hasLinkedNotes
+      ? []
+      : notesFromDescription.map((n, idx) => ({
+          ...n,
+          id: n.id || `note-${idx}-${uid()}`,
+          item_type: "note",
+          sort_order:
+            Number(n.sort_order) ||
+            (curated.length + transportItems.length + idx + 1) * 10,
+          ref_id: null,
+          title:
+            typeof n.title === "string" && n.title.trim().length > 0
+              ? n.title.trim()
+              : "Note",
+          details:
+            typeof n.details === "string" ? n.details : "",
+        }));
 
     setExcursion({
       id: data?.id,
       name: data?.name || "",
       status: data?.status || "draft",
       description: descriptionField,
-      destination: data?.destination || "",
+      destination_id:
+        typeof data?.destination_id === "string" ||
+        typeof data?.destination_id === "number"
+          ? data.destination_id
+          : "",
       // NEW: meta with reasonable fallbacks
-      tags: Array.isArray(data?.tags) ? data.tags : [],
-      cost_band: data?.cost_band || "",
-      seasonality: data?.seasonality || "",
-      dow_tips: data?.dow_tips || "",
-      accessible: Boolean(data?.accessible),
-      with_kids: Boolean(data?.with_kids),
-      items: sortByOrder([...curated, ...transportItems, ...noteItems]),
+      tags: Array.isArray(data?.tags)
+        ? data.tags
+            .map((tag) =>
+              typeof tag === "string" ? tag.trim() : String(tag || "")
+            )
+            .filter(Boolean)
+        : [],
+      cost_band: COST_BAND_OPTIONS.some((opt) => opt.value === data?.cost_band)
+        ? data.cost_band
+        : "",
+      seasonality,
+      accessible: Boolean(
+        data?.wheelchair_friendly ?? data?.accessible ?? false
+      ),
+      with_kids: Boolean(data?.good_with_kids ?? data?.with_kids ?? false),
+      items: sortByOrder([
+        ...curated,
+        ...transportItems,
+        ...fallbackNoteItems,
+      ]),
     });
     setSavedId(data?.id || null);
     setDraggingId(null);
@@ -944,11 +1174,19 @@ export default function ExcursionsBuilderJS() {
           <div>
             <Label>Destination</Label>
             <Input
-              value={excursion.destination || ""}
-              onChange={(e) =>
-                setExcursion({ ...excursion, destination: e.target.value })
+              value={
+                typeof excursion.destination_id === "string" ||
+                typeof excursion.destination_id === "number"
+                  ? excursion.destination_id
+                  : ""
               }
-              placeholder="e.g. Tokyo, Kyoto"
+              onChange={(e) =>
+                setExcursion({
+                  ...excursion,
+                  destination_id: e.target.value,
+                })
+              }
+              placeholder="Destination ID or slug"
             />
           </div>
           <div>
@@ -956,14 +1194,19 @@ export default function ExcursionsBuilderJS() {
             <Input
               value={slug}
               onChange={(e) => {
-                const raw = e.target.value;
-                const sanitized = raw
-                  .toLowerCase()
-                  .trim()
-                  .replace(/[^a-z0-9]+/g, "-")
-                  .replace(/(^-|-$)+/g, "");
-                setSlug(sanitized);
+                const raw = e.target.value || "";
+                // Allow hyphens while typing; filter any disallowed chars only.
+                const next = raw.toLowerCase().replace(/[^a-z0-9-]/g, "");
+                setSlug(next);
                 setSlugTouched(raw.length > 0);
+              }}
+              onBlur={() => {
+                // On blur, canonicalize: collapse multiple hyphens and trim edges.
+                setSlug((prev) =>
+                  String(prev || "")
+                    .replace(/-+/g, "-")
+                    .replace(/(^-|-$)/g, "")
+                );
               }}
               placeholder="tokyo-nightlife"
             />
@@ -1012,9 +1255,11 @@ export default function ExcursionsBuilderJS() {
               }
             >
               <option value="">— select —</option>
-              <option value="€">€ (budget)</option>
-              <option value="€€">€€ (mid)</option>
-              <option value="€€€">€€€ (high)</option>
+              {COST_BAND_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
           <div className="md:col-span-2">
@@ -1026,17 +1271,6 @@ export default function ExcursionsBuilderJS() {
                 setExcursion({ ...excursion, seasonality: e.target.value })
               }
               placeholder="e.g., Best in spring and autumn; avoid Golden Week crowds."
-            />
-          </div>
-          <div className="md:col-span-2">
-            <Label>Day-of-week tips</Label>
-            <Textarea
-              rows={2}
-              value={excursion.dow_tips || ""}
-              onChange={(e) =>
-                setExcursion({ ...excursion, dow_tips: e.target.value })
-              }
-              placeholder="e.g., Museum closed on Tuesdays; shift to park on Tue."
             />
           </div>
           <div className="flex items-center gap-4">
@@ -1221,6 +1455,7 @@ export default function ExcursionsBuilderJS() {
                   item_type: "note",
                   title: "Note",
                   details: "Add note text…",
+                  ref_id: null,
                 };
                 setExcursion((prev) => ({
                   ...prev,
@@ -1457,8 +1692,8 @@ export default function ExcursionsBuilderJS() {
                 {t}
               </Badge>
             ))}
-            {excursion.cost_band ? (
-              <Badge variant="outline">{excursion.cost_band}</Badge>
+            {costBandLabel ? (
+              <Badge variant="outline">{costBandLabel}</Badge>
             ) : null}
             {excursion.accessible ? (
               <Badge variant="secondary">Accessible</Badge>
