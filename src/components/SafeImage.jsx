@@ -4,11 +4,30 @@ import { useState } from "react";
 import { resolveImageUrl, resolveImageProps } from "@/lib/imageUrl";
 
 // Hosts allowed by next.config images.remotePatterns
-const ALLOWED_HOSTS = new Set([
+const ENV_HOSTS = [];
+const envUrls = [
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ASSETS_URL,
+];
+for (const url of envUrls) {
+  try {
+    if (url) {
+      const host = new URL(url).hostname;
+      if (host) ENV_HOSTS.push(host);
+    }
+  } catch {}
+}
+
+const STATIC_ALLOWED_HOSTS = new Set([
   "picsum.photos",
   "images.unsplash.com",
   "plus.unsplash.com",
+  "gravatar.com",
+  "secure.gravatar.com",
+  "lh3.googleusercontent.com",
 ]);
+
+const ALLOWED_HOSTS = new Set([...STATIC_ALLOWED_HOSTS, ...ENV_HOSTS]);
 
 function isExternal(src) {
   return /^https?:\/\//i.test(src || "");
@@ -32,7 +51,9 @@ export default function SafeImage({ src, alt = "", className = "", fill, sizes, 
   const resolved = resolveImageUrl(s) || s;
   const external = isExternal(resolved);
   const host = external ? hostnameFor(resolved) : null;
-  const allowed = !external || (host && ALLOWED_HOSTS.has(host));
+  const allowed =
+    !external ||
+    (host && (ALLOWED_HOSTS.has(host) || host.endsWith(".supabase.co")));
   const blurDataURL = resolveImageProps(resolved, { width, height })?.blurDataURL;
   // Use Next/Image optimizer for allowed hosts; do not use Supabase transforms
   const finalSrc = resolved;
