@@ -1,7 +1,45 @@
-import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
-import { Card, CardContent } from "@/components/ui/card";
+import { Tile } from "@/components/ui/tile";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
+
+function firstParagraph(value) {
+  try {
+    if (!value) return "";
+    if (typeof value === "string") {
+      return value.trim();
+    }
+    if (Array.isArray(value)) {
+      const parts = value
+        .map((entry) => {
+          if (typeof entry === "string") return entry;
+          if (entry && typeof entry === "object" && typeof entry.text === "string") {
+            return entry.text;
+          }
+          return "";
+        })
+        .filter(Boolean);
+      return parts[0] || "";
+    }
+    if (typeof value === "object") {
+      if (value.type === "paragraph") {
+        const nodes = Array.isArray(value.content) ? value.content : [];
+        return nodes.map((n) => n?.text || "").join("").trim();
+      }
+      if (value.type === "doc" && Array.isArray(value.content)) {
+        for (const node of value.content) {
+          if (node?.type === "paragraph") {
+            const nodes = Array.isArray(node.content) ? node.content : [];
+            const text = nodes.map((n) => n?.text || "").join("").trim();
+            if (text) return text;
+          }
+        }
+      }
+      if (typeof value.text === "string") return value.text.trim();
+      if (typeof value.summary === "string") return value.summary.trim();
+    }
+  } catch {}
+  return "";
+}
 
 export default function FoodDrink({ items }) {
   if (!Array.isArray(items) || items.length === 0) {
@@ -35,48 +73,39 @@ export default function FoodDrink({ items }) {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {sorted.map((item) => {
           const img = resolveImageUrl(firstImageFromImages(item?.images));
-          const displayName = item.title || item.name;
+          const displayName = item.title || item.name || "Food & Drink";
+          const href = item.slug ? `/food-drink/${item.slug}` : "#";
+          const summary = firstParagraph(item.summary ?? item.description);
+
           return (
-            <Card
+            <Tile.Link
               key={item.slug || `fooddrink-${displayName}`}
-              asChild
-              className="group overflow-hidden transition-shadow hover:shadow-md"
+              href={href}
+              className="group"
             >
-              <Link
-                href={`/food-drink/${item.slug}`}
-                className="relative block focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <div className="relative h-64 w-full bg-muted">
-                  {img ? (
-                    <SafeImage
-                      src={img}
-                      alt={displayName || "Food & Drink"}
-                      fill
-                      sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-cover transition duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
-                      <span className="text-sm">No image available</span>
-                    </div>
-                  )}
-                </div>
-                <div className="absolute bottom-3 left-3 text-white text-lg font-medium drop-shadow-lg">
-                  {displayName || "Food & Drink"}
-                </div>
-                {item.credit ? (
-                  <CardContent className="pt-2">
-                    <div className="text-xs text-muted-foreground text-right">
-                      {item.credit}
-                    </div>
-                  </CardContent>
+              <Tile.Image>
+                {img ? (
+                  <SafeImage
+                    src={img}
+                    alt={displayName}
+                    fill
+                    sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover transition duration-300 group-hover:scale-105"
+                  />
                 ) : null}
-              </Link>
-            </Card>
+              </Tile.Image>
+              <Tile.Content>
+                <div className="font-medium">{displayName}</div>
+                {summary ? (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                    {summary}
+                  </p>
+                ) : null}
+              </Tile.Content>
+            </Tile.Link>
           );
         })}
       </div>
     </section>
   );
 }
-

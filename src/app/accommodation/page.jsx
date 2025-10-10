@@ -11,14 +11,14 @@ export default async function AccommodationPage() {
     ? rows.map((r) => ({
         slug: r.slug,
         title: r.name,
+        summary: r.summary || null,
         images: Array.isArray(r.images) ? r.images : [],
-        credit: r.credit || null,
       }))
     : [];
 
   // Render the Accommodation component with the fetched items
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <Accommodation items={items} />
     </main>
   );

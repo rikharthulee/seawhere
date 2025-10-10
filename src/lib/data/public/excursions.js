@@ -1,15 +1,37 @@
 import { getPublicDB } from '@/lib/supabase/public';
-import { ENTITY_PUBLIC_COLUMNS, EXCURSION_PUBLIC_COLUMNS, EXCURSION_LINK_COLUMNS, NOTE_PUBLIC_COLUMNS } from '@/lib/data/public/selects';
+import { EXCURSION_PUBLIC_COLUMNS, EXCURSION_LINK_COLUMNS, NOTE_PUBLIC_COLUMNS } from '@/lib/data/public/selects';
 
 function isUUID(v){ return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v||'').trim()); }
-function tableForType(t){
-  switch((t||'').toLowerCase().trim()){
-    case 'sight': return 'sights';
-    case 'experience': return 'experiences';
-    case 'tour': return 'tours';
-    case 'note': return 'excursion_notes';
-    default: return null;
-  }
+const TABLE_INFO = {
+  sight: {
+    table: 'sights',
+    columns: 'id,slug,name,summary,images,opening_times_url,destination_id,lat,lng',
+  },
+  experience: {
+    table: 'experiences',
+    columns: 'id,slug,name,summary,images,destination_id,status,provider,price_amount,price_currency,duration_minutes',
+  },
+  tour: {
+    table: 'tours',
+    columns: 'id,slug,name,summary,images,destination_id,status,provider,price_amount,price_currency,duration_minutes',
+  },
+  accommodation: {
+    table: 'accommodation',
+    columns: 'id,slug,name,summary,images,destination_id,price_band,rating',
+  },
+  food_drink: {
+    table: 'food_drink',
+    columns: 'id,slug,name,description,images,destination_id,type,price_band,rating',
+  },
+  note: {
+    table: 'excursion_notes',
+    columns: NOTE_PUBLIC_COLUMNS,
+  },
+};
+
+function tableInfoForType(type) {
+  const key = typeof type === 'string' ? type.toLowerCase().trim() : '';
+  return TABLE_INFO[key] || null;
 }
 
 function normalizeTransportSteps(rawSteps = null){
@@ -72,17 +94,34 @@ async function fetchTransportLegs(supabase, excursionId){
 }
 
 // Strict per-item hydrator. No batching, no normalization, no fallback requests.
-export async function hydrateExcursionItems(supabase, items=[]){
-  return Promise.all((items||[]).map(async (it, idx)=>{
-    const table = tableForType(it?.item_type);
-    const id = typeof it?.ref_id==='string' ? it.ref_id.trim() : it?.ref_id;
-    if(!table){ console.warn('[public:excursions] unknown item_type', {idx, item_type: it?.item_type}); return {...it, entity:null, table:null}; }
-    if(!isUUID(id)){ console.warn('[public:excursions] invalid id', { idx, id: it?.ref_id }); return {...it, entity:null, table}; }
-    const columns = table === 'excursion_notes' ? NOTE_PUBLIC_COLUMNS : ENTITY_PUBLIC_COLUMNS;
-    const { data, error, status } = await supabase.from(table).select(columns).eq('id', id).maybeSingle();
-    if(error){ console.error('[public:excursions] select failed', {table, status, msg:error.message}); return {...it, entity:null, table}; }
-    if(!data){ console.warn('[public:excursions] entity not visible', { table, id }); return {...it, entity:null, table}; }
-    return {...it, entity:data, table};
+export async function hydrateExcursionItems(supabase, items = []) {
+  return Promise.all((items || []).map(async (it, idx) => {
+    const info = tableInfoForType(it?.item_type);
+    const table = info?.table || null;
+    const id = typeof it?.ref_id === 'string' ? it.ref_id.trim() : it?.ref_id;
+    if (!table) {
+      console.warn('[public:excursions] unknown item_type', { idx, item_type: it?.item_type });
+      return { ...it, entity: null, table: null };
+    }
+    if (!isUUID(id)) {
+      console.warn('[public:excursions] invalid id', { idx, id: it?.ref_id });
+      return { ...it, entity: null, table };
+    }
+    const columns = info.columns;
+    const { data, error, status } = await supabase
+      .from(table)
+      .select(columns)
+      .eq('id', id)
+      .maybeSingle();
+    if (error) {
+      console.error('[public:excursions] select failed', { table, status, msg: error.message });
+      return { ...it, entity: null, table };
+    }
+    if (!data) {
+      console.warn('[public:excursions] entity not visible', { table, id });
+      return { ...it, entity: null, table };
+    }
+    return { ...it, entity: data, table };
   }));
 }
 

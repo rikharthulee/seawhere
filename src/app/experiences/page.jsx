@@ -5,7 +5,7 @@ import { listPublishedExperiences } from "@/lib/data/public/experiences";
 export default async function ExperiencesPage() {
   const items = await listPublishedExperiences();
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <Experiences items={items} />
     </main>
   );

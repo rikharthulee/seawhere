@@ -1,6 +1,5 @@
-import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
-import { Card, CardContent } from "@/components/ui/card";
+import { Tile } from "@/components/ui/tile";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 
 export default function Accommodation({ items }) {
@@ -37,60 +36,39 @@ export default function Accommodation({ items }) {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {sorted.map((item) => {
           const img = resolveImageUrl(firstImageFromImages(item?.images));
-          const displayName = item.title || item.name;
+          const displayName = item.title || item.name || "Accommodation";
+          const href = item.slug ? `/accommodation/${item.slug}` : "#";
 
-          // Log warnings for missing data
-          if (!img) {
-            console.warn(
-              `Missing image for accommodation: ${displayName} (slug: ${item.slug})`
-            );
-          }
-          if (!displayName) {
-            console.error(
-              `Missing title/name for accommodation with slug: ${item.slug}`
-            );
-          }
           if (!item.slug) {
-            console.error(`Missing slug for accommodation:`, item);
+            console.error("Missing slug for accommodation:", item);
           }
 
           return (
-            <Card
+            <Tile.Link
               key={item.slug || `accommodation-${displayName}`}
-              asChild
-              className="group overflow-hidden transition-shadow hover:shadow-md"
+              href={href}
+              className="group"
             >
-              <Link
-                href={`/accommodation/${item.slug}`}
-                className="relative block focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <div className="relative h-64 w-full bg-muted">
-                  {img ? (
-                    <SafeImage
-                      src={img}
-                      alt={displayName || "Accommodation"}
-                      fill
-                      sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-cover transition duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
-                      <span className="text-sm">No image available</span>
-                    </div>
-                  )}
-                </div>
-                <div className="absolute bottom-3 left-3 text-white text-lg font-medium drop-shadow-lg">
-                  {displayName || "Unnamed Accommodation"}
-                </div>
-                {item.credit ? (
-                  <CardContent className="pt-2">
-                    <div className="text-xs text-muted-foreground text-right">
-                      {item.credit}
-                    </div>
-                  </CardContent>
+              <Tile.Image className="bg-muted">
+                {img ? (
+                  <SafeImage
+                    src={img}
+                    alt={displayName}
+                    fill
+                    sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover transition duration-300 group-hover:scale-105"
+                  />
                 ) : null}
-              </Link>
-            </Card>
+              </Tile.Image>
+              <Tile.Content>
+                <div className="font-medium">{displayName}</div>
+                {item.summary ? (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                    {item.summary}
+                  </p>
+                ) : null}
+              </Tile.Content>
+            </Tile.Link>
           );
         })}
       </div>

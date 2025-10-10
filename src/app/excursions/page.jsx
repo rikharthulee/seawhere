@@ -13,7 +13,7 @@ export default async function ExcursionsPage() {
     : [];
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <section className="mb-8">
         <h1 className="text-3xl font-semibold">Excursions</h1>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -34,7 +34,9 @@ export default async function ExcursionsPage() {
             </li>
           ))}
           {quickIndex.length === 0 ? (
-            <li className="text-sm text-muted-foreground">No excursions published yet.</li>
+            <li className="text-sm text-muted-foreground">
+              No excursions published yet.
+            </li>
           ) : null}
         </ul>
       </section>

@@ -10,7 +10,7 @@ export const EXCURSION_PUBLIC_COLUMNS =
   "id,slug,name,summary,description,cover_image,maps_url,destination_id,status,tags,updated_at,cost_band,notes,wheelchair_friendly,good_with_kids";
 
 // Link-table minimal shape for curated items
-export const EXCURSION_LINK_COLUMNS = "item_type,ref_id,sort_order";
+export const EXCURSION_LINK_COLUMNS = "id,item_type,ref_id,sort_order,details,duration_minutes,maps_url";
 
 // Notes
 export const NOTE_PUBLIC_COLUMNS = "id,title,details";

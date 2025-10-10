@@ -30,7 +30,7 @@ export default async function AccommodationDetailPage(props) {
   const gallery = imagesToGallery(row.images ?? []).slice(1);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       {/* Page header */}
       <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
@@ -70,13 +70,6 @@ export default async function AccommodationDetailPage(props) {
             </div>
           )}
         </div>
-
-        {/* Credit line */}
-        {row.credit ? (
-          <p className="mt-2 text-xs text-muted-foreground text-right order-3 md:order-3">
-            {row.credit}
-          </p>
-        ) : null}
 
         {/* Description */}
         <div className="order-2 md:order-1">

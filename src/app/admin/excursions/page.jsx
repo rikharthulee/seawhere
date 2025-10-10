@@ -253,7 +253,7 @@ export default async function AdminExcursionsIndex() {
   const excursions = normalizeExcursions(rows);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-12">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <header className="max-w-3xl space-y-3">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           Excursion Builder

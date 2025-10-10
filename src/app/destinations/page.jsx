@@ -17,7 +17,7 @@ export default async function DestinationsPage() {
 
   // Render the Destinations component with the fetched items
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <Destinations items={items} />
     </main>
   );

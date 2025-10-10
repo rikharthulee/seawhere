@@ -64,7 +64,7 @@ CREATE TABLE public.destination_links (
   to_location_id uuid NOT NULL,
   relation text NOT NULL CHECK (relation = ANY (ARRAY['nearby'::text, 'day_trip'::text, 'gateway'::text, 'sister_area'::text])),
   weight integer DEFAULT 0,
-  CONSTRAINT destination_links_pkey PRIMARY KEY (relation, from_location_id, to_location_id)
+  CONSTRAINT destination_links_pkey PRIMARY KEY (from_location_id, relation, to_location_id)
 );
 CREATE TABLE public.destinations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -111,6 +111,9 @@ CREATE TABLE public.excursion_items (
   item_type text NOT NULL,
   ref_id uuid NOT NULL,
   sort_order integer DEFAULT 0,
+  details text,
+  duration_minutes integer,
+  maps_url text,
   CONSTRAINT excursion_items_pkey PRIMARY KEY (id),
   CONSTRAINT excursion_items_excursion_id_fkey FOREIGN KEY (excursion_id) REFERENCES public.excursions(id)
 );
@@ -225,7 +228,7 @@ CREATE TABLE public.food_drink (
   name text NOT NULL,
   type text DEFAULT 'restaurant'::text CHECK (type = ANY (ARRAY['restaurant'::text, 'bar'::text, 'cafe'::text, 'other'::text])),
   address text,
-  description text,
+  description jsonb,
   rating numeric,
   images jsonb,
   created_at timestamp with time zone DEFAULT now(),
@@ -336,29 +339,6 @@ CREATE TABLE public.prefectures (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT prefectures_pkey PRIMARY KEY (id),
   CONSTRAINT prefectures_region_id_fkey FOREIGN KEY (region_id) REFERENCES public.regions(id)
-);
-CREATE TABLE public.product_items (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  product_id uuid NOT NULL,
-  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['sight'::text, 'tour'::text, 'experience'::text, 'food_drink'::text, 'hotel'::text])),
-  ref_id uuid NOT NULL,
-  sort_order integer NOT NULL DEFAULT 0,
-  CONSTRAINT product_items_pkey PRIMARY KEY (id),
-  CONSTRAINT product_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
-);
-CREATE TABLE public.products (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  destination_id uuid NOT NULL,
-  slug text UNIQUE,
-  name text NOT NULL,
-  summary text,
-  body_richtext jsonb,
-  images jsonb,
-  status text NOT NULL DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'published'::text])),
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT products_pkey PRIMARY KEY (id),
-  CONSTRAINT products_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
 );
 CREATE TABLE public.profiles (
   id uuid NOT NULL,

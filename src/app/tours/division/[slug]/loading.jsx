@@ -3,7 +3,7 @@ import SimpleGridSkeleton from "@/components/skeletons/SimpleGridSkeleton";
 
 export default function ToursByDivisionLoading() {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <SectionHeaderSkeleton titleWidth="w-64" />
       <SimpleGridSkeleton />
     </main>

@@ -30,7 +30,7 @@ export default async function DestinationPage(props) {
   const gallery = imagesToGallery(dst.images ?? []).slice(1);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       {/* Page header */}
       <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
@@ -71,13 +71,6 @@ export default async function DestinationPage(props) {
           )}
         </div>
 
-        {/* Credit line */}
-        {dst.credit ? (
-          <p className="mt-2 text-xs text-muted-foreground text-right order-3 md:order-3">
-            {dst.credit}
-          </p>
-        ) : null}
-
         {/* Description */}
         <div className="order-2 md:order-1">
           {dst.body_richtext ? (
@@ -97,55 +90,6 @@ export default async function DestinationPage(props) {
           <GygWidget locationId={dst.gyg_location_id} />
         </section>
       ) : null}
-
-      {/* Info cards */}
-      <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-        <Card>
-          <CardContent className="p-3 space-y-1">
-            <div>
-              <span className="font-medium text-foreground">Slug:</span>{" "}
-              {dst.slug}
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Status:</span>{" "}
-              {dst.status ?? "—"}
-            </div>
-            {dst.published_at ? (
-              <div>
-                <span className="font-medium text-foreground">Published:</span>{" "}
-                {new Date(dst.published_at).toLocaleDateString()}
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 space-y-1">
-            <div>
-              <span className="font-medium text-foreground">
-                Prefecture ID:
-              </span>{" "}
-              {dst.prefecture_id ?? "—"}
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Division ID:</span>{" "}
-              {dst.division_id ?? "—"}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 space-y-1">
-            <div>
-              <span className="font-medium text-foreground">Latitude:</span>{" "}
-              {dst.lat ?? "—"}
-              <span className="mx-2">|</span>
-              <span className="font-medium text-foreground">
-                Longitude:
-              </span>{" "}
-              {dst.lng ?? "—"}
-            </div>
-          </CardContent>
-        </Card>
-      </section>
     </main>
   );
 }

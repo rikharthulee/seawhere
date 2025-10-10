@@ -12,6 +12,45 @@ const COST_BAND_LABELS = {
   premium: "€€€ (high)",
 };
 
+function firstParagraph(value) {
+  try {
+    if (!value) return "";
+    if (typeof value === "string") return value.trim();
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (typeof entry === "string" && entry.trim()) return entry.trim();
+        if (entry && typeof entry === "object" && typeof entry.text === "string" && entry.text.trim()) {
+          return entry.text.trim();
+        }
+      }
+      return "";
+    }
+    if (typeof value === "object") {
+      if (value.type === "paragraph") {
+        const nodes = Array.isArray(value.content) ? value.content : [];
+        const text = nodes.map((n) => n?.text || "").join("").trim();
+        if (text) return text;
+      }
+      if (value.type === "doc" && Array.isArray(value.content)) {
+        for (const node of value.content) {
+          if (node?.type === "paragraph") {
+            const nodes = Array.isArray(node.content) ? node.content : [];
+            const text = nodes.map((n) => n?.text || "").join("").trim();
+            if (text) return text;
+          }
+        }
+      }
+      if (typeof value.summary === "string" && value.summary.trim()) {
+        return value.summary.trim();
+      }
+      if (typeof value.text === "string" && value.text.trim()) {
+        return value.text.trim();
+      }
+    }
+  } catch {}
+  return "";
+}
+
 function firstImage(srcLike) {
   if (!srcLike) return null;
   if (typeof srcLike === "string") return srcLike;
@@ -27,32 +66,39 @@ function firstImage(srcLike) {
 function normalizeItem(it) {
   const e = it?.entity || null;
   const isNote = (it?.item_type || "").toLowerCase() === "note";
-  const noteTitle = isNote ? (e?.title || it?.title || "Note") : null;
-  const noteDetails = isNote ? (e?.details ?? it?.details ?? "") : null;
+  const noteTitle = isNote ? e?.title || it?.title || "Note" : null;
+  const noteDetails = isNote ? e?.details ?? it?.details ?? "" : null;
   const displayImage = isNote
     ? null
     : resolveImageUrl(firstImage(e?.images) || firstImage(it?.images));
+  const entitySummary =
+    e?.summary ||
+    (e?.description ? firstParagraph(e.description) : "");
   return {
     ...it,
     isNote,
-    displayName: isNote
-      ? noteTitle
-      : e?.name || it?.name || "(untitled)",
+    displayName: isNote ? noteTitle : e?.name || it?.name || "(untitled)",
     displaySummary: isNote
       ? noteDetails || ""
-      : e?.summary || it?.summary || "",
+      : entitySummary || it?.summary || "",
     opening_times_url: isNote
       ? null
       : e?.opening_times_url || it?.opening_times_url || null,
     displayImage,
-    details: isNote ? noteDetails : it?.details || null,
+    details: isNote
+      ? noteDetails
+      : typeof it?.details === "string" && it.details.trim().length > 0
+        ? it.details
+        : null,
   };
 }
 
 export default async function Page({ params, searchParams }) {
   const { slug } = await params;
   const { debug } = (await searchParams) || {};
-  const { excursion, items, transport } = await getCuratedExcursionBySlugPublic(slug);
+  const { excursion, items, transport } = await getCuratedExcursionBySlugPublic(
+    slug
+  );
   if (!excursion && !debug) return notFound();
 
   const flow = [];
@@ -63,9 +109,15 @@ export default async function Page({ params, searchParams }) {
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 space-y-8">
-      {(!excursion && debug) ? (
-        <pre className="rounded-md border bg-muted p-3 text-xs overflow-x-auto">{JSON.stringify({ slug, debug, excursion, items, transport }, null, 2)}</pre>
+    <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
+      {!excursion && debug ? (
+        <pre className="rounded-md border bg-muted p-3 text-xs overflow-x-auto">
+          {JSON.stringify(
+            { slug, debug, excursion, items, transport },
+            null,
+            2
+          )}
+        </pre>
       ) : null}
       <header className="space-y-3">
         {excursion ? (
@@ -73,7 +125,9 @@ export default async function Page({ params, searchParams }) {
             {excursion.name}
           </h1>
         ) : (
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Excursion</h1>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            Excursion
+          </h1>
         )}
         {excursion?.summary && (
           <p className="text-base text-muted-foreground sm:text-lg">
@@ -87,17 +141,18 @@ export default async function Page({ params, searchParams }) {
           <div className="mt-3 flex flex-wrap gap-2">
             {Array.isArray(excursion?.tags) &&
               excursion.tags.map((t) => (
-                <Badge key={`tag-${t}`} variant="secondary" className="capitalize">
+                <Badge
+                  key={`tag-${t}`}
+                  variant="secondary"
+                  className="capitalize"
+                >
                   {t}
                 </Badge>
               ))}
             {excursion?.cost_band &&
-              (COST_BAND_LABELS[excursion.cost_band] || excursion.cost_band) && (
-                <Badge
-                  key="meta-cost"
-                  variant="outline"
-                  className="capitalize"
-                >
+              (COST_BAND_LABELS[excursion.cost_band] ||
+                excursion.cost_band) && (
+                <Badge key="meta-cost" variant="outline" className="capitalize">
                   {COST_BAND_LABELS[excursion.cost_band] || excursion.cost_band}
                 </Badge>
               )}
@@ -147,7 +202,8 @@ export default async function Page({ params, searchParams }) {
                 const it = row.it;
                 if (it.isNote) {
                   const hasCustomTitle =
-                    it.displayName && it.displayName.trim().toLowerCase() !== "note";
+                    it.displayName &&
+                    it.displayName.trim().toLowerCase() !== "note";
                   return (
                     <div
                       key={`note-${idx}`}

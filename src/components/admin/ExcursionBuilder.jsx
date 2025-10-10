@@ -1,11 +1,18 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -330,11 +337,11 @@ function ExcursionTimeline({
             <div className="font-medium leading-tight truncate">
               {it.title || it.name || "(untitled)"}
             </div>
-            {it.details && (
+            {typeof it.details === "string" && it.details.trim().length > 0 ? (
               <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
                 {it.details}
               </p>
-            )}
+            ) : null}
             {it.maps_url && (
               <a
                 className="mt-1 block text-xs text-primary underline"
@@ -385,7 +392,7 @@ function newExcursionDraft() {
     // NEW: excursion-level meta
     tags: [],
     cost_band: "",
-    seasonality: "",
+    notes: "",
     accessible: false,
     with_kids: false,
     items: [],
@@ -419,11 +426,97 @@ export default function ExcursionsBuilderJS() {
   );
   // patchItem is a local draft for editing
   const [patchItem, setPatchItem] = useState(null);
+  const [tagsRaw, setTagsRaw] = useState("");
+
+  const [regions, setRegions] = useState([]);
+  const [prefectures, setPrefectures] = useState([]);
+  const [destinations, setDestinations] = useState([]);
+  const [regionId, setRegionId] = useState("");
+  const [prefectureId, setPrefectureId] = useState("");
 
   const errorMessages = useMemo(
     () => [loadError, error].filter(Boolean),
     [loadError, error]
   );
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadGeo() {
+      try {
+        const res = await fetch("/api/admin/meta/geo", { cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json();
+          if (!ignore) {
+            setRegions(Array.isArray(json.regions) ? json.regions : []);
+            setPrefectures(Array.isArray(json.prefectures) ? json.prefectures : []);
+          }
+        }
+      } catch {}
+      try {
+        const res = await fetch("/api/admin/meta/destinations", { cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json();
+          if (!ignore) {
+            const list = Array.isArray(json.items) ? json.items : [];
+            setDestinations(list);
+          }
+        }
+      } catch {}
+    }
+    loadGeo();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const prefectureMap = useMemo(() => {
+    const map = new Map();
+    prefectures.forEach((pref) => {
+      if (pref?.id) map.set(pref.id, pref);
+    });
+    return map;
+  }, [prefectures]);
+
+  const prefecturesForRegion = useMemo(() => {
+    const list = regionId
+      ? prefectures.filter((pref) => pref.region_id === regionId)
+      : prefectures;
+    return [...list].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [prefectures, regionId]);
+
+  const destinationsForScope = useMemo(() => {
+    const filtered = destinations.filter((dst) => {
+      if (prefectureId) return dst.prefecture_id === prefectureId;
+      if (regionId) {
+        const pref = prefectureMap.get(dst.prefecture_id);
+        return pref?.region_id === regionId;
+      }
+      return true;
+    });
+    return [...filtered].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [destinations, prefectureId, regionId, prefectureMap]);
+
+  useEffect(() => {
+    const destId =
+      typeof excursion.destination_id === "string"
+        ? excursion.destination_id
+        : "";
+    if (!destId) return;
+    const dest = destinations.find((d) => d.id === destId);
+    if (!dest) return;
+    if (dest.prefecture_id && dest.prefecture_id !== prefectureId) {
+      setPrefectureId(dest.prefecture_id);
+    }
+    const pref = prefectureMap.get(dest.prefecture_id);
+    if (pref?.region_id && pref.region_id !== regionId) {
+      setRegionId(pref.region_id);
+    }
+  }, [excursion.destination_id, destinations, prefectureId, regionId, prefectureMap]);
+
+  const destinationValue =
+    typeof excursion.destination_id === "string" && excursion.destination_id
+      ? excursion.destination_id
+      : "__EMPTY__";
 
   async function searchPoisApi(q) {
     try {
@@ -456,17 +549,31 @@ export default function ExcursionsBuilderJS() {
 
     const transport = items.filter((it) => it.item_type === "transport");
 
-    const entityItems = items
-      .filter((it) => allowed.has(it.item_type))
-      .map((it) => ({
-        item_type: it.item_type,
-        sort_order: it.sort_order,
-        ref_id:
-          typeof it.ref_id === "string" && it.ref_id.trim()
-            ? it.ref_id.trim()
+  const entityItems = items
+    .filter((it) => allowed.has(it.item_type))
+    .map((it) => ({
+      item_type: it.item_type,
+      sort_order: it.sort_order,
+      ref_id:
+        typeof it.ref_id === "string" && it.ref_id.trim()
+          ? it.ref_id.trim()
+          : null,
+      details:
+        typeof it.details === "string" && it.details.trim().length > 0
+          ? it.details.trim()
+          : null,
+      duration_minutes:
+        it.duration_minutes === "" || it.duration_minutes === null
+          ? null
+          : Number.isFinite(Number(it.duration_minutes))
+            ? Number(it.duration_minutes)
             : null,
-      }))
-      .filter((it) => it.ref_id);
+      maps_url:
+        typeof it.maps_url === "string" && it.maps_url.trim().length > 0
+          ? it.maps_url.trim()
+          : null,
+    }))
+    .filter((it) => it.ref_id);
 
     const noteItems = items
       .filter((it) => it.item_type === "note")
@@ -491,17 +598,8 @@ export default function ExcursionsBuilderJS() {
       (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
     );
 
-    const meta = {};
-    const seasonalityValue =
-      typeof excursion.seasonality === "string"
-        ? excursion.seasonality.trim()
-        : "";
-    if (seasonalityValue) {
-      meta.seasonality = seasonalityValue;
-    }
     const description = {
       text: excursion.description || "",
-      ...(Object.keys(meta).length > 0 ? { meta } : {}),
     };
 
     const destinationIdRaw = excursion.destination_id;
@@ -519,18 +617,10 @@ export default function ExcursionsBuilderJS() {
       destination_id = destinationIdRaw;
     }
 
-    const tags =
-      Array.isArray(excursion.tags) && excursion.tags.length > 0
-        ? excursion.tags
-            .map((tag) =>
-              typeof tag === "string" ? tag.trim() : String(tag || "")
-            )
-            .filter(Boolean)
-        : [];
-
-    const notesSummary = seasonalityValue
-      ? `Seasonality: ${seasonalityValue}`
-      : null;
+    const tags = (tagsRaw || "")
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
 
     const costBandValue = COST_BAND_OPTIONS.some(
       (opt) => opt.value === excursion.cost_band
@@ -549,7 +639,11 @@ export default function ExcursionsBuilderJS() {
       destination_id,
       tags,
       cost_band: costBandValue || null,
-      notes: notesSummary,
+      notes:
+        typeof excursion.notes === "string" &&
+        excursion.notes.trim().length > 0
+          ? excursion.notes.trim()
+          : null,
       wheelchair_friendly:
         typeof excursion.accessible === "boolean"
           ? excursion.accessible
@@ -560,8 +654,12 @@ export default function ExcursionsBuilderJS() {
   }
 
   async function save(statusOverride) {
-    setSaving(true);
     setError("");
+    if (!excursion.destination_id) {
+      setError("Select a destination before saving.");
+      return;
+    }
+    setSaving(true);
     try {
       const payload = toDbPayload(statusOverride);
       if (!savedId) {
@@ -623,6 +721,9 @@ export default function ExcursionsBuilderJS() {
       name: p.name,
       latitude: p.latitude ?? p.lat ?? p.lat_deg ?? null,
       longitude: p.longitude ?? p.lng ?? p.lon ?? p.lon_deg ?? null,
+      details: "",
+      duration_minutes: "",
+      maps_url: "",
     };
     setExcursion((prev) => ({
       ...prev,
@@ -773,19 +874,12 @@ export default function ExcursionsBuilderJS() {
         : {};
     const legacyNotes =
       typeof data?.notes === "string" ? data.notes.trim() : "";
-    let seasonality =
-      typeof descriptionMeta.seasonality === "string"
-        ? descriptionMeta.seasonality.trim()
-        : "";
-    const dowTipsLegacy =
-      typeof descriptionMeta.dow_tips === "string"
-        ? descriptionMeta.dow_tips.trim()
-        : "";
-    if (!seasonality && dowTipsLegacy) {
-      seasonality = dowTipsLegacy;
+    let notesText = legacyNotes;
+    if (!notesText && typeof descriptionMeta.seasonality === "string") {
+      notesText = descriptionMeta.seasonality.trim();
     }
-    if (!seasonality && legacyNotes) {
-      seasonality = legacyNotes;
+    if (!notesText && typeof descriptionMeta.dow_tips === "string") {
+      notesText = descriptionMeta.dow_tips.trim();
     }
 
     const rawItems = Array.isArray(data?.items) ? data.items : [];
@@ -816,9 +910,20 @@ export default function ExcursionsBuilderJS() {
         sort_order: sortOrder,
         name: it.name || "",
         destination: it.destination || null,
-        duration_minutes: it.duration_minutes || null,
-        maps_url: it.maps_url || null,
-        details: it.details || null,
+        duration_minutes:
+          it.duration_minutes === null || it.duration_minutes === undefined
+            ? null
+            : Number.isFinite(Number(it.duration_minutes))
+              ? Number(it.duration_minutes)
+              : null,
+        maps_url:
+          typeof it.maps_url === "string" && it.maps_url.trim().length > 0
+            ? it.maps_url.trim()
+            : null,
+        details:
+          typeof it.details === "string" && it.details.trim().length > 0
+            ? it.details
+            : "",
       };
     });
     const hasLinkedNotes = curated.some((item) => item.item_type === "note");
@@ -868,7 +973,7 @@ export default function ExcursionsBuilderJS() {
       cost_band: COST_BAND_OPTIONS.some((opt) => opt.value === data?.cost_band)
         ? data.cost_band
         : "",
-      seasonality,
+      notes: notesText || "",
       accessible: Boolean(
         data?.wheelchair_friendly ?? data?.accessible ?? false
       ),
@@ -879,6 +984,16 @@ export default function ExcursionsBuilderJS() {
         ...fallbackNoteItems,
       ]),
     });
+    setTagsRaw(
+      Array.isArray(data?.tags)
+        ? data.tags
+            .map((tag) =>
+              typeof tag === "string" ? tag.trim() : String(tag || "")
+            )
+            .filter(Boolean)
+            .join(", ")
+        : ""
+    );
     setSavedId(data?.id || null);
     setDraggingId(null);
   }
@@ -894,6 +1009,9 @@ export default function ExcursionsBuilderJS() {
       setSlugTouched(false);
       setCoverImage("");
       setError("");
+      setRegionId("");
+      setPrefectureId("");
+      setTagsRaw("");
       if (options.clearLoadError) setLoadError("");
       setDraggingId(null);
       router.replace(`/admin/excursions/builder`, { scroll: false });
@@ -1172,22 +1290,74 @@ export default function ExcursionsBuilderJS() {
             />
           </div>
           <div>
+            <Label>Region</Label>
+            <Select
+              value={regionId || "__ALL__"}
+              onValueChange={(val) => {
+                const next = val === "__ALL__" ? "" : val;
+                setRegionId(next);
+                setPrefectureId("");
+                setExcursion((prev) => ({ ...prev, destination_id: "" }));
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All regions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__ALL__">All regions</SelectItem>
+                {regions.map((region) => (
+                  <SelectItem key={region.id} value={region.id}>
+                    {region.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Prefecture</Label>
+            <Select
+              value={prefectureId || "__ALL__"}
+              onValueChange={(val) => {
+                const next = val === "__ALL__" ? "" : val;
+                setPrefectureId(next);
+                setExcursion((prev) => ({ ...prev, destination_id: "" }));
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All prefectures" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__ALL__">All prefectures</SelectItem>
+                {prefecturesForRegion.map((pref) => (
+                  <SelectItem key={pref.id} value={pref.id}>
+                    {pref.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-2">
             <Label>Destination</Label>
-            <Input
-              value={
-                typeof excursion.destination_id === "string" ||
-                typeof excursion.destination_id === "number"
-                  ? excursion.destination_id
-                  : ""
-              }
-              onChange={(e) =>
-                setExcursion({
-                  ...excursion,
-                  destination_id: e.target.value,
-                })
-              }
-              placeholder="Destination ID or slug"
-            />
+            <Select
+              value={destinationValue}
+              onValueChange={(val) => {
+                const next = val === "__EMPTY__" ? "" : val;
+                setExcursion((prev) => ({ ...prev, destination_id: next }));
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select destination…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__EMPTY__">Select destination…</SelectItem>
+                {destinationsForScope.map((dst) => (
+                  <SelectItem key={dst.id} value={dst.id}>
+                    {dst.name}
+                    {dst.slug ? ` (${dst.slug})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Slug</Label>
@@ -1233,9 +1403,10 @@ export default function ExcursionsBuilderJS() {
           <div>
             <Label>Tags</Label>
             <Input
-              value={(excursion.tags || []).join(", ")}
+              value={tagsRaw}
               onChange={(e) => {
                 const raw = e.target.value;
+                setTagsRaw(raw);
                 const tags = raw
                   .split(",")
                   .map((t) => t.trim())
@@ -1263,14 +1434,14 @@ export default function ExcursionsBuilderJS() {
             </select>
           </div>
           <div className="md:col-span-2">
-            <Label>Seasonality (notes)</Label>
+            <Label>Notes</Label>
             <Textarea
               rows={2}
-              value={excursion.seasonality || ""}
+              value={excursion.notes || ""}
               onChange={(e) =>
-                setExcursion({ ...excursion, seasonality: e.target.value })
+                setExcursion({ ...excursion, notes: e.target.value })
               }
-              placeholder="e.g., Best in spring and autumn; avoid Golden Week crowds."
+              placeholder="Optional notes shown to admins when editing."
             />
           </div>
           <div className="flex items-center gap-4">

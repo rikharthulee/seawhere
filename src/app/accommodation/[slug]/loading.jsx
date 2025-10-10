@@ -2,7 +2,7 @@ import Skeleton from "@/components/ui/skeleton";
 
 export default function AccommodationLoading() {
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 space-y-8">
+    <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
       <div className="border-t-2 border-border pt-2">
         <div className="flex items-center justify-between">
           <Skeleton className="h-10 w-64 bg-muted/70" aria-hidden />

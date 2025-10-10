@@ -90,11 +90,6 @@ export default function Destinations({
                     {CardInner}
                   </div>
                 )}
-                {d.credit ? (
-                  <div className="mt-1 text-xs text-muted-foreground text-right">
-                    {d.credit}
-                  </div>
-                ) : null}
               </div>
             );
           })}

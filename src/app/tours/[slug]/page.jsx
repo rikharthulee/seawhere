@@ -48,7 +48,7 @@ export default async function TourBySlugPage(props) {
   const availabilityExceptions = [];
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 space-y-8">
+    <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
       {!tour && debug ? (
         <pre className="rounded-md border bg-muted p-3 text-xs overflow-x-auto">
           {JSON.stringify({ slug, result }, null, 2)}

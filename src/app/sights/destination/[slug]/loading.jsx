@@ -4,7 +4,7 @@ import Skeleton from "@/components/ui/skeleton";
 
 export default function SightsByDestinationLoading() {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 space-y-6">
+    <main className="mx-auto max-w-6xl px-4 py-10 space-y-6">
       <SectionHeaderSkeleton titleWidth="w-64" />
       <SimpleGridSkeleton />
       <section className="mt-10 space-y-3">

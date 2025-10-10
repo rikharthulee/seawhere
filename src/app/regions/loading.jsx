@@ -2,7 +2,7 @@ import Skeleton from "@/components/ui/skeleton";
 
 export default function RegionsLoading() {
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 space-y-6">
+    <main className="mx-auto max-w-6xl px-4 py-10 space-y-6">
       <Skeleton className="h-10 w-48 bg-muted/70" aria-hidden />
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {Array.from({ length: 6 }).map((_, idx) => (

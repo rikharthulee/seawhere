@@ -39,7 +39,7 @@ function normalizeTags(value) {
   return tags.length > 0 ? tags : [];
 }
 
-function normalizeNotes(value, extras = {}) {
+function normalizeNotes(value) {
   if (Array.isArray(value)) {
     const text = value
       .map((item) => (typeof item === "string" ? item.trim() : ""))
@@ -50,11 +50,7 @@ function normalizeNotes(value, extras = {}) {
     const trimmed = value.trim();
     if (trimmed) return trimmed;
   }
-  const parts = [];
-  if (typeof extras.seasonality === "string" && extras.seasonality.trim()) {
-    parts.push(`Seasonality: ${extras.seasonality.trim()}`);
-  }
-  return parts.length > 0 ? parts.join("\n\n") : null;
+  return null;
 }
 
 function normalizeDestinationId(value) {
@@ -74,19 +70,6 @@ function normalizeCostBand(value) {
   if (legacy && VALID_COST_BANDS.has(legacy)) return legacy;
   const normalized = trimmed.toLowerCase();
   return VALID_COST_BANDS.has(normalized) ? normalized : null;
-}
-
-function extractSeasonality(body = {}) {
-  const metaValue =
-    typeof body?.description?.meta?.seasonality === "string"
-      ? body.description.meta.seasonality.trim()
-      : "";
-  if (metaValue) return metaValue;
-  if (typeof body.seasonality === "string") {
-    const trimmed = body.seasonality.trim();
-    if (trimmed) return trimmed;
-  }
-  return null;
 }
 
 function isUUID(value) {
@@ -243,9 +226,7 @@ export async function POST(request) {
       status: body.status || "draft",
       tags: tags ?? null,
       cost_band: normalizeCostBand(body.cost_band),
-      notes: normalizeNotes(body.notes, {
-        seasonality: extractSeasonality(body),
-      }),
+      notes: normalizeNotes(body.notes),
       wheelchair_friendly: coerceNullableBoolean(
         body.wheelchair_friendly ?? body.accessible
       ),

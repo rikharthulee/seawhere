@@ -10,13 +10,13 @@ export default async function FoodDrinkPage() {
     ? rows.map((r) => ({
         slug: r.slug,
         title: r.name,
+        description: r.description || null,
         images: Array.isArray(r.images) ? r.images : [],
-        credit: null,
       }))
     : [];
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <FoodDrink items={items} />
     </main>
   );

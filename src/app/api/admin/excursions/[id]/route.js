@@ -45,7 +45,7 @@ function normalizeTags(value) {
   return tags.length > 0 ? tags : [];
 }
 
-function normalizeNotes(value, extras = {}) {
+function normalizeNotes(value) {
   if (Array.isArray(value)) {
     const text = value
       .map((item) => (typeof item === "string" ? item.trim() : ""))
@@ -56,11 +56,7 @@ function normalizeNotes(value, extras = {}) {
     const trimmed = value.trim();
     if (trimmed) return trimmed;
   }
-  const parts = [];
-  if (typeof extras.seasonality === "string" && extras.seasonality.trim()) {
-    parts.push(`Seasonality: ${extras.seasonality.trim()}`);
-  }
-  return parts.length > 0 ? parts.join("\n\n") : null;
+  return null;
 }
 
 function normalizeDestinationId(value) {
@@ -80,19 +76,6 @@ function normalizeCostBand(value) {
   if (legacy && VALID_COST_BANDS.has(legacy)) return legacy;
   const normalized = trimmed.toLowerCase();
   return VALID_COST_BANDS.has(normalized) ? normalized : null;
-}
-
-function extractSeasonality(body = {}) {
-  const metaValue =
-    typeof body?.description?.meta?.seasonality === "string"
-      ? body.description.meta.seasonality.trim()
-      : "";
-  if (metaValue) return metaValue;
-  if (typeof body.seasonality === "string") {
-    const trimmed = body.seasonality.trim();
-    if (trimmed) return trimmed;
-  }
-  return null;
 }
 
 function isUUID(value) {
@@ -138,11 +121,27 @@ async function insertExcursionItems(db, excursionId, rawItems = []) {
           ? raw.ref_id.trim()
           : null;
       if (!refId) return;
+      const details =
+        typeof raw.details === "string" && raw.details.trim().length > 0
+          ? raw.details.trim()
+          : null;
+      const duration =
+        raw.duration_minutes === "" || raw.duration_minutes === null
+          ? null
+          : Number(raw.duration_minutes);
+      const durationMinutes = Number.isFinite(duration) ? duration : null;
+      const mapsUrl =
+        typeof raw.maps_url === "string" && raw.maps_url.trim().length > 0
+          ? raw.maps_url.trim()
+          : null;
       entityRows.push({
         excursion_id: excursionId,
         item_type: itemType,
         ref_id: refId,
         sort_order: sortOrder,
+        details,
+        duration_minutes: durationMinutes,
+        maps_url: mapsUrl,
       });
       return;
     }
@@ -164,6 +163,9 @@ async function insertExcursionItems(db, excursionId, rawItems = []) {
           item_type: "note",
           ref_id: refId,
           sort_order: sortOrder,
+          details: null,
+          duration_minutes: null,
+          maps_url: null,
         });
       } else if (title || details) {
         noteCreates.push({
@@ -209,6 +211,9 @@ async function insertExcursionItems(db, excursionId, rawItems = []) {
           item_type: "note",
           ref_id: created.id,
           sort_order: note.sort_order,
+          details: null,
+          duration_minutes: null,
+          maps_url: null,
         });
       }
     });
@@ -245,7 +250,9 @@ export async function GET(_req, ctx) {
 
     const { data: items } = await db
       .from("excursion_items")
-      .select("id, item_type, ref_id, sort_order")
+      .select(
+        "id, item_type, ref_id, sort_order, details, duration_minutes, maps_url"
+      )
       .eq("excursion_id", id)
       .order("sort_order", { ascending: true });
 
@@ -301,9 +308,7 @@ export async function PUT(request, ctx) {
       status: body.status || "draft",
       tags: tags ?? null,
       cost_band: normalizeCostBand(body.cost_band),
-      notes: normalizeNotes(body.notes, {
-        seasonality: extractSeasonality(body),
-      }),
+      notes: normalizeNotes(body.notes),
       wheelchair_friendly: coerceNullableBoolean(
         body.wheelchair_friendly ?? body.accessible
       ),
@@ -403,6 +408,7 @@ const TABLE_BY_KIND = {
   experience: "experiences",
   tour: "tours",
   accommodation: "accommodation",
+  food_drink: "food_drink",
   note: "excursion_notes",
 };
 
