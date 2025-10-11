@@ -80,6 +80,12 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
   const [errors, setErrors] = useState({});
   const isEditing = !!initial?.id;
 
+  const accommodationUploadSlug =
+    slug ||
+    slugify(name) ||
+    (initial?.id ? `id-${initial.id}` : "unsorted");
+  const accommodationUploadPrefix = `media/accommodation/${accommodationUploadSlug}`;
+
   const form = useForm({
     resolver: zodResolver(accommodationSchema),
     defaultValues: {
@@ -404,7 +410,7 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
           label="Gallery images"
           value={images}
           onChange={setImages}
-          prefix="accommodation"
+          prefix={accommodationUploadPrefix}
         />
       </div>
         <div>

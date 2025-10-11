@@ -221,6 +221,11 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
     return d?.slug || "unsorted";
   }, [destinations, destinationId]);
 
+  const sightUploadSlug =
+    slugify(slug || name) ||
+    (initial?.id ? `id-${initial.id}` : "unsorted");
+  const sightUploadPrefix = `media/sights/${destSlugForUpload || "unsorted"}/${sightUploadSlug}`;
+
   async function save() {
     setSaving(true);
     setFormError("");
@@ -526,7 +531,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
           label="Images"
           value={Array.isArray(images) ? images : []}
           onChange={setImages}
-          prefix={`destinations/${destSlugForUpload}/sights`}
+          prefix={sightUploadPrefix}
         />
 
         <div>

@@ -61,6 +61,12 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
+  const foodDrinkUploadSlug =
+    slug ||
+    slugify(name) ||
+    (initial?.id ? `id-${initial.id}` : "unsorted");
+  const foodDrinkUploadPrefix = `media/food_drink/${foodDrinkUploadSlug}`;
+
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -495,7 +501,7 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
               label="Gallery images"
               value={images}
               onChange={setImages}
-              prefix="food_drink"
+              prefix={foodDrinkUploadPrefix}
             />
           </div>
 

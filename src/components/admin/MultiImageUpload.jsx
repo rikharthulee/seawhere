@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import SafeImage from "@/components/SafeImage";
 
-export default function MultiImageUpload({ label, value = [], onChange, prefix = "accommodation" }) {
+export default function MultiImageUpload({ label, value = [], onChange, prefix = "media/misc" }) {
   const [uploading, setUploading] = useState(false);
-  const bucket = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;
   const fileInputRef = useRef(null);
 
   const previews = useMemo(() => (Array.isArray(value) ? value.map((v) => ({ key: v, url: resolveImageUrl(v) })) : []), [value]);
@@ -14,10 +13,6 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
   const handleFiles = useCallback(async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    if (!bucket) {
-      alert("Missing NEXT_PUBLIC_SUPABASE_BUCKET env var");
-      return;
-    }
     setUploading(true);
     try {
       const uploadedKeys = [];
@@ -25,10 +20,11 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
         const fd = new FormData();
         fd.append("file", file);
         fd.append("prefix", prefix);
-        const res = await fetch("/api/admin/upload", { method: "POST", body: fd, credentials: "same-origin" });
+        const res = await fetch("/api/upload", { method: "POST", body: fd, credentials: "same-origin" });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json?.error || `Upload failed (${res.status})`);
-        if (json?.key) uploadedKeys.push(json.key);
+        const nextValue = json?.url || json?.key || json?.pathname;
+        if (nextValue) uploadedKeys.push(nextValue);
       }
       const next = [...(Array.isArray(value) ? value : []), ...uploadedKeys];
       onChange?.(next);
@@ -39,7 +35,7 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
       setUploading(false);
       if (e?.target) e.target.value = "";
     }
-  }, [bucket, onChange, value, prefix]);
+  }, [onChange, value, prefix]);
 
   function removeAt(idx) {
     const next = (Array.isArray(value) ? value : []).filter((_, i) => i !== idx);

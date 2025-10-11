@@ -61,6 +61,12 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
   const [formError, setFormError] = useState("");
   const isEditing = !!initial?.id;
 
+  const destinationUploadSlug =
+    slug ||
+    slugify(name) ||
+    (initial?.id ? `id-${initial.id}` : "unsorted");
+  const destinationUploadPrefix = `media/destinations/${destinationUploadSlug}`;
+
   // Derived: divisions for the selected prefecture
   const divisionsForPref = useMemo(
     () =>
@@ -474,7 +480,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
               label="Hero image"
               value={hero}
               onChange={setHero}
-              prefix={`destinations/${slug || slugify(name) || "unsorted"}`}
+              prefix={destinationUploadPrefix}
             />
           </div>
           <div>
@@ -482,7 +488,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
               label="Thumbnail image"
               value={thumb}
               onChange={setThumb}
-              prefix={`destinations/${slug || slugify(name) || "unsorted"}`}
+              prefix={destinationUploadPrefix}
             />
           </div>
           <div className="md:col-span-2">
@@ -490,7 +496,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
               label="Gallery images"
               value={images}
               onChange={setImages}
-              prefix={`destinations/${slug || slugify(name) || "unsorted"}`}
+              prefix={destinationUploadPrefix}
             />
           </div>
           <div>

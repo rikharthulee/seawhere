@@ -158,6 +158,11 @@ export default function ExperiencesForm({ id, initial, onSaved, onCancel }) {
     return d?.slug || "unsorted";
   }, [destinations, destinationId]);
 
+  const experienceUploadSlug =
+    slugify(slug || name) ||
+    (initial?.id ? `id-${initial.id}` : "unsorted");
+  const experienceUploadPrefix = `media/experiences/${destSlugForUpload || "unsorted"}/${experienceUploadSlug}`;
+
   function addRule() {
     setRules([...(rules || []), { days_of_week: [0], start_times: ["09:00"], valid_from: "", valid_to: "", timezone: "Asia/Tokyo" }]);
   }
@@ -386,7 +391,7 @@ export default function ExperiencesForm({ id, initial, onSaved, onCancel }) {
         </div>
 
         <div className="md:col-span-2">
-          <MultiImageUpload value={images} onChange={setImages} folderHint={`experiences/${destSlugForUpload}`} />
+          <MultiImageUpload value={images} onChange={setImages} prefix={experienceUploadPrefix} />
         </div>
 
         <div className="md:col-span-2">

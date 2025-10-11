@@ -25,6 +25,7 @@ const STATIC_ALLOWED_HOSTS = new Set([
   "gravatar.com",
   "secure.gravatar.com",
   "lh3.googleusercontent.com",
+  "public.blob.vercel-storage.com",
 ]);
 
 const ALLOWED_HOSTS = new Set([...STATIC_ALLOWED_HOSTS, ...ENV_HOSTS]);
@@ -53,7 +54,10 @@ export default function SafeImage({ src, alt = "", className = "", fill, sizes, 
   const host = external ? hostnameFor(resolved) : null;
   const allowed =
     !external ||
-    (host && (ALLOWED_HOSTS.has(host) || host.endsWith(".supabase.co")));
+    (host &&
+      (ALLOWED_HOSTS.has(host) ||
+        host.endsWith(".supabase.co") ||
+        host.endsWith(".public.blob.vercel-storage.com")));
   const blurDataURL = resolveImageProps(resolved, { width, height })?.blurDataURL;
   // Use Next/Image optimizer for allowed hosts; do not use Supabase transforms
   const finalSrc = resolved;

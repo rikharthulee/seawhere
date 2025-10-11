@@ -8,34 +8,30 @@ export default function ImageUpload({
   label,
   value,
   onChange,
-  prefix = "destinations",
+  prefix = "media/misc",
 }) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
-  const bucket = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;
   const previewUrl = useMemo(() => resolveImageUrl(value), [value]);
 
   async function handleFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!bucket) {
-      alert("Missing NEXT_PUBLIC_SUPABASE_BUCKET env var");
-      return;
-    }
     setUploading(true);
     try {
       // Always use the server upload route for reliability (bypasses Storage RLS)
       const fd = new FormData();
       fd.append("file", file);
       fd.append("prefix", prefix);
-      const res = await fetch("/api/admin/upload", {
+      const res = await fetch("/api/upload", {
         method: "POST",
         body: fd,
         credentials: "same-origin",
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || `Upload failed (${res.status})`);
-      if (json?.key) onChange?.(json.key);
+      const nextValue = json?.url || json?.key || json?.pathname;
+      if (nextValue) onChange?.(nextValue);
     } catch (err) {
       console.error("Upload failed", err);
       alert(err.message || "Upload failed");
