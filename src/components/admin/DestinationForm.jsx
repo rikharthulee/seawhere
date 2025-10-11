@@ -10,7 +10,6 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import ImageUpload from "./ImageUpload";
 import MultiImageUpload from "@/components/admin/MultiImageUpload";
 import ParagraphEditor from "./ParagraphEditor";
 import {
@@ -36,8 +35,6 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
   const [slugTouched, setSlugTouched] = useState(!!initial?.id);
   const [summary, setSummary] = useState(initial?.summary || "");
   const [body, setBody] = useState(initial?.body_richtext || null);
-  const [hero, setHero] = useState(initial?.hero_image || "");
-  const [thumb, setThumb] = useState(initial?.thumbnail_image || "");
   const [status, setStatus] = useState(initial?.status || "draft");
   const [credit, setCredit] = useState(initial?.credit || "");
   const [images, setImages] = useState(
@@ -91,8 +88,6 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
     setSlugTouched(!!initial?.id); // editing: don't auto-sync slug; creating: do
     setSummary(initial?.summary || "");
     setBody(initial?.body_richtext || null);
-    setHero(initial?.hero_image || "");
-    setThumb(initial?.thumbnail_image || "");
     setStatus(initial?.status || "draft");
     setCredit(initial?.credit || "");
     setImages(Array.isArray(initial?.images) ? initial.images : []);
@@ -184,14 +179,17 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
         if (div?.prefecture_id) finalPrefectureId = div.prefecture_id;
       }
 
+      const normalizedImages = Array.isArray(images)
+        ? images
+            .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+            .filter((entry) => entry && entry.length)
+        : [];
       const payload = {
         name,
         slug: baseSlug,
         summary,
         body_richtext: body,
-        hero_image: hero || null,
-        thumbnail_image: thumb || null,
-        images: Array.isArray(images) ? images : [],
+        images: normalizedImages,
         status,
         credit: credit || null,
         gyg_location_id: gygLocationId === "" ? null : String(gygLocationId),
@@ -474,22 +472,6 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
                 </>
               )}
             </div>
-          </div>
-          <div>
-            <ImageUpload
-              label="Hero image"
-              value={hero}
-              onChange={setHero}
-              prefix={destinationUploadPrefix}
-            />
-          </div>
-          <div>
-            <ImageUpload
-              label="Thumbnail image"
-              value={thumb}
-              onChange={setThumb}
-              prefix={destinationUploadPrefix}
-            />
           </div>
           <div className="md:col-span-2">
             <MultiImageUpload

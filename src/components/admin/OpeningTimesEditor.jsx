@@ -111,7 +111,7 @@ function isValidMonthDay(month, day) {
   return test.getMonth() === month - 1 && test.getDate() === day;
 }
 
-const DAY_ORDER = ["SAT", "SUN", "MON", "TUE", "WED", "THU", "FRI"];
+const DAY_ORDER = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const DAY_LABEL = {
   MON: "Monday",
   TUE: "Tuesday",

@@ -1,38 +1,52 @@
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ASSETS_URL = process.env.NEXT_PUBLIC_SUPABASE_ASSETS_URL;
+const SUPABASE_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;
+
+function withTrailingSlashRemoved(url = "") {
+  return String(url || "").replace(/\/+$/, "");
+}
+
+function buildSupabasePublicUrl(relativePath) {
+  const base = SUPABASE_ASSETS_URL || SUPABASE_URL;
+  if (!base) return null;
+  const clean = relativePath.replace(/^\/+/, "");
+  return `${withTrailingSlashRemoved(base)}/${clean}`;
+}
+
+function buildSupabaseBucketUrl(key) {
+  const base = SUPABASE_ASSETS_URL || SUPABASE_URL;
+  if (!base || !SUPABASE_BUCKET) return null;
+  const cleanKey = key.replace(/^\/+/, "");
+  return `${withTrailingSlashRemoved(base)}/storage/v1/object/public/${SUPABASE_BUCKET}/${cleanKey}`;
+}
+
 export function resolveImageUrl(path) {
   if (!path || typeof path !== "string") return null;
-  if (/^https?:\/\//i.test(path)) {
-    try {
-      const u = new URL(path);
-      const isSb = u.hostname.endsWith(".supabase.co") && u.pathname.includes("/storage/");
-      if (isSb) return `/api/storage/proxy?url=${encodeURIComponent(path)}`;
-    } catch {}
-    return path;
+  const value = path.trim();
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith("//")) return `https:${value}`;
+  if (value.startsWith("/storage/v1/object/public/")) {
+    const direct = buildSupabasePublicUrl(value);
+    return direct || value;
   }
-  // Handle values stored as storage public path without domain
-  if (path.startsWith("/storage/v1/object/public/")) {
-    const clean = path.replace(/^\/+/, "");
-    return `/api/storage/proxy?path=${encodeURIComponent(clean)}`;
+  if (value.startsWith("storage/v1/object/public/")) {
+    const direct = buildSupabasePublicUrl(value);
+    return direct || `/${value.replace(/^\/+/, "")}`;
   }
-  if (path.startsWith("storage/v1/object/public/")) {
-    return `/api/storage/proxy?path=${encodeURIComponent(path)}`;
+  if (value.startsWith("/")) {
+    return value;
   }
-  // If a leading slash is present but it refers to a storage key like
-  // "/destinations/..." or "/accommodation/..." (or legacy "/locations/..."),
-  // treat it as a key within the public bucket rather than a site-relative file.
-  if (path.startsWith("/")) {
-    const trimmed = path.replace(/^\/+/, "");
-    if (
-      trimmed.startsWith("destinations/") ||
-      trimmed.startsWith("accommodation/") ||
-      trimmed.startsWith("locations/")
-    ) {
-      return `/api/storage/proxy?key=${encodeURIComponent(trimmed)}`;
-    }
-    // Otherwise assume it's a file in /public
-    return path;
+  if (
+    value.startsWith("media/") ||
+    value.startsWith("destinations/") ||
+    value.startsWith("accommodation/") ||
+    value.startsWith("locations/")
+  ) {
+    const direct = buildSupabaseBucketUrl(value);
+    return direct || `/${value}`;
   }
-  // Treat bare keys as bucket-relative public storage keys via proxy
-  return `/api/storage/proxy?key=${encodeURIComponent(path)}`;
+  return value;
 }
 
 // --- Blur helpers for Next/Image -------------------------------------------

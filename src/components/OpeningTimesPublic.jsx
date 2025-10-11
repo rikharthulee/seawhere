@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 
-const DAY_ORDER = ["SAT", "SUN", "MON", "TUE", "WED", "THU", "FRI"];
+const DAY_ORDER = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const DAY_LABEL = {
   MON: "Monday",
   TUE: "Tuesday",

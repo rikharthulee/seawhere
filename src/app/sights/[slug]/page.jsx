@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
+import EmblaCarousel from "@/components/EmblaCarousel";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
-import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
+import {
+  firstImageFromImages,
+  imagesToGallery,
+  resolveImageUrl,
+} from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
@@ -33,7 +38,8 @@ export default async function SightBySlugPage(props) {
       ? sight.lng
       : Number.parseFloat(String(sight?.lng ?? ""));
   const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
-  const img = resolveImageUrl(firstImageFromImages(sight?.images));
+  const hero = resolveImageUrl(firstImageFromImages(sight?.images));
+  const gallery = imagesToGallery(sight?.images ?? []).slice(1);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
@@ -67,9 +73,16 @@ export default async function SightBySlugPage(props) {
       {sight ? (
         <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-6 lg:gap-8 items-start">
           <div className="space-y-6">
-            {img ? (
+            {gallery.length > 0 ? (
+              <EmblaCarousel
+                images={gallery}
+                options={{ loop: true, align: "start" }}
+                className="rounded-xl overflow-hidden"
+                slideClass="h-[48vh] min-h-[320px]"
+              />
+            ) : hero ? (
               <SafeImage
-                src={img}
+                src={hero}
                 alt={sight.name}
                 width={1200}
                 height={800}
@@ -179,4 +192,3 @@ export default async function SightBySlugPage(props) {
     </main>
   );
 }
-
