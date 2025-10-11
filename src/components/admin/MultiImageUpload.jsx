@@ -7,12 +7,23 @@ import SafeImage from "@/components/SafeImage";
 export default function MultiImageUpload({ label, value = [], onChange, prefix = "media/misc" }) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const [error, setError] = useState("");
 
   const previews = useMemo(() => (Array.isArray(value) ? value.map((v) => ({ key: v, url: resolveImageUrl(v) })) : []), [value]);
+  const MAX_IMAGE_MB = 4.5;
+  const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
 
   const handleFiles = useCallback(async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
+    setError("");
+    const tooLarge = files.find((file) => file.size > MAX_IMAGE_BYTES);
+    if (tooLarge) {
+      const sizeMb = (tooLarge.size / 1024 / 1024).toFixed(2);
+      setError(`Images must be ${MAX_IMAGE_MB} MB or smaller. "${tooLarge.name}" is ${sizeMb} MB.`);
+      if (e?.target) e.target.value = "";
+      return;
+    }
     setUploading(true);
     try {
       const uploadedKeys = [];
@@ -28,9 +39,12 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
       }
       const next = [...(Array.isArray(value) ? value : []), ...uploadedKeys];
       onChange?.(next);
+      setError("");
     } catch (err) {
       console.error("Upload failed", err);
-      alert(err.message || "Upload failed");
+      const message = err.message || "Upload failed";
+      setError(message);
+      alert(message);
     } finally {
       setUploading(false);
       if (e?.target) e.target.value = "";
@@ -60,6 +74,9 @@ export default function MultiImageUpload({ label, value = [], onChange, prefix =
           {uploading ? "Uploading…" : "Choose images"}
         </Button>
       </div>
+      <p className={`text-xs ${error ? "text-red-600" : "text-neutral-500"}`}>
+        {error || `Images must be ${MAX_IMAGE_MB} MB or smaller.`}
+      </p>
       {previews.length > 0 ? (
         <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {previews.map((p, idx) => (

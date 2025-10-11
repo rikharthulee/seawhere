@@ -13,10 +13,21 @@ export default function ImageUpload({
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const previewUrl = useMemo(() => resolveImageUrl(value), [value]);
+  const [error, setError] = useState("");
+
+  const MAX_IMAGE_MB = 4.5;
+  const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
 
   async function handleFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setError("");
+    if (file.size > MAX_IMAGE_BYTES) {
+      const sizeMb = (file.size / 1024 / 1024).toFixed(2);
+      setError(`Images must be ${MAX_IMAGE_MB} MB or smaller. Selected file is ${sizeMb} MB.`);
+      if (e?.target) e.target.value = "";
+      return;
+    }
     setUploading(true);
     try {
       // Always use the server upload route for reliability (bypasses Storage RLS)
@@ -32,9 +43,12 @@ export default function ImageUpload({
       if (!res.ok) throw new Error(json?.error || `Upload failed (${res.status})`);
       const nextValue = json?.url || json?.key || json?.pathname;
       if (nextValue) onChange?.(nextValue);
+      setError("");
     } catch (err) {
       console.error("Upload failed", err);
-      alert(err.message || "Upload failed");
+      const message = err.message || "Upload failed";
+      setError(message);
+      alert(message);
     } finally {
       setUploading(false);
       if (e?.target) e.target.value = "";
@@ -50,6 +64,9 @@ export default function ImageUpload({
           {uploading ? "Uploading…" : "Choose image"}
         </Button>
       </div>
+      <p className={`text-xs ${error ? "text-red-600" : "text-neutral-500"}`}>
+        {error || `Images must be ${MAX_IMAGE_MB} MB or smaller.`}
+      </p>
       {value ? (
         <div className="flex items-start gap-3">
           {previewUrl ? (
