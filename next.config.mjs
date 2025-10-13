@@ -1,56 +1,29 @@
 /** @type {import('next').NextConfig} */
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAssetsUrl = process.env.NEXT_PUBLIC_SUPABASE_ASSETS_URL;
-let remotePatterns = [];
-try {
-  if (supabaseUrl) {
-    const host = new URL(supabaseUrl).hostname;
-    remotePatterns.push({
-      protocol: "https",
-      hostname: host,
-      pathname: "/storage/v1/object/public/**",
-    });
-    // Also allow signed and render paths if used
-    remotePatterns.push({
-      protocol: "https",
-      hostname: host,
-      pathname: "/storage/v1/object/sign/**",
-    });
-    remotePatterns.push({
-      protocol: "https",
-      hostname: host,
-      pathname: "/storage/v1/render/image/**",
-    });
-  }
-  if (supabaseAssetsUrl) {
-    const host = new URL(supabaseAssetsUrl).hostname;
-    remotePatterns.push({
-      protocol: "https",
-      hostname: host,
-      pathname: "/storage/v1/object/public/**",
-    });
-    remotePatterns.push({
-      protocol: "https",
-      hostname: host,
-      pathname: "/storage/v1/object/sign/**",
-    });
-    remotePatterns.push({
-      protocol: "https",
-      hostname: host,
-      pathname: "/storage/v1/render/image/**",
-    });
-  }
-} catch {}
+const blobCandidates = [
+  process.env.NEXT_PUBLIC_VERCEL_BLOB_BASE_URL,
+  process.env.NEXT_PUBLIC_BLOB_BASE_URL,
+  process.env.NEXT_PUBLIC_MEDIA_BASE_URL,
+];
+
+const blobRemotePatterns = blobCandidates
+  .map((candidate) => {
+    try {
+      if (!candidate) return null;
+      const value = /^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`;
+      const { hostname } = new URL(value);
+      if (!hostname.endsWith(".public.blob.vercel-storage.com")) return null;
+      return { protocol: "https", hostname, pathname: "/**" };
+    } catch {
+      return null;
+    }
+  })
+  .filter(Boolean);
 
 const nextConfig = {
   images: {
     remotePatterns: [
-      ...remotePatterns,
-      {
-        protocol: "https",
-        hostname: "*.public.blob.vercel-storage.com",
-        pathname: "/**",
-      },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com", pathname: "/**" },
+      ...blobRemotePatterns,
       // Allow placeholder images used in seed data
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "images.unsplash.com" },
@@ -58,10 +31,9 @@ const nextConfig = {
       { protocol: "https", hostname: "gravatar.com" },
       { protocol: "https", hostname: "secure.gravatar.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
-      // Fallback: allow any supabase.co project (safety net if env host changes)
-      { protocol: "https", hostname: "*.supabase.co" },
     ],
     formats: ["image/avif", "image/webp"],
+    qualities: [60, 70],
     // Cache optimized images on Vercel edge cache for 1 day
     minimumCacheTTL: 60 * 60 * 24,
   },

@@ -1,23 +1,23 @@
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ASSETS_URL = process.env.NEXT_PUBLIC_SUPABASE_ASSETS_URL;
-const SUPABASE_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;
+const MEDIA_BASE = resolveMediaBase();
+const DEFAULT_MEDIA_PREFIX = "media";
+const FALLBACK_PROXY_PREFIX = "/blob-media";
 
-function withTrailingSlashRemoved(url = "") {
-  return String(url || "").replace(/\/+$/, "");
-}
-
-function buildSupabasePublicUrl(relativePath) {
-  const base = SUPABASE_ASSETS_URL || SUPABASE_URL;
-  if (!base) return null;
+function buildMediaUrl(relativePath) {
+  if (!relativePath) return null;
   const clean = relativePath.replace(/^\/+/, "");
-  return `${withTrailingSlashRemoved(base)}/${clean}`;
-}
-
-function buildSupabaseBucketUrl(key) {
-  const base = SUPABASE_ASSETS_URL || SUPABASE_URL;
-  if (!base || !SUPABASE_BUCKET) return null;
-  const cleanKey = key.replace(/^\/+/, "");
-  return `${withTrailingSlashRemoved(base)}/storage/v1/object/public/${SUPABASE_BUCKET}/${cleanKey}`;
+  if (MEDIA_BASE) {
+    const { origin, basePath } = MEDIA_BASE;
+    if (!origin) return null;
+    if (!basePath) return `${origin}/${clean}`;
+    if (clean.startsWith(`${basePath}/`) || clean === basePath) {
+      return `${origin}/${clean}`;
+    }
+    return `${origin}/${basePath}/${clean}`;
+  }
+  if (/^https?:\/\//i.test(clean)) return clean;
+  if (clean.startsWith("blob-media/")) return `/${clean}`;
+  const withMedia = clean.startsWith("media/") ? clean : `${DEFAULT_MEDIA_PREFIX}/${clean}`;
+  return `${FALLBACK_PROXY_PREFIX}/${withMedia}`;
 }
 
 export function resolveImageUrl(path) {
@@ -26,27 +26,37 @@ export function resolveImageUrl(path) {
   if (!value) return null;
   if (/^https?:\/\//i.test(value)) return value;
   if (value.startsWith("//")) return `https:${value}`;
-  if (value.startsWith("/storage/v1/object/public/")) {
-    const direct = buildSupabasePublicUrl(value);
-    return direct || value;
+  const direct = buildMediaUrl(value);
+  if (direct) return direct;
+  return value.startsWith("/") ? value : `/${value}`;
+}
+
+function resolveMediaBase() {
+  const candidates = [
+    process.env.NEXT_PUBLIC_VERCEL_BLOB_BASE_URL,
+    process.env.NEXT_PUBLIC_BLOB_BASE_URL,
+    process.env.NEXT_PUBLIC_MEDIA_BASE_URL,
+  ];
+  for (const candidate of candidates) {
+    const parsed = parseBlobBase(candidate);
+    if (parsed) return parsed;
   }
-  if (value.startsWith("storage/v1/object/public/")) {
-    const direct = buildSupabasePublicUrl(value);
-    return direct || `/${value.replace(/^\/+/, "")}`;
+  return null;
+}
+
+function parseBlobBase(candidate) {
+  if (!candidate || typeof candidate !== "string") return null;
+  const trimmed = candidate.trim();
+  if (!trimmed) return null;
+  const value = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(value);
+    if (!url.hostname.endsWith(".public.blob.vercel-storage.com")) return null;
+    const basePath = url.pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+    return { origin: url.origin, basePath };
+  } catch {
+    return null;
   }
-  if (value.startsWith("/")) {
-    return value;
-  }
-  if (
-    value.startsWith("media/") ||
-    value.startsWith("destinations/") ||
-    value.startsWith("accommodation/") ||
-    value.startsWith("locations/")
-  ) {
-    const direct = buildSupabaseBucketUrl(value);
-    return direct || `/${value}`;
-  }
-  return value;
 }
 
 // --- Blur helpers for Next/Image -------------------------------------------
