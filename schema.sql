@@ -74,8 +74,6 @@ CREATE TABLE public.destinations (
   slug text NOT NULL UNIQUE,
   summary text,
   body_richtext jsonb,
-  hero_image text,
-  thumbnail_image text,
   credit text,
   lat numeric,
   lng numeric,

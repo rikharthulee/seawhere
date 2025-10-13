@@ -10,7 +10,7 @@ export async function GET() {
     const { data, error } = await db
       .from("destinations")
       .select(
-        "id, slug, name, summary, body_richtext, status, hero_image, thumbnail_image, images, credit, prefecture_id, division_id, gyg_location_id"
+        "id, slug, name, summary, body_richtext, status, images, credit, prefecture_id, division_id, gyg_location_id"
       )
       .order("name", { ascending: true });
 
