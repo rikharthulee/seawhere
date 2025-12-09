@@ -16,7 +16,7 @@ export async function getAccommodationBySlug(slug) {
   const { data, error } = await db
     .from("accommodation")
     .select(
-      "slug,name,summary,description,images,status,credit,price_band,rating,website_url,affiliate_url,lat,lng,address,destination_id,prefecture_id,division_id"
+      "slug,name,summary,description,images,status,credit,price_band,rating,website_url,affiliate_url,lat,lng,address,destination_id,country_id"
     )
     .eq("slug", slug)
     .maybeSingle();

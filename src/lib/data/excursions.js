@@ -46,7 +46,7 @@ export async function getExcursionsForDestination(destId) {
   }
 }
 
-// Excursions for a set of destination ids (region/prefecture/division pages)
+// Excursions for a set of destination ids (country/destination pages)
 export async function getExcursionsByDestinationIds(ids = []) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
   try {

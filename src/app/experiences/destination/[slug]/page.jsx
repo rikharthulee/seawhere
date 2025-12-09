@@ -10,16 +10,9 @@ export const runtime = "nodejs";
 
 export default async function ExperiencesByDestinationPage(props) {
   const params = (await props.params) || {};
-  const searchParams = props.searchParams
-    ? await props.searchParams
-    : undefined;
   const { slug } = params || {};
-  const divisionSlug =
-    searchParams && typeof searchParams === "object"
-      ? searchParams.division || null
-      : null;
   const { destination: dst, experiences: exps } =
-    await listExperiencesByDestinationSlug(slug, divisionSlug);
+    await listExperiencesByDestinationSlug(slug);
   if (!dst) notFound();
 
   return (
@@ -98,4 +91,3 @@ export default async function ExperiencesByDestinationPage(props) {
     </main>
   );
 }
-

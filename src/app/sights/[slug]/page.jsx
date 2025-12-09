@@ -152,8 +152,8 @@ export default async function SightBySlugPage(props) {
                     <span className="font-medium text-foreground">
                       Destination:
                     </span>{" "}
-                    <Link
-                      href={`/destinations/${destination.slug}`}
+                      <Link
+                      href={`/destination/${destination.slug}`}
                       className="underline"
                     >
                       {destination.name}

@@ -110,12 +110,12 @@ export default async function SightDetailBySlugPage(props) {
           <CardContent className="p-3 space-y-3">
             <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
               {dest ? (
-                <span>
-                  <span className="font-medium text-foreground">
-                    Destination:
-                  </span>{" "}
-                  <Link
-                    href={`/destinations/${dest.slug}`}
+              <span>
+                <span className="font-medium text-foreground">
+                  Destination:
+                </span>{" "}
+                <Link
+                    href={`/destination/${dest.slug}`}
                     className="underline"
                   >
                     {dest.name}

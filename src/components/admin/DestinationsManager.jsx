@@ -152,15 +152,15 @@ export default function DestinationsManager() {
                       asChild
                       variant="outline"
                       size="sm"
-                      className="h-8 w-20"
-                    >
-                      <a
-                        href={`/destinations/${encodeURIComponent(it.slug)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        View
-                      </a>
+                  className="h-8 w-20"
+                >
+                  <a
+                    href={`/destination/${encodeURIComponent(it.slug)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View
+                  </a>
                     </Button>
                     <ConfirmDeleteButton
                       title="Delete this destination?"

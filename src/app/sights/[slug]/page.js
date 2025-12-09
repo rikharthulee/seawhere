@@ -11,13 +11,7 @@ export const runtime = "nodejs";
 
 export default async function SightsByDestinationPage(props) {
   const { slug } = (await props.params) || {};
-  const sp = (await props.searchParams) || {};
-  const divisionSlug =
-    typeof sp.division === "string" && sp.division.length ? sp.division : null;
-  const { destination: dst, sights } = await listSightsByDestinationSlug(
-    slug,
-    divisionSlug
-  );
+  const { destination: dst, sights } = await listSightsByDestinationSlug(slug);
   if (!dst) notFound();
 
   return (

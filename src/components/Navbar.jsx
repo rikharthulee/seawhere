@@ -60,6 +60,7 @@ export default function Navbar() {
 
   const links = [
     { href: "/", label: "Home" },
+    { href: "/countries", label: "Countries" },
     { href: "/destinations", label: "Destinations" },
     { href: "/sights", label: "Sights" },
     { href: "/tours", label: "Tours" },
@@ -86,17 +87,17 @@ export default function Navbar() {
           <Link
             href="/"
             className="flex items-center gap-2"
-            aria-label="JapanMan home"
+            aria-label="Seawhere home"
           >
             <Image
               src="/crane.png"
-              alt="JapanMan logo"
+              alt="Seawhere logo"
               width={40}
               height={40}
               className="h-10 w-10 object-contain"
               priority
             />
-            <span className="text-lg font-semibold text-foreground">JapanMan</span>
+            <span className="text-lg font-semibold text-foreground">Seawhere</span>
           </Link>
 
           {/* Burger (mobile only) */}

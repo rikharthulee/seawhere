@@ -7,7 +7,7 @@ export async function GET(_req, ctx) {
     const { data, error } = await db
       .from("destinations")
       .select(
-        "id, name, slug, status, prefecture_id, division_id, images, body_richtext, credit, lat, lng, published_at, gyg_location_id"
+        "id, name, slug, status, country_id, destination_id, images, body_richtext, credit, lat, lng, published_at, gyg_location_id"
       )
       .eq("slug", slug)
       .eq("status", "published")
@@ -23,4 +23,3 @@ export async function GET(_req, ctx) {
     return Response.json(null, { status: 404 });
   }
 }
-

@@ -13,29 +13,14 @@ export async function getPublishedExperiences() {
   return data || [];
 }
 
-export async function getExperiencesForDestination(
-  destId,
-  divisionSlug = null
-) {
+export async function getExperiencesForDestination(destId) {
   const db = await getDB();
-  let query = db
+  const { data, error } = await db
     .from("experiences")
     .select("id, slug, name, summary, images, destination_id")
     .eq("destination_id", destId)
     .eq("status", "published")
     .order("name", { ascending: true });
-
-  if (divisionSlug) {
-    const { data: div } = await db
-      .from("divisions")
-      .select("id")
-      .eq("slug", String(divisionSlug).trim())
-      .maybeSingle();
-    if (!div?.id) return [];
-    query = query.eq("division_id", div.id);
-  }
-
-  const { data, error } = await query;
   if (error) return [];
   return data || [];
 }

@@ -11,6 +11,27 @@ export interface PublicEntity {
   lng: number | null;
 }
 
+export interface PublicCountry {
+  id: string;
+  slug: string;
+  name: string;
+  iso_code?: string | null;
+  default_currency?: string | null;
+}
+
+export interface PublicDestination {
+  id: string;
+  slug: string;
+  name: string;
+  summary: string | null;
+  images: unknown;
+  status: string;
+  country_id: string;
+  credit?: string | null;
+  body_richtext?: unknown;
+  gyg_location_id?: string | number | null;
+}
+
 export interface PublicExcursionItemLink {
   item_type: string; // 'sight' | 'experience' | 'tour' | etc.
   ref_id: string; // UUID of linked entity
@@ -42,6 +63,7 @@ export interface PublicExcursion {
   cover_image: string | null;
   maps_url: string | null;
   destination_id: string | null;
+  country_id: string | null;
   status: string;
   tags: string[] | null;
   updated_at: string | null;
@@ -61,6 +83,7 @@ export interface PublicSight {
   body_richtext: unknown;
   images: unknown;
   destination_id: string | null;
+  country_id: string | null;
   lat: number | null;
   lng: number | null;
   status: string;
@@ -82,6 +105,7 @@ export interface PublicExperience {
   description: unknown; // string | JSON doc | null
   images: unknown;
   destination_id: string | null;
+  country_id: string | null;
   status: string;
   provider: string | null;
   price_amount: number | null;
@@ -98,6 +122,7 @@ export interface PublicTour {
   description: unknown; // string | JSON doc | null
   images: unknown;
   destination_id: string | null;
+  country_id: string | null;
   status: string;
   provider: string | null;
   price_amount: number | null;

@@ -80,8 +80,8 @@ export default async function ExperienceDetailBySlugPage(props) {
                       <span className="font-medium text-foreground">
                         Destination:
                       </span>{" "}
-                      <Link
-                        href={`/destinations/${dest.slug}`}
+                        <Link
+                        href={`/destination/${dest.slug}`}
                         className="underline"
                       >
                         {dest.name}

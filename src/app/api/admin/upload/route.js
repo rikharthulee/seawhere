@@ -9,7 +9,7 @@ export async function POST(request) {
   try {
     const bucket = process.env.NEXT_PUBLIC_SUPABASE_BUCKET;
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!bucket || !url) {
       return NextResponse.json(
         {
@@ -35,7 +35,7 @@ export async function POST(request) {
 
     if (!serviceKey) {
       return NextResponse.json(
-        { error: "Missing SUPABASE_SERVICE_ROLE on server for upload" },
+        { error: "Missing SUPABASE_SERVICE_ROLE_KEY on server for upload" },
         { status: 500 }
       );
     }

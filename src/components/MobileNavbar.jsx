@@ -24,10 +24,10 @@ export default function MobileNavbar({
     "/destinations": "Towns, cities and rural locations",
     "/sights": "Temples, museums, viewpoints",
     "/tours": "Guided tours & tickets",
-    "/accommodation": "Hotels, ryokan and boutiques",
+    "/accommodation": "Hotels, villas and boutiques",
     "/experiences": "Classes, shows & activities",
     "/transportation": "Stations, hubs & travel links",
-    "/food-drink": "Eat & drink: ramen to kaiseki",
+    "/food-drink": "Eat & drink across SEA",
   };
 
   const { exploreItems, topLevel } = useMemo(() => {
@@ -56,7 +56,7 @@ export default function MobileNavbar({
     >
       <div className="px-4 pb-4 bg-background text-foreground">
         <ul className="flex flex-col gap-2">
-          {/* Explore Japan collapsible */}
+          {/* Explore collapsible */}
           <li>
             <button
               className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-accent"
@@ -64,7 +64,7 @@ export default function MobileNavbar({
               aria-expanded={mobileExploreOpen}
               aria-controls="mobile-explore-panel"
             >
-              <span>Explore Japan</span>
+              <span>Explore</span>
               <svg
                 className={`h-4 w-4 transition-transform ${
                   mobileExploreOpen ? "rotate-180" : "rotate-0"

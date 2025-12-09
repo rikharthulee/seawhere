@@ -1,128 +1,32 @@
-# Getting Started
+# Seawhere
 
-First, run the development server:
+Next.js 15 + Supabase app for building and browsing Southeast Asia itineraries. The stack uses the App Router with SSR for public pages and a client-side admin workspace for editing content.
+
+## Environment
+
+Required env vars for Supabase:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+## Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 to view the app.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Conventions
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Await App Router params: `const { slug } = await params;`
+- Public pages should filter `status = 'published'` and avoid caching empty states during content entry.
+- Admin APIs run on the Node runtime and require an authenticated session.
 
-## Learn More
+## Feature map
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## Project Conventions
-
-- Dynamic route params in this project must be awaited in the App Router. Example:
-
-  ```js
-  // Good
-  export default async function Page({ params }) {
-    const { slug } = await params;
-    // ...
-  }
-
-  // Avoid
-  export default async function Page({ params }) {
-    const { slug } = params; // may throw in this setup
-  }
-  ```
-
-- Public destination pages should read published rows only and avoid caching 404s during content entry. Use `revalidate = 0` and filter `status = 'published'` when appropriate.
-
-## Excursion Builder Overview
-
-This project includes an admin Excursion Builder and public Excursion pages. Below are the key files and their roles end‑to‑end.
-
-- `src/app/admin/excursions/builder/page.jsx`
-
-  - Admin route that renders the builder UI. Thin wrapper around the component.
-
-- `src/components/admin/ExcursionBuilder.jsx`
-
-  - Main builder UI. Create/edit an excursion’s core fields; add/remove/reorder items; add transport; live preview; save/delete.
-  - Calls admin APIs to POST/PUT/DELETE excursions and their items and uses `GET /api/excursions/search` to find sights/experiences/tours to add.
-
-- `src/app/admin/excursions/page.jsx`
-
-  - Admin index page listing excursions (draft/published) with links to the builder and public view.
-
-- `src/app/api/admin/excursions/route.js`
-
-  - POST: create a new excursion row and optional items.
-  - GET: list excursions for the admin index (name/status/updated_at filters).
-
-- `src/app/api/admin/excursions/[id]/route.js`
-
-  - GET: load a single excursion with its `excursion_items` (sorted).
-  - PUT: update the excursion and replace its `excursion_items` in one go.
-  - DELETE: delete excursion and its items.
-
-- `src/app/api/excursions/search/route.js`
-
-  - Builder search endpoint to look up selectable entities (sights/experiences/tours) by text query.
-
-- `src/lib/data/public/excursions.js`
-
-  - Public SSR helpers (anon). Two strict entry points, not mixed:
-    - `getCuratedExcursionBySlugPublic(slug)` for public routes
-    - `getCuratedExcursionByIdPublic(id)` for internal use
-  - Both hydrate `excursion_items` by resolving referenced entities via `eq('id', uuid)`.
-
-- `src/app/excursions/[slug]/page.jsx`
-  - Public excursion detail page (slug-based). Interleaves hydrated items and transport by `sort_order`. Renders name, thumbnail, summary, and an “Opening times” link when available.
-
-- `src/app/excursions/page.jsx`
-  - Quick slug index plus gallery to spot-check published excursions.
-
-- `src/lib/data/public/sights.js`
-  - `getSightBySlugPublic(slug)` / `getSightByIdPublic(id)` (strict, anon) with hydrated opening times + admissions.
-
-- `src/app/sights/[slug]/page.jsx`
-  - Public sight detail page (slug-first). Destination listings now live under `/sights/destination/[slug]`.
-
-- `src/lib/data/public/experiences.js`
-  - `getExperienceBySlugPublic(slug)` / `getExperienceByIdPublic(id)` (strict, anon).
-
-- `src/app/experiences/[slug]/page.jsx`
-  - Public experience detail page (slug-first). Destination listings now live under `/experiences/destination/[slug]`.
-
-- `src/lib/data/public/tours.js`
-  - `getTourBySlugPublic(slug)` / `getTourByIdPublic(id)` (strict, anon).
-
-- `src/app/tours/[slug]/page.jsx`
-  - Public tour detail page (slug-first). Destination listings now live under `/tours/destination/[slug]`.
-
-Data flow summary
-
-- Admin builder → admin APIs → writes `excursions` + `excursion_items`.
-- Public page → public helper → reads published `excursions` + `excursion_items`, resolves refs to `sights/experiences/tours`, and renders the flow.
-
-RLS and visibility (production)
-
-- Public pages use the anon Supabase client and require policies that allow `SELECT` when the parent excursion is published.
-  - `excursions`: anon `SELECT` where `status = 'published'`.
-  - `excursion_items`: anon `SELECT` where an associated excursion is published.
-  - `sights/experiences/tours`: anon `SELECT` for published rows (or “referenced by a published excursion”).
+- Countries → destinations → points of interest (sights, experiences, tours, food & drink, accommodation).
+- Excursions are curated bundles of items plus transport legs.
+- Admin tooling lives under `/admin/*`; public browsing under `/country/[slug]`, `/destination/[slug]`, `/sights`, `/experiences`, `/tours`, etc.

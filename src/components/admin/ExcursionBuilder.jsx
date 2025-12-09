@@ -428,11 +428,9 @@ export default function ExcursionsBuilderJS() {
   const [patchItem, setPatchItem] = useState(null);
   const [tagsRaw, setTagsRaw] = useState("");
 
-  const [regions, setRegions] = useState([]);
-  const [prefectures, setPrefectures] = useState([]);
+  const [countries, setCountries] = useState([]);
   const [destinations, setDestinations] = useState([]);
-  const [regionId, setRegionId] = useState("");
-  const [prefectureId, setPrefectureId] = useState("");
+  const [countryId, setCountryId] = useState("");
 
   const errorMessages = useMemo(
     () => [loadError, error].filter(Boolean),
@@ -447,8 +445,7 @@ export default function ExcursionsBuilderJS() {
         if (res.ok) {
           const json = await res.json();
           if (!ignore) {
-            setRegions(Array.isArray(json.regions) ? json.regions : []);
-            setPrefectures(Array.isArray(json.prefectures) ? json.prefectures : []);
+            setCountries(Array.isArray(json.countries) ? json.countries : []);
           }
         }
       } catch {}
@@ -469,32 +466,13 @@ export default function ExcursionsBuilderJS() {
     };
   }, []);
 
-  const prefectureMap = useMemo(() => {
-    const map = new Map();
-    prefectures.forEach((pref) => {
-      if (pref?.id) map.set(pref.id, pref);
-    });
-    return map;
-  }, [prefectures]);
-
-  const prefecturesForRegion = useMemo(() => {
-    const list = regionId
-      ? prefectures.filter((pref) => pref.region_id === regionId)
-      : prefectures;
-    return [...list].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-  }, [prefectures, regionId]);
-
   const destinationsForScope = useMemo(() => {
     const filtered = destinations.filter((dst) => {
-      if (prefectureId) return dst.prefecture_id === prefectureId;
-      if (regionId) {
-        const pref = prefectureMap.get(dst.prefecture_id);
-        return pref?.region_id === regionId;
-      }
+      if (countryId) return dst.country_id === countryId;
       return true;
     });
     return [...filtered].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-  }, [destinations, prefectureId, regionId, prefectureMap]);
+  }, [destinations, countryId]);
 
   useEffect(() => {
     const destId =
@@ -504,14 +482,10 @@ export default function ExcursionsBuilderJS() {
     if (!destId) return;
     const dest = destinations.find((d) => d.id === destId);
     if (!dest) return;
-    if (dest.prefecture_id && dest.prefecture_id !== prefectureId) {
-      setPrefectureId(dest.prefecture_id);
+    if (dest.country_id && dest.country_id !== countryId) {
+      setCountryId(dest.country_id);
     }
-    const pref = prefectureMap.get(dest.prefecture_id);
-    if (pref?.region_id && pref.region_id !== regionId) {
-      setRegionId(pref.region_id);
-    }
-  }, [excursion.destination_id, destinations, prefectureId, regionId, prefectureMap]);
+  }, [excursion.destination_id, destinations, countryId]);
 
   const destinationValue =
     typeof excursion.destination_id === "string" && excursion.destination_id
@@ -1290,47 +1264,23 @@ export default function ExcursionsBuilderJS() {
             />
           </div>
           <div>
-            <Label>Region</Label>
+            <Label>Country</Label>
             <Select
-              value={regionId || "__ALL__"}
+              value={countryId || "__ALL__"}
               onValueChange={(val) => {
                 const next = val === "__ALL__" ? "" : val;
-                setRegionId(next);
-                setPrefectureId("");
+                setCountryId(next);
                 setExcursion((prev) => ({ ...prev, destination_id: "" }));
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="All regions" />
+                <SelectValue placeholder="All countries" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__ALL__">All regions</SelectItem>
-                {regions.map((region) => (
-                  <SelectItem key={region.id} value={region.id}>
-                    {region.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Prefecture</Label>
-            <Select
-              value={prefectureId || "__ALL__"}
-              onValueChange={(val) => {
-                const next = val === "__ALL__" ? "" : val;
-                setPrefectureId(next);
-                setExcursion((prev) => ({ ...prev, destination_id: "" }));
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="All prefectures" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__ALL__">All prefectures</SelectItem>
-                {prefecturesForRegion.map((pref) => (
-                  <SelectItem key={pref.id} value={pref.id}>
-                    {pref.name}
+                <SelectItem value="__ALL__">All countries</SelectItem>
+                {countries.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
                   </SelectItem>
                 ))}
               </SelectContent>

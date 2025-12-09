@@ -5,8 +5,8 @@ import { Suspense } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata = {
-  title: "JapanMan",
-  description: "Tailor-made Japan travel experiences",
+  title: "Seawhere",
+  description: "Southeast Asia travel, curated for independent explorers",
   icons: {
     icon: "/favicon.svg",
   },

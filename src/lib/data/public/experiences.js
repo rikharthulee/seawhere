@@ -11,37 +11,27 @@ export async function listPublishedExperiences() {
   const db = getPublicDB();
   const { data, error } = await db
     .from("experiences")
-    .select("id, slug, name, summary, images, destination_id, status")
+    .select("id, slug, name, summary, images, destination_id, country_id, status")
     .eq("status", "published")
     .order("name", { ascending: true });
   if (error) throw error;
   return data ?? [];
 }
 
-export async function listExperiencesByDestinationSlug(destSlug, divisionSlug = null) {
+export async function listExperiencesByDestinationSlug(destSlug) {
   const db = getPublicDB();
   const { data: dst, error: e1 } = await db
     .from("destinations")
-    .select("id, slug, name")
+    .select("id, slug, name, country_id")
     .eq("slug", String(destSlug || "").trim())
     .maybeSingle();
   if (e1 || !dst?.id) return { destination: null, experiences: [] };
-  let query = db
+  const { data, error } = await db
     .from("experiences")
-    .select("id, slug, name, summary, images, destination_id, status, destinations ( slug )")
+    .select("id, slug, name, summary, images, destination_id, country_id, status, destinations ( slug )")
     .eq("destination_id", dst.id)
     .eq("status", "published")
     .order("name", { ascending: true });
-  if (divisionSlug) {
-    const { data: div } = await db
-      .from("divisions")
-      .select("id")
-      .eq("slug", String(divisionSlug).trim())
-      .maybeSingle();
-    if (!div?.id) return { destination: dst, experiences: [] };
-    query = query.eq("division_id", div.id);
-  }
-  const { data, error } = await query;
   if (error) throw error;
   return { destination: dst, experiences: data ?? [] };
 }
@@ -56,7 +46,7 @@ export async function getExperienceBySlugPublic(slug) {
 
   const { data, error, status } = await db
     .from("experiences")
-    .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name )`)
+    .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`)
     .eq("slug", normalized)
     .eq("status", "published")
     .maybeSingle();
@@ -92,7 +82,7 @@ export async function getExperienceByIdPublic(id) {
 
   const { data, error, status } = await db
     .from("experiences")
-    .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name )`)
+    .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`)
     .eq("id", normalized)
     .eq("status", "published")
     .maybeSingle();
@@ -118,80 +108,22 @@ export async function getExperienceByIdPublic(id) {
   return { experience, destination: destination || null };
 }
 
-export async function listExperiencesByRegionSlug(regionSlug) {
+export async function getExperienceBySlugsPublic(destinationSlug, experienceSlug) {
   const db = getPublicDB();
-  const { data: region } = await db
-    .from("regions")
-    .select("id")
-    .eq("slug", String(regionSlug || "").trim())
-    .maybeSingle();
-  if (!region?.id) return [];
-  const { data: prefs } = await db
-    .from("prefectures")
-    .select("id")
-    .eq("region_id", region.id);
-  const prefIds = (prefs || []).map((p) => p.id).filter(Boolean);
-  if (prefIds.length === 0) return [];
-  const { data: dests } = await db
+  const { data: dst } = await db
     .from("destinations")
-    .select("id")
-    .in("prefecture_id", prefIds);
-  const destIds = (dests || []).map((d) => d.id).filter(Boolean);
-  if (destIds.length === 0) return [];
+    .select("id, slug, name, country_id")
+    .eq("slug", String(destinationSlug || "").trim())
+    .maybeSingle();
+  if (!dst?.id) return { experience: null, destination: null };
   const { data, error } = await db
     .from("experiences")
-    .select("id, slug, name, summary, images, destination_id, status, destinations ( slug )")
-    .in("destination_id", destIds)
+    .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`)
+    .eq("destination_id", dst.id)
+    .eq("slug", String(experienceSlug || "").trim())
     .eq("status", "published")
-    .order("name", { ascending: true });
-  if (error) throw error;
-  return data ?? [];
-}
-
-export async function listExperiencesByPrefectureSlug(prefSlug) {
-  const db = getPublicDB();
-  const { data: pref } = await db
-    .from("prefectures")
-    .select("id")
-    .eq("slug", String(prefSlug || "").trim())
     .maybeSingle();
-  if (!pref?.id) return [];
-  const { data: dests } = await db
-    .from("destinations")
-    .select("id")
-    .eq("prefecture_id", pref.id);
-  const destIds = (dests || []).map((d) => d.id).filter(Boolean);
-  if (destIds.length === 0) return [];
-  const { data, error } = await db
-    .from("experiences")
-    .select("id, slug, name, summary, images, destination_id, status, destinations ( slug )")
-    .in("destination_id", destIds)
-    .eq("status", "published")
-    .order("name", { ascending: true });
-  if (error) throw error;
-  return data ?? [];
-}
-
-export async function listExperiencesByDivisionSlug(divSlug) {
-  const db = getPublicDB();
-  const { data: div } = await db
-    .from("divisions")
-    .select("id")
-    .eq("slug", String(divSlug || "").trim())
-    .maybeSingle();
-  if (!div?.id) return [];
-  const { data: dests } = await db
-    .from("destinations")
-    .select("id")
-    .eq("division_id", div.id);
-  const destIds = (dests || []).map((d) => d.id).filter(Boolean);
-  if (destIds.length === 0) return [];
-  const { data, error } = await db
-    .from("experiences")
-    .select("id, slug, name, summary, images, destination_id, status, destinations ( slug )")
-    .in("destination_id", destIds)
-    .eq("status", "published")
-    .order("name", { ascending: true });
-  if (error) throw error;
-  return data ?? [];
+  if (error || !data) return { experience: null, destination: dst };
+  const { destinations: destination, ...experience } = data;
+  return { experience, destination: destination || dst };
 }

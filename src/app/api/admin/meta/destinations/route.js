@@ -9,7 +9,7 @@ export async function GET() {
     const db = await getDB();
     const { data, error } = await db
       .from("destinations")
-      .select("id, name, slug, status, prefecture_id, division_id")
+      .select("id, name, slug, status, country_id")
       .order("name", { ascending: true });
 
     if (error)

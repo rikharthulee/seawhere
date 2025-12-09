@@ -4,7 +4,7 @@ import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 
 export default function Destinations({
   items = [],
-  basePath = "/destinations",
+  basePath = "/destination",
 }) {
   // Normalize input to an array; keep quiet logs in production
   const source = Array.isArray(items) ? items : [];

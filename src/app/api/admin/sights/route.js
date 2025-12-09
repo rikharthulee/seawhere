@@ -10,7 +10,7 @@ export async function GET() {
     const { data, error } = await db
       .from("sights")
       .select(
-        "id, slug, name, summary, destination_id, status, images, lat, lng"
+        "id, slug, name, summary, destination_id, country_id, status, images, lat, lng"
       )
       .order("name", { ascending: true });
     if (error)
@@ -36,8 +36,8 @@ export async function POST(request) {
       description: body.description || null,
       body_richtext: body.body_richtext || null,
       images: Array.isArray(body.images) ? body.images : body.images || null,
+      country_id: body.country_id,
       destination_id: body.destination_id,
-      division_id: body.division_id ?? null,
       status: body.status || "draft",
       lat: body.lat ?? null,
       lng: body.lng ?? null,

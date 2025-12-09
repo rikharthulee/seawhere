@@ -13,9 +13,9 @@ export async function getPublishedSights() {
   return data || [];
 }
 
-export async function getSightsForDestination(destId, divisionSlug = null) {
+export async function getSightsForDestination(destId) {
   const db = await getDB();
-  let query = db
+  const { data, error } = await db
     .from("sights")
     .select(
       "id, slug, name, summary, images, destination_id, deeplink, provider, gyg_id"
@@ -23,18 +23,6 @@ export async function getSightsForDestination(destId, divisionSlug = null) {
     .eq("destination_id", destId)
     .eq("status", "published")
     .order("name", { ascending: true });
-
-  if (divisionSlug) {
-    const { data: div } = await db
-      .from("divisions")
-      .select("id")
-      .eq("slug", String(divisionSlug).trim())
-      .maybeSingle();
-    if (!div?.id) return [];
-    query = query.eq("division_id", div.id);
-  }
-
-  const { data, error } = await query;
   if (error) return [];
   return data || [];
 }

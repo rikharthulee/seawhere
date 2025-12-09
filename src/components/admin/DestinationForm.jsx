@@ -12,12 +12,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import MultiImageUpload from "@/components/admin/MultiImageUpload";
 import ParagraphEditor from "./ParagraphEditor";
-import {
-  normalizePrefectureShape,
-  normalizeDivisionShape,
-  sortGeoRows,
-  shouldUseGeoViews,
-} from "@/lib/geo-normalize";
 
 function slugify(s) {
   return (s || "")
@@ -29,7 +23,6 @@ function slugify(s) {
 }
 
 export default function DestinationForm({ initial, onSaved, onCancel }) {
-  const useGeoViews = shouldUseGeoViews();
   const [name, setName] = useState(initial?.name || "");
   const [slug, setSlug] = useState(initial?.slug || "");
   const [slugTouched, setSlugTouched] = useState(!!initial?.id);
@@ -43,101 +36,49 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
   const [gygLocationId, setGygLocationId] = useState(
     initial?.gyg_location_id || ""
   );
+  const [countryId, setCountryId] = useState(initial?.country_id || "");
+  const [countries, setCountries] = useState([]);
+  const [destinations, setDestinations] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [assignTo, setAssignTo] = useState(
-    initial?.division_id ? "division" : "prefecture"
-  );
-  const [prefectureId, setPrefectureId] = useState(
-    initial?.prefecture_id || ""
-  );
-  const [divisionId, setDivisionId] = useState(initial?.division_id || "");
-  const [prefectures, setPrefectures] = useState([]);
-  const [divisions, setDivisions] = useState([]);
-  const [regions, setRegions] = useState([]);
-  const [regionId, setRegionId] = useState("");
   const [formError, setFormError] = useState("");
   const isEditing = !!initial?.id;
 
   const destinationUploadSlug =
-    slug ||
-    slugify(name) ||
-    (initial?.id ? `id-${initial.id}` : "unsorted");
+    slug || slugify(name) || (initial?.id ? `id-${initial.id}` : "unsorted");
   const destinationUploadPrefix = `media/destinations/${destinationUploadSlug}`;
 
-  // Derived: divisions for the selected prefecture
-  const divisionsForPref = useMemo(
-    () =>
-      prefectureId
-        ? divisions.filter((d) => d.prefecture_id === prefectureId)
-        : [],
-    [divisions, prefectureId]
-  );
-  const hasDivisionsForPref = divisionsForPref.length > 0;
-  const prefecturesForRegion = useMemo(
-    () =>
-      regionId
-        ? prefectures.filter((p) => p.region_id === regionId)
-        : prefectures,
-    [prefectures, regionId]
-  );
-
-  // Sync state when switching between rows or opening the editor
   useEffect(() => {
     setName(initial?.name || "");
     setSlug(initial?.slug || "");
-    setSlugTouched(!!initial?.id); // editing: don't auto-sync slug; creating: do
+    setSlugTouched(!!initial?.id);
     setSummary(initial?.summary || "");
     setBody(initial?.body_richtext || null);
     setStatus(initial?.status || "draft");
     setCredit(initial?.credit || "");
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setGygLocationId(initial?.gyg_location_id || "");
-    setAssignTo(initial?.division_id ? "division" : "prefecture");
-    setPrefectureId(initial?.prefecture_id || "");
-    setDivisionId(initial?.division_id || "");
-    setRegionId("");
+    setCountryId(initial?.country_id || "");
   }, [initial]);
 
-  // Load selection lists
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      // Prefer a server-backed admin endpoint to avoid client-side RLS issues
       try {
         const res = await fetch("/api/admin/meta/geo", { cache: "no-store" });
-        if (res.ok) {
-          const json = await res.json();
-          if (!cancelled) {
-            setRegions(Array.isArray(json.regions) ? json.regions : []);
-            setPrefectures(
-              Array.isArray(json.prefectures) ? json.prefectures : []
-            );
-            setDivisions(Array.isArray(json.divisions) ? json.divisions : []);
-            return; // done
-          }
-        }
-      } catch {}
-      // No client fallbacks — server meta endpoints are required
+        if (!res.ok) return;
+        const json = await res.json();
+        if (cancelled) return;
+        setCountries(Array.isArray(json.countries) ? json.countries : []);
+        setDestinations(Array.isArray(json.destinations) ? json.destinations : []);
+      } catch (e) {
+        console.error("Failed to load geo meta", e);
+      }
     }
     load();
     return () => {
       cancelled = true;
     };
   }, []);
-  useEffect(() => {
-    if (!prefectureId) return;
-    const pref = prefectures.find((p) => p.id === prefectureId);
-    if (pref?.region_id && regionId !== pref.region_id)
-      setRegionId(pref.region_id);
-  }, [prefectureId, prefectures]);
-
-  // If user is assigning to division but selected prefecture has no divisions, switch back to prefecture
-  useEffect(() => {
-    if (assignTo === "division" && (!prefectureId || !hasDivisionsForPref)) {
-      setAssignTo("prefecture");
-      setDivisionId("");
-    }
-  }, [assignTo, prefectureId, hasDivisionsForPref]);
 
   useEffect(() => {
     if (!slugTouched) {
@@ -149,7 +90,6 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
     const raw = e.target.value;
     const v = slugify(raw);
     setSlug(v);
-    // If user clears the field, resume auto-sync; otherwise lock
     setSlugTouched(raw.length > 0);
   }
 
@@ -157,33 +97,17 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
     setSaving(true);
     try {
       setFormError("");
-      // Basic validation
-      // Always sanitize slug on save to avoid stray characters like '?' or spaces
       const baseSlug = slugify(slug || name);
       if (!name.trim()) throw new Error("Name is required");
       if (!baseSlug) throw new Error("Slug is required");
-      if (assignTo === "prefecture" && !prefectureId)
-        throw new Error("Select a prefecture");
-      if (assignTo === "division") {
-        if (!prefectureId)
-          throw new Error("Select a prefecture with divisions");
-        if (!hasDivisionsForPref)
-          throw new Error("Selected prefecture has no divisions");
-        if (!divisionId) throw new Error("Select a division");
-      }
-
-      // Auto-sync prefecture from division when division chosen
-      let finalPrefectureId = prefectureId;
-      if (assignTo === "division") {
-        const div = divisions.find((d) => d.id === divisionId);
-        if (div?.prefecture_id) finalPrefectureId = div.prefecture_id;
-      }
+      if (!countryId) throw new Error("Select a country");
 
       const normalizedImages = Array.isArray(images)
         ? images
             .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
             .filter((entry) => entry && entry.length)
         : [];
+
       const payload = {
         name,
         slug: baseSlug,
@@ -193,12 +117,12 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
         status,
         credit: credit || null,
         gyg_location_id: gygLocationId === "" ? null : String(gygLocationId),
-        prefecture_id:
-          assignTo === "prefecture" ? prefectureId : finalPrefectureId || null,
-        division_id: assignTo === "division" ? divisionId : null,
+        country_id: countryId,
       };
+
       let savedSlug = payload.slug;
-      let res, json;
+      let res;
+      let json;
       if (isEditing) {
         res = await fetch(`/api/admin/destinations/${initial.id}`, {
           method: "PUT",
@@ -206,8 +130,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
           body: JSON.stringify(payload),
         });
         json = await res.json();
-        if (!res.ok)
-          throw new Error(json?.error || `Save failed (${res.status})`);
+        if (!res.ok) throw new Error(json?.error || `Save failed (${res.status})`);
         savedSlug = json.slug || savedSlug;
       } else {
         res = await fetch(`/api/admin/destinations`, {
@@ -216,11 +139,10 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
           body: JSON.stringify(payload),
         });
         json = await res.json();
-        if (!res.ok)
-          throw new Error(json?.error || `Save failed (${res.status})`);
+        if (!res.ok) throw new Error(json?.error || `Save failed (${res.status})`);
         savedSlug = json.slug || savedSlug;
       }
-      // Revalidate caches
+
       try {
         await fetch(`/api/revalidate`, {
           method: "POST",
@@ -233,8 +155,7 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
       onSaved?.();
     } catch (e) {
       console.error(e);
-      const msg = e?.message || "Save failed";
-      setFormError(msg);
+      setFormError(e?.message || "Save failed");
     } finally {
       setSaving(false);
     }
@@ -296,182 +217,28 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
               onChange={(e) => setSummary(e.target.value)}
             />
           </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium">Assign to</label>
-            <div className="flex items-center gap-4 mt-1">
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  className="h-4 w-4"
-                  name="assign"
-                  checked={assignTo === "prefecture"}
-                  onChange={() => setAssignTo("prefecture")}
-                />
-                Prefecture
-              </label>
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  className="h-4 w-4"
-                  name="assign"
-                  checked={assignTo === "division"}
-                  onChange={() =>
-                    hasDivisionsForPref && prefectureId
-                      ? setAssignTo("division")
-                      : null
-                  }
-                  disabled={!prefectureId || !hasDivisionsForPref}
-                />
-                Division
-                {!prefectureId
-                  ? " (select prefecture)"
-                  : !hasDivisionsForPref
-                  ? " (none available)"
-                  : ""}
-              </label>
-            </div>
-            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
-              {assignTo === "prefecture" ? (
-                <>
-                  <div className="mb-2">
-                    <label className="block text-sm text-black/70">
-                      Region
-                    </label>
-                    <Select
-                      value={regionId || "__EMPTY__"}
-                      onValueChange={(v) => {
-                        const val = v === "__EMPTY__" ? "" : v;
-                        setRegionId(val);
-                        setPrefectureId("");
-                        setDivisionId("");
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All regions…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__EMPTY__">All regions…</SelectItem>
-                        {regions.map((r) => (
-                          <SelectItem key={r.id} value={r.id}>
-                            {r.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-black/70">
-                      Prefecture
-                    </label>
-                    <Select
-                      value={prefectureId || "__EMPTY__"}
-                      onValueChange={(v) =>
-                        setPrefectureId(v === "__EMPTY__" ? "" : v)
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a prefecture…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__EMPTY__">
-                          Select a prefecture…
-                        </SelectItem>
-                        {prefecturesForRegion.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="mb-2">
-                    <label className="block text-sm text-black/70">
-                      Region
-                    </label>
-                    <Select
-                      value={regionId || "__EMPTY__"}
-                      onValueChange={(v) => {
-                        const val = v === "__EMPTY__" ? "" : v;
-                        setRegionId(val);
-                        setPrefectureId("");
-                        setDivisionId("");
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All regions…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__EMPTY__">All regions…</SelectItem>
-                        {regions.map((r) => (
-                          <SelectItem key={r.id} value={r.id}>
-                            {r.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-black/70">
-                      Prefecture
-                    </label>
-                    <Select
-                      value={prefectureId || "__EMPTY__"}
-                      onValueChange={(v) =>
-                        setPrefectureId(v === "__EMPTY__" ? "" : v)
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All prefectures…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__EMPTY__">
-                          All prefectures…
-                        </SelectItem>
-                        {prefecturesForRegion.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {hasDivisionsForPref ? (
-                    <div>
-                      <label className="block text-sm text-black/70">
-                        Division
-                      </label>
-                      <Select
-                        value={divisionId || "__EMPTY__"}
-                        onValueChange={(v) =>
-                          setDivisionId(v === "__EMPTY__" ? "" : v)
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a division…" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__EMPTY__">
-                            Select a division…
-                          </SelectItem>
-                          {divisionsForPref.map((d) => (
-                            <SelectItem key={d.id} value={d.id}>
-                              {d.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-black/60 self-end">
-                      No divisions available for this prefecture.
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+          <div>
+            <label className="block text-sm font-medium">Country</label>
+            <Select
+              value={countryId || "__EMPTY__"}
+              onValueChange={(v) => {
+                const val = v === "__EMPTY__" ? "" : v;
+                setCountryId(val);
+                setParentDestinationId("");
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a country…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__EMPTY__">Select a country…</SelectItem>
+                {countries.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="md:col-span-2">
             <MultiImageUpload

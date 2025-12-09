@@ -1,7 +1,7 @@
 // Simple Supabase → Vercel Blob copier (no DB writes)
 // Env (use .env.migrate):
-// SUPABASE_URL=https://<project>.supabase.co
-// SUPABASE_SERVICE_ROLE=... (or SUPABASE_SERVICE_ROLE_KEY)
+// NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+// SUPABASE_SERVICE_ROLE_KEY=...
 // BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
 // SUPABASE_BUCKETS=bucket1,bucket2
 // MIGRATE_DRY_RUN=true
@@ -15,9 +15,8 @@ import pLimit from "p-limit";
 // Load .env.migrate from project root
 dotenv.config({ path: new URL("../.env.migrate", import.meta.url).pathname });
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 const BUCKETS = (process.env.SUPABASE_BUCKETS || "images")
   .split(",")
@@ -26,9 +25,8 @@ const BUCKETS = (process.env.SUPABASE_BUCKETS || "images")
 const DRY = String(process.env.MIGRATE_DRY_RUN).toLowerCase() !== "false";
 const CONC = Number(process.env.MIGRATE_CONCURRENCY || 5);
 
-if (!SUPABASE_URL) throw new Error("Set SUPABASE_URL");
-if (!SUPABASE_KEY)
-  throw new Error("Set SUPABASE_SERVICE_ROLE (or SUPABASE_SERVICE_ROLE_KEY)");
+if (!SUPABASE_URL) throw new Error("Set NEXT_PUBLIC_SUPABASE_URL");
+if (!SUPABASE_KEY) throw new Error("Set SUPABASE_SERVICE_ROLE_KEY");
 if (!BLOB_TOKEN) throw new Error("Set BLOB_READ_WRITE_TOKEN");
 
 console.log("[copy] Buckets:", BUCKETS.join(","), "DRY:", DRY, "CONC:", CONC);

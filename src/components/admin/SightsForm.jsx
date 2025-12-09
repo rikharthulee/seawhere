@@ -14,14 +14,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import OpeningTimes from "@/components/admin/OpeningTimesEditor";
 import AdmissionEditor from "@/components/admin/AdmissionEditor";
-import {
-  normalizePrefectureShape,
-  sortGeoRows,
-  shouldUseGeoViews,
-} from "@/lib/geo-normalize";
 
 export default function SightsForm({ id, initial, onSaved, onCancel }) {
-  const useGeoViews = shouldUseGeoViews();
   const isEditing = !!id;
 
   const [name, setName] = useState(initial?.name || "");
@@ -29,51 +23,31 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
   const [slugTouched, setSlugTouched] = useState(!!initial?.id);
   const [summary, setSummary] = useState(initial?.summary || "");
   const [body, setBody] = useState(initial?.body_richtext || null);
-  const [images, setImages] = useState(
-    Array.isArray(initial?.images) ? initial.images : []
-  );
-  const [destinationId, setDestinationId] = useState(
-    initial?.destination_id || ""
-  );
+  const [images, setImages] = useState(Array.isArray(initial?.images) ? initial.images : []);
+  const [countryId, setCountryId] = useState(initial?.country_id || "");
+  const [destinationId, setDestinationId] = useState(initial?.destination_id || "");
   const [status, setStatus] = useState(initial?.status || "draft");
   const [lat, setLat] = useState(initial?.lat ?? "");
   const [lng, setLng] = useState(initial?.lng ?? "");
-  const [tags, setTags] = useState(
-    Array.isArray(initial?.tags) ? initial.tags : []
-  );
-  const [tagsText, setTagsText] = useState(
-    Array.isArray(initial?.tags) ? (initial.tags || []).join(", ") : ""
-  );
-  const [durationMinutes, setDurationMinutes] = useState(
-    initial?.duration_minutes ?? ""
-  );
+  const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
+  const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? "");
   const [provider, setProvider] = useState(initial?.provider || "internal");
   const [deeplink, setDeeplink] = useState(initial?.deeplink || "");
   const [gygId, setGygId] = useState(initial?.gyg_id || "");
   const [priceAmount, setPriceAmount] = useState(initial?.price_amount ?? "");
-  const [priceCurrency, setPriceCurrency] = useState(
-    initial?.price_currency || "JPY"
-  );
-  const [admissionFee, setAdmissionFee] = useState(
-    initial?.admission_fee_richtext || null
-  );
-  const [openingTimesText, setOpeningTimesText] = useState(
-    initial?.opening_times_richtext || null
-  );
+  const [priceCurrency, setPriceCurrency] = useState(initial?.price_currency || "USD");
+  const [admissionFee, setAdmissionFee] = useState(initial?.admission_fee_richtext || null);
+  const [openingTimesText, setOpeningTimesText] = useState(initial?.opening_times_richtext || null);
 
-  const [regions, setRegions] = useState([]);
-  const [prefectures, setPrefectures] = useState([]);
-  const [divisionsForDest, setDivisionsForDest] = useState([]);
+  const [countries, setCountries] = useState([]);
   const [destinations, setDestinations] = useState([]);
-
-  const [regionId, setRegionId] = useState("");
-  const [prefectureId, setPrefectureId] = useState("");
-  const [divisionId, setDivisionId] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const openingTimesRef = useRef(null);
   const admissionRef = useRef(null);
+
+  const sightId = id || initial?.id || null;
 
   // Ensure anything we pass to client children is plain JSON (no Date/Map/URL/classes)
   const toPlain = useCallback((x) => {
@@ -83,8 +57,6 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
       return x;
     }
   }, []);
-
-  const sightId = id || initial?.id || null;
 
   const admissionRowsPlain = useMemo(() => {
     const rows = Array.isArray(initial?.admission) ? initial.admission : [];
@@ -105,7 +77,6 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
     if (!slugTouched) setSlug(slugify(name));
   }, [name, slugTouched]);
 
-  // Load geo + destinations
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -114,21 +85,13 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         if (res.ok) {
           const json = await res.json();
           if (!cancelled) {
-            setRegions(json.regions || []);
-            setPrefectures(json.prefectures || []);
+            setCountries(Array.isArray(json.countries) ? json.countries : []);
+            setDestinations(Array.isArray(json.destinations) ? json.destinations : []);
           }
         }
-      } catch {}
-      try {
-        const res = await fetch("/api/admin/meta/destinations", {
-          cache: "no-store",
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (!cancelled) setDestinations(json.items || []);
-        }
-      } catch {}
-      // No client fallbacks; enforce server meta endpoints only
+      } catch (e) {
+        console.error("Failed to load geo meta", e);
+      }
     }
     load();
     return () => {
@@ -137,93 +100,47 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
   }, []);
 
   useEffect(() => {
-    setSlug(initial?.slug || "");
     setName(initial?.name || "");
+    setSlug(initial?.slug || "");
+    setSlugTouched(!!initial?.id);
     setSummary(initial?.summary || "");
     setBody(initial?.body_richtext || null);
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setDestinationId(initial?.destination_id || "");
-    setDivisionId(initial?.division_id || "");
+    setCountryId(initial?.country_id || "");
     setStatus(initial?.status || "draft");
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
-    const nextTags = Array.isArray(initial?.tags) ? initial.tags : [];
-    setTags(nextTags);
-    setTagsText((nextTags || []).join(", "));
+    setTags(Array.isArray(initial?.tags) ? initial.tags : []);
     setDurationMinutes(initial?.duration_minutes ?? "");
     setProvider(initial?.provider || "internal");
     setDeeplink(initial?.deeplink || "");
     setGygId(initial?.gyg_id || "");
     setPriceAmount(initial?.price_amount ?? "");
-    setPriceCurrency(initial?.price_currency || "JPY");
+    setPriceCurrency(initial?.price_currency || "USD");
     setAdmissionFee(initial?.admission_fee_richtext || null);
     setOpeningTimesText(initial?.opening_times_richtext || null);
   }, [initial]);
 
-  // Derive geo scope (region/pref) from destination
   useEffect(() => {
-    const d = destinations.find((x) => x.id === destinationId);
-    if (!d) {
-      setPrefectureId("");
-      setRegionId("");
-      return;
+    if (!destinationId) return;
+    const dest = destinations.find((d) => d.id === destinationId);
+    if (dest?.country_id && dest.country_id !== countryId) {
+      setCountryId(dest.country_id);
     }
-    setPrefectureId(d.prefecture_id || "");
-    const pref = prefectures.find((p) => p.id === d.prefecture_id);
-    setRegionId(pref?.region_id || "");
-  }, [destinationId, destinations, prefectures]);
+  }, [destinationId, destinations, countryId]);
 
-  // On destination change, fetch divisions via RPC and clear division only after initial mount
-  const prevDestIdRef = useRef(null);
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchDivs() {
-      if (!destinationId) {
-        setDivisionsForDest([]);
-        return;
-      }
-      try {
-        const res = await fetch(`/api/admin/meta/divisions-for-destination/${destinationId}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (!cancelled) setDivisionsForDest(Array.isArray(json.items) ? json.items : []);
-        } else {
-          if (!cancelled) setDivisionsForDest([]);
-        }
-      } catch { if (!cancelled) setDivisionsForDest([]); }
-    }
-    if (
-      prevDestIdRef.current !== null &&
-      prevDestIdRef.current !== destinationId
-    ) {
-      setDivisionId("");
-    }
-    fetchDivs();
-    prevDestIdRef.current = destinationId;
-    return () => {
-      cancelled = true;
-    };
-  }, [destinationId]);
-
-  const prefecturesForRegion = useMemo(
-    () => prefectures.filter((p) => p.region_id === regionId),
-    [prefectures, regionId]
+  const filteredDestinations = useMemo(
+    () => destinations.filter((d) => !countryId || d.country_id === countryId),
+    [destinations, countryId]
   );
-  const destinationsForScope = useMemo(() => {
-    return destinations.filter((d) => {
-      if (prefectureId && d.prefecture_id !== prefectureId) return false;
-      return true;
-    });
-  }, [destinations, prefectureId]);
 
   const destSlugForUpload = useMemo(() => {
     const d = destinations.find((x) => x.id === destinationId);
     return d?.slug || "unsorted";
   }, [destinations, destinationId]);
 
-  const sightUploadSlug =
-    slugify(slug || name) ||
-    (initial?.id ? `id-${initial.id}` : "unsorted");
+  const sightUploadSlug = slugify(slug || name) || (initial?.id ? `id-${initial.id}` : "unsorted");
   const sightUploadPrefix = `media/sights/${destSlugForUpload || "unsorted"}/${sightUploadSlug}`;
 
   async function save() {
@@ -233,6 +150,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
       if (!name.trim()) throw new Error("Name is required");
       const finalSlug = slugify(slug || name);
       if (!finalSlug) throw new Error("Slug is required");
+      if (!countryId) throw new Error("Select a country");
       if (!destinationId) throw new Error("Select a destination");
       const payload = {
         name,
@@ -240,8 +158,8 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         summary,
         body_richtext: body,
         images: Array.isArray(images) ? images : [],
+        country_id: countryId,
         destination_id: destinationId,
-        division_id: divisionId || null,
         status,
         lat: lat === "" ? null : Number(lat),
         lng: lng === "" ? null : Number(lng),
@@ -250,8 +168,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
               .map((t) => (typeof t === "string" ? t.trim() : ""))
               .filter(Boolean)
           : [],
-        duration_minutes:
-          durationMinutes === "" ? null : Number(durationMinutes),
+        duration_minutes: durationMinutes === "" ? null : Number(durationMinutes),
         provider: provider || null,
         deeplink: deeplink || null,
         gyg_id: gygId === "" ? null : String(gygId),
@@ -273,12 +190,7 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         throw new Error(json?.error || `Save failed (${res.status})`);
 
       const savedSightId =
-        json?.id ||
-        json?.sight?.id ||
-        json?.data?.id ||
-        id ||
-        initial?.id ||
-        null;
+        json?.id || json?.sight?.id || json?.data?.id || id || initial?.id || null;
 
       if (openingTimesRef.current) {
         if (!savedSightId) {
@@ -324,19 +236,6 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium">Status</label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">draft</SelectItem>
-                <SelectItem value="published">published</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="md:col-span-2">
             <label className="block text-sm font-medium">Name</label>
             <input
               className="w-full rounded border p-2"
@@ -344,7 +243,6 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium">Slug</label>
             <input
@@ -354,10 +252,8 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
                 setSlug(e.target.value);
                 setSlugTouched(true);
               }}
-              placeholder="e.g. meiji-shrine"
             />
           </div>
-
           <div className="md:col-span-2">
             <label className="block text-sm font-medium">Summary</label>
             <textarea
@@ -369,67 +265,41 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Region</label>
+            <label className="block text-sm font-medium">Country</label>
             <Select
-              value={regionId || "__EMPTY__"}
+              value={countryId || "__EMPTY__"}
               onValueChange={(v) => {
                 const val = v === "__EMPTY__" ? "" : v;
-                setRegionId(val);
-                setPrefectureId("");
-                setDivisionId("");
+                setCountryId(val);
+                setDestinationId("");
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="All regions…" />
+                <SelectValue placeholder="Select a country…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__EMPTY__">All regions…</SelectItem>
-                {regions.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.name}
+                <SelectItem value="__EMPTY__">Select a country…</SelectItem>
+                {countries.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <label className="block text-sm font-medium">Prefecture</label>
-            <Select
-              value={prefectureId || "__EMPTY__"}
-              onValueChange={(v) => {
-                const val = v === "__EMPTY__" ? "" : v;
-                setPrefectureId(val);
-                setDivisionId("");
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="All prefectures…" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__EMPTY__">All prefectures…</SelectItem>
-                {prefecturesForRegion.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {/* Division is chosen within destination context below */}
-          <div className="md:col-span-2">
             <label className="block text-sm font-medium">Destination</label>
             <Select
               value={destinationId || "__EMPTY__"}
-              onValueChange={(v) =>
-                setDestinationId(v === "__EMPTY__" ? "" : v)
-              }
+              onValueChange={(v) => setDestinationId(v === "__EMPTY__" ? "" : v)}
+              disabled={!countryId}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a destination…" />
+                <SelectValue placeholder={countryId ? "Select a destination…" : "Select country first"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__EMPTY__">Select a destination…</SelectItem>
-                {destinationsForScope.map((d) => (
+                {filteredDestinations.map((d) => (
                   <SelectItem key={d.id} value={d.id}>
                     {d.name}
                   </SelectItem>
@@ -439,70 +309,47 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">
-              Division (optional)
-            </label>
-            <Select
-              value={divisionId || "__EMPTY__"}
-              onValueChange={(v) => setDivisionId(v === "__EMPTY__" ? "" : v)}
-            >
-              <SelectTrigger className="w-full" disabled={!destinationId}>
-                <SelectValue placeholder="No division (entire destination)" />
+            <label className="block text-sm font-medium">Status</label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__EMPTY__">
-                  No division (entire destination)
-                </SelectItem>
-                {divisionsForDest.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="draft">draft</SelectItem>
+                <SelectItem value="published">published</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
           <div>
-            <label className="block text-sm font-medium">Latitude</label>
+            <label className="block text-sm font-medium">Tags (comma separated)</label>
             <input
               className="w-full rounded border p-2"
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
-              placeholder="e.g. 35.6762"
+              value={(tags || []).join(",")}
+              onChange={(e) =>
+                setTags(
+                  e.target.value
+                    .split(",")
+                    .map((t) => t.trim())
+                    .filter(Boolean)
+                )
+              }
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Longitude</label>
-            <input
-              className="w-full rounded border p-2"
-              value={lng}
-              onChange={(e) => setLng(e.target.value)}
-              placeholder="e.g. 139.6503"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">
-              Duration (minutes)
-            </label>
+            <label className="block text-sm font-medium">Duration (minutes)</label>
             <input
               className="w-full rounded border p-2"
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
-              placeholder="e.g. 90"
             />
           </div>
           <div>
             <label className="block text-sm font-medium">Provider</label>
-            <Select value={provider} onValueChange={setProvider}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Provider" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="internal">internal</SelectItem>
-                <SelectItem value="gyg">gyg</SelectItem>
-                <SelectItem value="dekitabi">dekitabi</SelectItem>
-              </SelectContent>
-            </Select>
+            <input
+              className="w-full rounded border p-2"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium">Deeplink</label>
@@ -510,7 +357,6 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
               className="w-full rounded border p-2"
               value={deeplink}
               onChange={(e) => setDeeplink(e.target.value)}
-              placeholder="https://…"
             />
           </div>
           <div>
@@ -519,92 +365,79 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
               className="w-full rounded border p-2"
               value={gygId}
               onChange={(e) => setGygId(e.target.value)}
-              placeholder="e.g. 1035544"
             />
-            <div className="text-xs text-black/60 mt-1">
-              Used to render the GetYourGuide availability widget.
-            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Price amount</label>
+            <input
+              className="w-full rounded border p-2"
+              value={priceAmount}
+              onChange={(e) => setPriceAmount(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Currency</label>
+            <input
+              className="w-full rounded border p-2"
+              value={priceCurrency}
+              onChange={(e) => setPriceCurrency(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Latitude</label>
+            <input
+              className="w-full rounded border p-2"
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Longitude</label>
+            <input
+              className="w-full rounded border p-2"
+              value={lng}
+              onChange={(e) => setLng(e.target.value)}
+            />
           </div>
         </div>
 
         <MultiImageUpload
           label="Images"
-          value={Array.isArray(images) ? images : []}
+          value={images}
           onChange={setImages}
           prefix={sightUploadPrefix}
         />
 
-        <div>
-          <label className="block text-sm font-medium">Tags (comma-separated)</label>
-          <input
-            className="w-full rounded border p-2"
-            value={tagsText}
-            onChange={(e) => {
-              const raw = e.target.value || "";
-              setTagsText(raw);
-              const parsed = raw
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean);
-              setTags(parsed);
-            }}
-            placeholder="e.g. temple, shrine, park"
-          />
-        </div>
+        <RichTextEditor value={body} onChange={setBody} label="Body" />
 
-        <RichTextEditor
-          value={body}
-          onChange={setBody}
-          label="Details"
-          warnOnUnsaved={true}
+        <OpeningTimes
+          ref={openingTimesRef}
+          sightId={sightId}
+          initial={toPlain(initial?.openingTimes)}
+          openingTimesRichText={openingTimesText}
+          onOpeningTimesRichTextChange={setOpeningTimesText}
         />
 
-        <Card>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <h3 className="text-lg font-semibold">Admission</h3>
-              <p className="text-sm text-muted-foreground">
-                Configure ticket categories, pricing, and validity windows.
-              </p>
-            </div>
-            {sightId ? (
-              <AdmissionEditor
-                ref={admissionRef}
-                sightId={sightId}
-                initialRows={admissionRowsPlain}
-              />
-            ) : (
-              <div className="rounded border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                Save the sight first to manage admission pricing.
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <AdmissionEditor
+          ref={admissionRef}
+          sightId={sightId}
+          initialRows={admissionRowsPlain}
+          admissionRichText={admissionFee}
+          onAdmissionRichTextChange={setAdmissionFee}
+        />
 
-        <OpeningTimes ref={openingTimesRef} sightId={sightId} />
         <div className="flex items-center gap-3">
-          <Button
-            onClick={save}
-            disabled={saving}
-            size="sm"
-            className="h-9 px-4"
-          >
-            {saving ? "Saving…" : "Save"}
+          <Button onClick={save} disabled={saving}>
+            {saving ? "Saving…" : isEditing ? "Save" : "Create"}
           </Button>
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            size="sm"
-            className="h-9 px-4"
-          >
+          <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
           {isEditing ? (
             <ConfirmDeleteButton
               title="Delete this sight?"
-              description="This action cannot be undone. This will permanently delete the item and remove any associated data."
-              triggerClassName="ml-auto h-9 px-4"
-              triggerSize="sm"
+              description="This action cannot be undone."
+              triggerClassName="ml-auto"
               onConfirm={handleDelete}
             />
           ) : null}

@@ -10,7 +10,7 @@ import Image from "next/image";
 
 /**
  * Desktop-only banner + black nav bar.
- * Groups key site sections under a shadcn dropdown: “Explore Japan”
+ * Groups key site sections under a shadcn dropdown: “Explore”
  */
 export default function DesktopBannerNav({ links, isAuthed }) {
   const exploreHrefs = new Set([
@@ -27,10 +27,10 @@ export default function DesktopBannerNav({ links, isAuthed }) {
     "/destinations": "Towns, cities and rural locations",
     "/sights": "Temples, museums, viewpoints",
     "/tours": "Guided tours & tickets",
-    "/accommodation": "Hotels, ryokan and boutiques",
+    "/accommodation": "Hotels, villas and boutiques",
     "/experiences": "Classes, shows & activities",
     "/transportation": "Stations, hubs & travel links",
-    "/food-drink": "Eat & drink: ramen to kaiseki",
+    "/food-drink": "Eat & drink across SEA",
   };
 
   const exploreItems = links.filter((l) => exploreHrefs.has(l.href));
@@ -45,19 +45,19 @@ export default function DesktopBannerNav({ links, isAuthed }) {
         >
           <Image
             src="/crane.png"
-            alt="JapanMan logo"
+            alt="Seawhere logo"
             width={56}
             height={56}
             className="h-14 w-14 object-contain"
             priority
           />
-          <span>JapanMan</span>
+          <span>Seawhere</span>
         </Link>
 
         <div className="flex flex-wrap items-center justify-center gap-7 text-base font-semibold text-foreground/80">
           <DropdownMenu>
             <DropdownMenuTrigger className="group inline-flex items-center gap-1 rounded px-2 py-1 transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40">
-              Explore Japan
+              Explore
               <svg
                 className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180"
                 viewBox="0 0 20 20"

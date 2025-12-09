@@ -49,7 +49,12 @@ const nextConfig = {
       },
       {
         source: "/locations/:slug",
-        destination: "/destinations/:slug",
+        destination: "/destination/:slug",
+        permanent: true,
+      },
+      {
+        source: "/destinations/:slug",
+        destination: "/destination/:slug",
         permanent: true,
       },
       {

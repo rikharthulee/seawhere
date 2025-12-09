@@ -1,19 +1,22 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MultiImageUpload from "./MultiImageUpload";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
 import RichTextEditor from "./RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  normalizePrefectureShape,
-  sortGeoRows,
-  shouldUseGeoViews,
-} from "@/lib/geo-normalize";
+
+function slugify(s) {
+  return (s || "")
+    .toLowerCase()
+    .trim()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 export default function ToursForm({ id, initial, onSaved, onCancel }) {
-  const useGeoViews = shouldUseGeoViews();
   const isEditing = !!id;
 
   const [name, setName] = useState(initial?.name || "");
@@ -22,6 +25,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
   const [summary, setSummary] = useState(initial?.summary || "");
   const [body, setBody] = useState(initial?.body_richtext || null);
   const [images, setImages] = useState(Array.isArray(initial?.images) ? initial.images : []);
+  const [countryId, setCountryId] = useState(initial?.country_id || "");
   const [destinationId, setDestinationId] = useState(initial?.destination_id || "");
   const [status, setStatus] = useState(initial?.status || "draft");
   const [lat, setLat] = useState(initial?.lat ?? "");
@@ -31,35 +35,19 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
   const [deeplink, setDeeplink] = useState(initial?.deeplink || "");
   const [gygId, setGygId] = useState(initial?.gyg_id || "");
   const [priceAmount, setPriceAmount] = useState(initial?.price_amount ?? "");
-  const [priceCurrency, setPriceCurrency] = useState(initial?.price_currency || "JPY");
+  const [priceCurrency, setPriceCurrency] = useState(initial?.price_currency || "USD");
   const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
-
-  const [regions, setRegions] = useState([]);
-  const [prefectures, setPrefectures] = useState([]);
-  const [divisionsForDest, setDivisionsForDest] = useState([]);
-  const [destinations, setDestinations] = useState([]);
-
-  const [regionId, setRegionId] = useState("");
-  const [prefectureId, setPrefectureId] = useState("");
-  const [divisionId, setDivisionId] = useState("");
-
   const [rules, setRules] = useState(Array.isArray(initial?.rules) ? initial.rules : []);
   const [exceptions, setExceptions] = useState(Array.isArray(initial?.exceptions) ? initial.exceptions : []);
 
-  function slugify(s) {
-    return (s || "")
-      .toLowerCase()
-      .trim()
-      .replace(/['"]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  }
+  const [countries, setCountries] = useState([]);
+  const [destinations, setDestinations] = useState([]);
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(name));
   }, [name, slugTouched]);
 
-  // Load geo + destinations
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -68,22 +56,18 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
         if (res.ok) {
           const json = await res.json();
           if (!cancelled) {
-            setRegions(json.regions || []);
-            setPrefectures(json.prefectures || []);
+            setCountries(Array.isArray(json.countries) ? json.countries : []);
+            setDestinations(Array.isArray(json.destinations) ? json.destinations : []);
           }
         }
-      } catch {}
-      try {
-        const res = await fetch("/api/admin/meta/destinations", { cache: "no-store" });
-        if (res.ok) {
-          const json = await res.json();
-          if (!cancelled) setDestinations(json.items || []);
-        }
-      } catch {}
-      // No client-side fallbacks; all admin reads must go via server
+      } catch (e) {
+        console.error("Failed to load geo meta", e);
+      }
     }
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -93,7 +77,7 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
     setBody(initial?.body_richtext || null);
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setDestinationId(initial?.destination_id || "");
-    setDivisionId(initial?.division_id || "");
+    setCountryId(initial?.country_id || "");
     setStatus(initial?.status || "draft");
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
@@ -102,66 +86,35 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
     setDeeplink(initial?.deeplink || "");
     setGygId(initial?.gyg_id || "");
     setPriceAmount(initial?.price_amount ?? "");
-    setPriceCurrency(initial?.price_currency || "JPY");
+    setPriceCurrency(initial?.price_currency || "USD");
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
     setRules(Array.isArray(initial?.rules) ? initial.rules : []);
     setExceptions(Array.isArray(initial?.exceptions) ? initial.exceptions : []);
   }, [initial]);
 
-  // Derive geo scope (region/pref) from destination
+  // Keep country in sync with selected destination
   useEffect(() => {
-    const d = destinations.find((x) => x.id === destinationId);
-    if (!d) {
-      setPrefectureId("");
-      setRegionId("");
-      return;
+    if (!destinationId) return;
+    const dest = destinations.find((d) => d.id === destinationId);
+    if (dest?.country_id && dest.country_id !== countryId) {
+      setCountryId(dest.country_id);
     }
-    setPrefectureId(d.prefecture_id || "");
-    const pref = prefectures.find((p) => p.id === d.prefecture_id);
-    setRegionId(pref?.region_id || "");
-  }, [destinationId, destinations, prefectures]);
+  }, [destinationId, destinations, countryId]);
 
-  // On destination change, fetch divisions via RPC and clear division only after initial mount
-  const prevDestIdRef = useRef(null);
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchDivs() {
-      if (!destinationId) { setDivisionsForDest([]); return; }
-      try {
-        const { data } = await supabase.rpc('get_divisions_for_destination', { dst_id: destinationId });
-        if (!cancelled) setDivisionsForDest(Array.isArray(data) ? data : []);
-      } catch {
-        if (!cancelled) setDivisionsForDest([]);
-      }
-    }
-    if (prevDestIdRef.current !== null && prevDestIdRef.current !== destinationId) {
-      setDivisionId("");
-    }
-    fetchDivs();
-    prevDestIdRef.current = destinationId;
-    return () => { cancelled = true; };
-  }, [destinationId, supabase]);
-
-  const prefecturesForRegion = useMemo(() => prefectures.filter((p) => p.region_id === regionId), [prefectures, regionId]);
-  const destinationsForScope = useMemo(() => {
-    return destinations.filter((d) => {
-      if (prefectureId && d.prefecture_id !== prefectureId) return false;
-      return true;
-    });
-  }, [destinations, prefectureId]);
+  const filteredDestinations = useMemo(() => {
+    return destinations.filter((d) => !countryId || d.country_id === countryId);
+  }, [destinations, countryId]);
 
   const destSlugForUpload = useMemo(() => {
     const d = destinations.find((x) => x.id === destinationId);
     return d?.slug || "unsorted";
   }, [destinations, destinationId]);
 
-  const tourUploadSlug =
-    slugify(slug || name) ||
-    (initial?.id ? `id-${initial.id}` : "unsorted");
+  const tourUploadSlug = slugify(slug || name) || (initial?.id ? `id-${initial.id}` : "unsorted");
   const tourUploadPrefix = `media/tours/${destSlugForUpload || "unsorted"}/${tourUploadSlug}`;
 
   function addRule() {
-    setRules([...(rules || []), { days_of_week: [0], start_times: ["09:00"], valid_from: "", valid_to: "", timezone: "Asia/Tokyo" }]);
+    setRules([...(rules || []), { days_of_week: [0], start_times: ["09:00"], valid_from: "", valid_to: "", timezone: "Asia/Bangkok" }]);
   }
   function updRule(i, patch) {
     setRules((rules || []).map((h, idx) => (idx === i ? { ...h, ...patch } : h)));
@@ -182,9 +135,11 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
 
   async function save() {
     try {
+      setFormError("");
       if (!name.trim()) throw new Error("Name is required");
       const finalSlug = slugify(slug || name);
       if (!finalSlug) throw new Error("Slug is required");
+      if (!countryId) throw new Error("Select a country");
       if (!destinationId) throw new Error("Select a destination");
 
       const payload = {
@@ -193,263 +148,297 @@ export default function ToursForm({ id, initial, onSaved, onCancel }) {
         summary,
         body_richtext: body,
         images: Array.isArray(images) ? images : [],
+        country_id: countryId,
         destination_id: destinationId,
-        division_id: divisionId || null,
         status,
         lat: lat === "" ? null : Number(lat),
         lng: lng === "" ? null : Number(lng),
         duration_minutes: durationMinutes === "" ? null : Number(durationMinutes),
-        provider: provider || null,
+        provider,
         deeplink: deeplink || null,
-        gyg_id: gygId === "" ? null : String(gygId),
+        gyg_id: gygId || null,
         price_amount: priceAmount === "" ? null : Number(priceAmount),
-        price_currency: priceCurrency || null,
-        tags: Array.isArray(tags) ? tags : null,
-        availability_rules: (rules || []).map((r, idx) => ({
-          idx,
-          days_of_week: Array.isArray(r.days_of_week) ? r.days_of_week : String(r.days_of_week || "").split(",").map(s => Number(s.trim())).filter(n => !isNaN(n)),
-          start_times: Array.isArray(r.start_times) ? r.start_times : String(r.start_times || "").split(",").map(s => s.trim()).filter(Boolean),
-          valid_from: r.valid_from || null,
-          valid_to: r.valid_to || null,
-          timezone: r.timezone || "Asia/Tokyo",
-        })),
-        exceptions: (exceptions || []).map((e) => ({
-          date: e.date || null,
-          action: e.action || "cancel",
-          start_time: e.start_time || null,
-          note: e.note || null,
-        })),
+        price_currency: priceCurrency || "USD",
+        tags: Array.isArray(tags) ? tags : [],
+        rules,
+        exceptions,
       };
-      const res = await fetch(isEditing ? `/api/admin/tours/${id}` : "/api/admin/tours", {
-        method: isEditing ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error || `Save failed (${res.status})`);
-      onSaved?.(json);
-    } catch (e) {
-      alert(e?.message || "Save failed");
-    }
-  }
 
-  async function handleDelete() {
-    if (!isEditing) return;
-    const res = await fetch(`/api/admin/tours/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}));
-      alert(json?.error || `Delete failed (${res.status})`);
-      return;
+      let savedSlug = payload.slug;
+      let res;
+      let json;
+      if (isEditing) {
+        res = await fetch(`/api/admin/tours/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        res = await fetch(`/api/admin/tours`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+      json = await res.json();
+      if (!res.ok) throw new Error(json?.error || `Save failed (${res.status})`);
+      savedSlug = json.slug || savedSlug;
+
+      try {
+        await fetch(`/api/revalidate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tags: ["tours", `tours:${savedSlug}`] }),
+        });
+      } catch {}
+      onSaved?.();
+    } catch (e) {
+      console.error(e);
+      setFormError(e?.message || "Save failed");
     }
-    onSaved?.({ deleted: true });
   }
 
   return (
-    <Card className="space-y-4">
-      <CardContent>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium">Status</label>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="draft">draft</SelectItem>
-              <SelectItem value="published">published</SelectItem>
-            </SelectContent>
-          </Select>
+    <Card>
+      <CardContent className="space-y-4">
+        {formError ? (
+          <div className="rounded border border-red-200 bg-red-50 text-red-800 px-3 py-2 text-sm">
+            {formError}
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium">Name</label>
+            <input className="w-full rounded border p-2" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Slug</label>
+            <input className="w-full rounded border p-2" value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium">Summary</label>
+            <textarea className="w-full rounded border p-2" rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Country</label>
+            <Select
+              value={countryId || "__EMPTY__"}
+              onValueChange={(v) => {
+                const val = v === "__EMPTY__" ? "" : v;
+                setCountryId(val);
+                setDestinationId("");
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a country…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__EMPTY__">Select a country…</SelectItem>
+                {countries.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Destination</label>
+            <Select
+              value={destinationId || "__EMPTY__"}
+              onValueChange={(v) => setDestinationId(v === "__EMPTY__" ? "" : v)}
+              disabled={!countryId}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={countryId ? "Select a destination…" : "Select country first"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__EMPTY__">Select a destination…</SelectItem>
+                {filteredDestinations.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Status</label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">draft</SelectItem>
+                <SelectItem value="published">published</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Credit</label>
+            <input className="w-full rounded border p-2" value={provider} onChange={(e) => setProvider(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Latitude</label>
+            <input className="w-full rounded border p-2" value={lat} onChange={(e) => setLat(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Longitude</label>
+            <input className="w-full rounded border p-2" value={lng} onChange={(e) => setLng(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Duration (minutes)</label>
+            <input className="w-full rounded border p-2" value={durationMinutes} onChange={(e) => setDurationMinutes(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Provider</label>
+            <input className="w-full rounded border p-2" value={provider} onChange={(e) => setProvider(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Deeplink</label>
+            <input className="w-full rounded border p-2" value={deeplink} onChange={(e) => setDeeplink(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">GYG ID</label>
+            <input className="w-full rounded border p-2" value={gygId} onChange={(e) => setGygId(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Price amount</label>
+            <input className="w-full rounded border p-2" value={priceAmount} onChange={(e) => setPriceAmount(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Currency</label>
+            <input className="w-full rounded border p-2" value={priceCurrency} onChange={(e) => setPriceCurrency(e.target.value)} />
+          </div>
         </div>
 
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium">Name</label>
-          <input className="w-full rounded border p-2" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
+        <MultiImageUpload label="Images" value={images} onChange={setImages} prefix={tourUploadPrefix} />
 
-        <div>
-          <label className="block text-sm font-medium">Slug</label>
-          <input
-            className="w-full rounded border p-2"
-            value={slug}
-            onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
-            placeholder="e.g. tokyo-walking-tour"
-          />
-        </div>
+        <RichTextEditor value={body} onChange={setBody} label="Body" />
 
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium">Summary</label>
-          <textarea className="w-full rounded border p-2" rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Region</label>
-          <Select value={regionId || "__EMPTY__"} onValueChange={(v) => { const val = v === "__EMPTY__" ? "" : v; setRegionId(val); setPrefectureId(""); setDivisionId(""); }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="All regions…" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__EMPTY__">All regions…</SelectItem>
-              {regions.map((r) => (
-                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Prefecture</label>
-          <Select value={prefectureId || "__EMPTY__"} onValueChange={(v) => { const val = v === "__EMPTY__" ? "" : v; setPrefectureId(val); setDivisionId(""); }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="All prefectures…" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__EMPTY__">All prefectures…</SelectItem>
-              {prefecturesForRegion.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {/* Division selection depends on destination and is provided below */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium">Destination</label>
-          <Select value={destinationId || "__EMPTY__"} onValueChange={(v) => setDestinationId(v === "__EMPTY__" ? "" : v)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a destination…" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__EMPTY__">Select a destination…</SelectItem>
-              {destinationsForScope.map((d) => (
-                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Division (optional)</label>
-          <Select value={divisionId || "__EMPTY__"} onValueChange={(v) => setDivisionId(v === "__EMPTY__" ? "" : v)}>
-            <SelectTrigger className="w-full" disabled={!destinationId}>
-              <SelectValue placeholder="No division (entire destination)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__EMPTY__">No division (entire destination)</SelectItem>
-              {divisionsForDest.map((d) => (
-                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Latitude</label>
-          <input className="w-full rounded border p-2" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="e.g. 35.6762" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Longitude</label>
-          <input className="w-full rounded border p-2" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="e.g. 139.6503" />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Duration (minutes)</label>
-          <input className="w-full rounded border p-2" value={durationMinutes} onChange={(e) => setDurationMinutes(e.target.value)} placeholder="e.g. 120" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Provider</label>
-          <input className="w-full rounded border p-2" value={provider} onChange={(e) => setProvider(e.target.value)} placeholder="e.g. gyg, viator" />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium">Booking link</label>
-          <input className="w-full rounded border p-2" value={deeplink} onChange={(e) => setDeeplink(e.target.value)} placeholder="https://…" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium">GetYourGuide ID (optional)</label>
-          <input className="w-full rounded border p-2" value={gygId} onChange={(e) => setGygId(e.target.value)} placeholder="e.g. 123456" />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Price amount</label>
-          <input className="w-full rounded border p-2" value={priceAmount} onChange={(e) => setPriceAmount(e.target.value)} placeholder="e.g. 8000" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Price currency</label>
-          <input className="w-full rounded border p-2" value={priceCurrency} onChange={(e) => setPriceCurrency(e.target.value)} placeholder="e.g. JPY" />
-        </div>
-
-        <div className="md:col-span-2">
-          <MultiImageUpload value={images} onChange={setImages} prefix={tourUploadPrefix} />
-        </div>
-
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium">Tags (comma separated)</label>
-          <input
-            className="w-full rounded border p-2"
-            value={(tags || []).join(", ")}
-            onChange={(e) => setTags(e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-            placeholder="e.g. walking,food,evening"
-          />
-        </div>
-      </div>
-
-      <RichTextEditor value={body} onChange={setBody} label="Details" warnOnUnsaved={true} />
-
-      <div className="space-y-2">
-        <div className="text-sm font-medium">Availability rules</div>
-        <Button type="button" variant="outline" size="sm" onClick={addRule}>Add rule</Button>
-        {Array.isArray(rules) && rules.length > 0 ? (
-          <ul className="space-y-2 mt-2">
-            {rules.map((r, idx) => (
-              <li key={idx} className="grid grid-cols-2 md:grid-cols-6 gap-2 items-center">
-                <input className="rounded border p-2" placeholder="Days (e.g. 0,1,2)" value={Array.isArray(r.days_of_week) ? r.days_of_week.join(",") : r.days_of_week || ""} onChange={(e) => updRule(idx, { days_of_week: e.target.value })} />
-                <input className="rounded border p-2" placeholder="Start times (e.g. 09:00,14:00)" value={Array.isArray(r.start_times) ? r.start_times.join(",") : r.start_times || ""} onChange={(e) => updRule(idx, { start_times: e.target.value })} />
-                <input type="date" className="rounded border p-2" placeholder="Valid from" value={r.valid_from || ""} onChange={(e) => updRule(idx, { valid_from: e.target.value })} />
-                <input type="date" className="rounded border p-2" placeholder="Valid to" value={r.valid_to || ""} onChange={(e) => updRule(idx, { valid_to: e.target.value })} />
-                <input className="rounded border p-2" placeholder="Timezone" value={r.timezone || "Asia/Tokyo"} onChange={(e) => updRule(idx, { timezone: e.target.value })} />
-                <Button type="button" variant="destructive" size="sm" className="h-8 px-2 text-xs" onClick={() => delRule(idx)}>Remove</Button>
-              </li>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">Availability rules</h3>
+            <Button size="sm" variant="outline" onClick={addRule}>Add rule</Button>
+          </div>
+          <div className="space-y-3">
+            {(rules || []).map((rule, idx) => (
+              <Card key={idx}>
+                <CardContent className="space-y-2 p-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-muted-foreground">Days of week</label>
+                      <input
+                        className="w-full rounded border p-2"
+                        value={(rule.days_of_week || []).join(",")}
+                        onChange={(e) => updRule(idx, { days_of_week: e.target.value.split(",").map((v) => Number(v.trim())).filter((n) => Number.isInteger(n)) })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground">Start times (HH:MM, comma separated)</label>
+                      <input
+                        className="w-full rounded border p-2"
+                        value={(rule.start_times || []).join(",")}
+                        onChange={(e) => updRule(idx, { start_times: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground">Valid from</label>
+                      <input className="w-full rounded border p-2" value={rule.valid_from || ""} onChange={(e) => updRule(idx, { valid_from: e.target.value || null })} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground">Valid to</label>
+                      <input className="w-full rounded border p-2" value={rule.valid_to || ""} onChange={(e) => updRule(idx, { valid_to: e.target.value || null })} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground">Timezone</label>
+                      <input className="w-full rounded border p-2" value={rule.timezone || ""} onChange={(e) => updRule(idx, { timezone: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button size="sm" variant="destructive" onClick={() => delRule(idx)}>
+                      Delete rule
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-          </ul>
-        ) : null}
-      </div>
+          </div>
+        </div>
 
-      <div className="space-y-2">
-        <div className="text-sm font-medium">Exceptions</div>
-        <Button type="button" variant="outline" size="sm" onClick={addException}>Add exception</Button>
-        {Array.isArray(exceptions) && exceptions.length > 0 ? (
-          <ul className="space-y-2 mt-2">
-            {exceptions.map((e, idx) => (
-              <li key={idx} className="grid grid-cols-2 md:grid-cols-5 gap-2 items-center">
-                <input type="date" className="rounded border p-2" placeholder="Date" value={e.date || ""} onChange={(ev) => updException(idx, { date: ev.target.value })} />
-                <Select value={e.action || "cancel"} onValueChange={(v) => updException(idx, { action: v })}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cancel">cancel</SelectItem>
-                    <SelectItem value="add">add</SelectItem>
-                    <SelectItem value="modify">modify</SelectItem>
-                  </SelectContent>
-                </Select>
-                <input type="time" className="rounded border p-2" placeholder="Start time" value={e.start_time || ""} onChange={(ev) => updException(idx, { start_time: ev.target.value })} />
-                <input className="rounded border p-2" placeholder="Note (optional)" value={e.note || ""} onChange={(ev) => updException(idx, { note: ev.target.value })} />
-                <Button type="button" variant="destructive" size="sm" className="h-8 px-2 text-xs" onClick={() => delException(idx)}>Remove</Button>
-              </li>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">Exceptions</h3>
+            <Button size="sm" variant="outline" onClick={addException}>Add exception</Button>
+          </div>
+          <div className="space-y-3">
+            {(exceptions || []).map((exc, idx) => (
+              <Card key={idx}>
+                <CardContent className="space-y-2 p-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-muted-foreground">Date</label>
+                      <input className="w-full rounded border p-2" value={exc.date || ""} onChange={(e) => updException(idx, { date: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground">Action</label>
+                      <Select value={exc.action || "cancel"} onValueChange={(v) => updException(idx, { action: v })}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cancel">cancel</SelectItem>
+                          <SelectItem value="add">add</SelectItem>
+                          <SelectItem value="modify">modify</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground">Start time</label>
+                      <input className="w-full rounded border p-2" value={exc.start_time || ""} onChange={(e) => updException(idx, { start_time: e.target.value })} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs text-muted-foreground">Note</label>
+                      <textarea className="w-full rounded border p-2" rows={2} value={exc.note || ""} onChange={(e) => updException(idx, { note: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button size="sm" variant="destructive" onClick={() => delException(idx)}>
+                      Delete exception
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-          </ul>
-        ) : null}
-      </div>
+          </div>
+        </div>
 
-      <div className="flex items-center gap-3">
-        <Button onClick={save}>Save</Button>
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        {isEditing ? (
-          <ConfirmDeleteButton
-            title="Delete this tour?"
-            description="This action cannot be undone. This will permanently delete the item and remove any associated data."
-            triggerClassName="ml-auto"
-            onConfirm={handleDelete}
-          />
-        ) : null}
-      </div>
+        <div className="flex items-center gap-3">
+          <Button onClick={save}>{isEditing ? "Save" : "Create"}</Button>
+          <Button variant="outline" onClick={onCancel}>Cancel</Button>
+          {isEditing ? (
+            <ConfirmDeleteButton
+              title="Delete this tour?"
+              description="This action cannot be undone."
+              triggerClassName="ml-auto"
+              onConfirm={async () => {
+                const res = await fetch(`/api/admin/tours/${id}`, { method: "DELETE" });
+                if (!res.ok) {
+                  const json = await res.json().catch(() => ({}));
+                  alert(json?.error || `Delete failed (${res.status})`);
+                  return;
+                }
+                onSaved?.();
+              }}
+            />
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   );
