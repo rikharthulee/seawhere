@@ -18,7 +18,17 @@ export default async function FoodDrinkDetailPage(props) {
   if (!row) notFound();
 
   const hero = resolveImageUrl(firstImageFromImages(row.images ?? []));
-  const gallery = imagesToGallery(row.images ?? []).slice(1);
+  const gallery = imagesToGallery(row.images ?? []);
+  const slides = gallery.length > 0 ? gallery : hero ? [hero] : [];
+  const lat =
+    typeof row?.lat === "number"
+      ? row.lat
+      : Number.parseFloat(String(row?.lat ?? ""));
+  const lng =
+    typeof row?.lng === "number"
+      ? row.lng
+      : Number.parseFloat(String(row?.lng ?? ""));
+  const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -33,16 +43,16 @@ export default async function FoodDrinkDetailPage(props) {
 
       <section className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
         <div className="order-1 md:order-2">
-          {gallery.length > 0 ? (
+          {slides.length > 1 ? (
             <EmblaCarousel
-              images={gallery}
+              images={slides}
               options={{ loop: true, align: "start" }}
               className="rounded-xl overflow-hidden"
               slideClass="h-[48vh] min-h-[320px]"
             />
-          ) : hero ? (
+          ) : slides.length === 1 ? (
             <SafeImage
-              src={hero}
+              src={slides[0]}
               alt={row.name}
               width={1200}
               height={800}
@@ -107,12 +117,25 @@ export default async function FoodDrinkDetailPage(props) {
         </Card>
       </section>
 
-      {row.address ? (
-        <section className="mt-6">
-          <h2 className="text-xl font-semibold mb-2">Address</h2>
-          <pre className="rounded border bg-muted p-3 text-xs overflow-auto text-foreground/90">
-            {typeof row.address === "string" ? row.address : JSON.stringify(row.address, null, 2)}
-          </pre>
+      {(row.address || hasCoordinates) ? (
+        <section className="mt-6 space-y-3">
+          <h2 className="text-xl font-semibold">Location</h2>
+          {row.address ? (
+            <div className="rounded border bg-muted/50 p-3 text-sm text-foreground/90">
+              {row.address}
+            </div>
+          ) : null}
+          {hasCoordinates ? (
+            <div className="overflow-hidden rounded-xl border">
+              <iframe
+                title={`Map of ${row.name}`}
+                src={`https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
+                loading="lazy"
+                allowFullScreen
+                className="h-64 w-full border-0"
+              />
+            </div>
+          ) : null}
         </section>
       ) : null}
     </main>

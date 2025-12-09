@@ -20,8 +20,8 @@ function slugify(s) {
 export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
   const isEditing = !!initial?.id;
   const [name, setName] = useState(initial?.name || "");
-  const [slug, setSlug] = useState(initial?.slug || "");
-  const [slugTouched, setSlugTouched] = useState(!!initial?.id);
+  const [slug, setSlug] = useState(initial?.slug || slugify(initial?.name || ""));
+  const [slugTouched, setSlugTouched] = useState(Boolean(initial?.slug));
   const [summary, setSummary] = useState(initial?.description || "");
   const [images, setImages] = useState(Array.isArray(initial?.images) ? initial.images : []);
   const [status, setStatus] = useState(initial?.status || "draft");
@@ -29,7 +29,11 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
   const [priceBand, setPriceBand] = useState(initial?.price_band || "");
   const [rating, setRating] = useState(initial?.rating ?? "");
   const [bookingUrl, setBookingUrl] = useState(initial?.booking_url || "");
-  const [addressText, setAddressText] = useState(initial?.address ? JSON.stringify(initial.address, null, 2) : "");
+  const [addressText, setAddressText] = useState(
+    typeof initial?.address === "string" ? initial.address : initial?.address ? JSON.stringify(initial.address) : ""
+  );
+  const [lat, setLat] = useState(initial?.lat ?? "");
+  const [lng, setLng] = useState(initial?.lng ?? "");
   const [destinationId, setDestinationId] = useState(initial?.destination_id || "");
   const [countryId, setCountryId] = useState(initial?.country_id || "");
   const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
@@ -66,8 +70,8 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
 
   useEffect(() => {
     setName(initial?.name || "");
-    setSlug(initial?.slug || "");
-    setSlugTouched(!!initial?.id);
+    setSlug(initial?.slug || slugify(initial?.name || ""));
+    setSlugTouched(Boolean(initial?.slug));
     setSummary(initial?.description || "");
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setStatus(initial?.status || "draft");
@@ -75,7 +79,11 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
     setPriceBand(initial?.price_band || "");
     setRating(initial?.rating ?? "");
     setBookingUrl(initial?.booking_url || "");
-    setAddressText(initial?.address ? JSON.stringify(initial.address, null, 2) : "");
+    setAddressText(
+      typeof initial?.address === "string" ? initial.address : initial?.address ? JSON.stringify(initial.address) : ""
+    );
+    setLat(initial?.lat ?? "");
+    setLng(initial?.lng ?? "");
     setDestinationId(initial?.destination_id || "");
     setCountryId(initial?.country_id || "");
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
@@ -103,14 +111,10 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
       if (!countryId) throw new Error("Select a country");
       if (!destinationId) throw new Error("Select a destination");
 
-      let addressJson = null;
-      if (addressText && addressText.trim()) {
-        try {
-          addressJson = JSON.parse(addressText);
-        } catch (e) {
-          throw new Error("Address must be valid JSON or empty");
-        }
-      }
+      const latNum = lat === "" ? null : Number(lat);
+      const lngNum = lng === "" ? null : Number(lng);
+      if (lat !== "" && !Number.isFinite(latNum)) throw new Error("Latitude must be a number");
+      if (lng !== "" && !Number.isFinite(lngNum)) throw new Error("Longitude must be a number");
 
       const payload = {
         name,
@@ -122,7 +126,9 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
         price_band: priceBand || null,
         rating: rating === "" ? null : Number(rating),
         booking_url: bookingUrl || null,
-        address: addressJson,
+        address: addressText || null,
+        lat: latNum,
+        lng: lngNum,
         destination_id: destinationId,
         country_id: countryId,
         tags: Array.isArray(tags) ? tags : [],
@@ -261,9 +267,34 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
             <Input value={bookingUrl} onChange={(e) => setBookingUrl(e.target.value)} />
           </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium">Address JSON</label>
-            <Textarea rows={4} value={addressText} onChange={(e) => setAddressText(e.target.value)} />
+          <div>
+            <label className="block text-sm font-medium">Address</label>
+            <Textarea
+              rows={3}
+              value={addressText}
+              onChange={(e) => setAddressText(e.target.value)}
+              placeholder="123 Example Street, City, Country"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Latitude</label>
+            <Input
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+              placeholder="e.g. 16.8655"
+              inputMode="decimal"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Longitude</label>
+            <Input
+              value={lng}
+              onChange={(e) => setLng(e.target.value)}
+              placeholder="e.g. 96.1951"
+              inputMode="decimal"
+            />
           </div>
 
           <div className="md:col-span-2">

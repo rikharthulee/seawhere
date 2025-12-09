@@ -65,7 +65,9 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
   const [affiliateUrl, setAffiliateUrl] = useState(initial?.affiliate_url || "");
   const [lat, setLat] = useState(initial?.lat ?? "");
   const [lng, setLng] = useState(initial?.lng ?? "");
-  const [addressText, setAddressText] = useState(initial?.address ? JSON.stringify(initial.address, null, 2) : "");
+  const [addressText, setAddressText] = useState(
+    typeof initial?.address === "string" ? initial.address : initial?.address ? JSON.stringify(initial.address) : ""
+  );
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const isEditing = !!initial?.id;
@@ -92,7 +94,8 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
       affiliateUrl: initial?.affiliate_url || "",
       lat: initial?.lat?.toString?.() ?? "",
       lng: initial?.lng?.toString?.() ?? "",
-      addressText: initial?.address ? JSON.stringify(initial.address, null, 2) : "",
+      addressText:
+        typeof initial?.address === "string" ? initial.address : initial?.address ? JSON.stringify(initial.address) : "",
     },
   });
 
@@ -111,7 +114,9 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
     setAffiliateUrl(initial?.affiliate_url || "");
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
-    setAddressText(initial?.address ? JSON.stringify(initial.address, null, 2) : "");
+    setAddressText(
+      typeof initial?.address === "string" ? initial.address : initial?.address ? JSON.stringify(initial.address) : ""
+    );
     setDestinationId(initial?.destination_id || "");
     setCountryId(initial?.country_id || "");
     form.reset({
@@ -126,7 +131,8 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
       affiliateUrl: initial?.affiliate_url || "",
       lat: initial?.lat?.toString?.() ?? "",
       lng: initial?.lng?.toString?.() ?? "",
-      addressText: initial?.address ? JSON.stringify(initial.address, null, 2) : "",
+      addressText:
+        typeof initial?.address === "string" ? initial.address : initial?.address ? JSON.stringify(initial.address) : "",
     });
   }, [initial, form]);
 
@@ -186,14 +192,6 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
     if (Object.keys(errs).length) return;
     setSaving(true);
     try {
-      let addressJson = null;
-      if (values.addressText && values.addressText.trim().length) {
-        try {
-          addressJson = JSON.parse(values.addressText);
-        } catch (e) {
-          throw new Error("Address must be valid JSON or left blank");
-        }
-      }
       const payload = {
         name: values.name,
         slug: values.slug || slugify(values.name),
@@ -210,7 +208,7 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
         affiliate_url: values.affiliateUrl || null,
         lat: values.lat === undefined ? null : Number(values.lat),
         lng: values.lng === undefined ? null : Number(values.lng),
-        address: addressJson,
+        address: values.addressText?.trim() ? values.addressText.trim() : null,
       };
       let savedSlug = payload.slug;
       let res, json;
@@ -385,9 +383,10 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
             <Input value={lng} onChange={(e) => { setLng(e.target.value); form.setValue("lng", e.target.value); }} />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium">Address JSON (optional)</label>
+            <label className="block text-sm font-medium">Address</label>
             <Textarea
-              rows={4}
+              rows={3}
+              placeholder="123 Example Street, City, Country"
               value={addressText}
               onChange={(e) => { setAddressText(e.target.value); form.setValue("addressText", e.target.value); }}
             />
