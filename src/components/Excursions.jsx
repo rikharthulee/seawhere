@@ -12,11 +12,10 @@ export default function Excursions({ items = [] }) {
 
   return (
     <section id="excursions">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="pt-2">
         <div className="flex items-end justify-between">
           <h2 className="text-3xl md:text-4xl font-medium">Excursions</h2>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">

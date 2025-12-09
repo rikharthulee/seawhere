@@ -8,11 +8,10 @@ export default function Accommodation({ items }) {
     console.error("Accommodation component: No items provided");
     return (
       <section id="accommodation">
-        <div className="border-t-2 border-black/10 pt-2">
+        <div className="pt-2">
           <div className="flex items-end justify-between">
             <h2 className="text-3xl md:text-4xl font-medium">Accommodation</h2>
           </div>
-          <div className="border-b-2 border-black/10 mt-3" />
         </div>
         <div className="mt-8 text-center text-muted-foreground">
           No accommodation available
@@ -27,11 +26,10 @@ export default function Accommodation({ items }) {
 
   return (
     <section id="accommodation">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="pt-2">
         <div className="flex items-end justify-between">
           <h2 className="text-3xl md:text-4xl font-medium">Accommodation</h2>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
       </div>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {sorted.map((item) => {

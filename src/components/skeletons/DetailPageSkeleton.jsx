@@ -6,14 +6,13 @@ export default function DetailPageSkeleton({
 }) {
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 space-y-8">
-      <div className="border-t-2 border-border pt-2">
+      <div className="pt-2">
         <div className="flex items-center justify-between">
           <Skeleton className="h-10 w-64 bg-muted/70" aria-hidden />
           {backHref ? (
             <Skeleton className="h-5 w-24 bg-muted/60" aria-hidden />
           ) : null}
         </div>
-        <div className="border-b-2 border-border mt-3" />
       </div>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">

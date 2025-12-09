@@ -45,11 +45,10 @@ export default function FoodDrink({ items }) {
   if (!Array.isArray(items) || items.length === 0) {
     return (
       <section id="food-drink">
-        <div className="border-t-2 border-black/10 pt-2">
+        <div className="pt-2">
           <div className="flex items-end justify-between">
             <h2 className="text-3xl md:text-4xl font-medium">Food &amp; Drink</h2>
           </div>
-          <div className="border-b-2 border-black/10 mt-3" />
         </div>
         <div className="mt-8 text-center text-muted-foreground">
           No food &amp; drink items available
@@ -64,11 +63,10 @@ export default function FoodDrink({ items }) {
 
   return (
     <section id="food-drink">
-      <div className="border-t-2 border-black/10 pt-2">
+      <div className="pt-2">
         <div className="flex items-end justify-between">
           <h2 className="text-3xl md:text-4xl font-medium">Food &amp; Drink</h2>
         </div>
-        <div className="border-b-2 border-black/10 mt-3" />
       </div>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {sorted.map((item) => {

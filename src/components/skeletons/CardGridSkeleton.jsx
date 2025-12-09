@@ -10,11 +10,10 @@ export default function CardGridSkeleton({
   return (
     <section id={sectionId}>
       {title ? (
-        <div className="border-t-2 border-border pt-2">
+        <div className="pt-2">
           <div className="flex items-end justify-between">
             <h2 className="text-3xl md:text-4xl font-medium">{title}</h2>
           </div>
-          <div className="border-b-2 border-border mt-3" />
         </div>
       ) : null}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">

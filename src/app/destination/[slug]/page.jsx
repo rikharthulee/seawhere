@@ -33,7 +33,7 @@ export default async function DestinationPage(props) {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pt-2">
         <div>
           {country ? (
             <div className="text-sm text-muted-foreground mb-1">
