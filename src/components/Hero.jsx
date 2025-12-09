@@ -8,7 +8,7 @@ export default function Hero() {
       {/* HERO */}
       <section className="relative h-[65vh] min-h-[420px]">
         <Image
-          src="/hero.webp"
+          src="/hero.jpg"
           alt="Southeast Asia landscape"
           fill
           sizes="100vw"

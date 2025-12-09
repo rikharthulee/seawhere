@@ -33,30 +33,27 @@ export default async function DestinationPage(props) {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       {/* Page header */}
-      <div className="border-t-2 border-border pt-2">
-        <div className="flex items-center justify-between">
-          <div>
-            {country ? (
-              <div className="text-sm text-muted-foreground mb-1">
-                <Link href={`/country/${country.slug}`} className="underline">
-                  {country.name}
-                </Link>
-              </div>
-            ) : null}
-            <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
-              {dst.name}
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/destinations" className="underline text-sm">
-              Destinations
-            </Link>
-            <Link href="/countries" className="underline text-sm">
-              Countries
-            </Link>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          {country ? (
+            <div className="text-sm text-muted-foreground mb-1">
+              <Link href={`/country/${country.slug}`} className="underline">
+                {country.name}
+              </Link>
+            </div>
+          ) : null}
+          <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
+            {dst.name}
+          </h1>
         </div>
-        <div className="border-b-2 border-border mt-3" />
+        <div className="flex items-center gap-3">
+          <Link href="/destinations" className="underline text-sm">
+            Destinations
+          </Link>
+          <Link href="/countries" className="underline text-sm">
+            Countries
+          </Link>
+        </div>
       </div>
 
       {/* Hero image or gallery */}

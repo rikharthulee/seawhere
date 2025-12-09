@@ -10,10 +10,7 @@ export default async function CountriesPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
-      <div className="border-t-2 border-border pt-2">
-        <h1 className="text-3xl md:text-4xl font-medium">Countries</h1>
-        <div className="border-b-2 border-border mt-3" />
-      </div>
+      <h1 className="text-3xl md:text-4xl font-medium">Countries</h1>
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {countries.map((country) => (

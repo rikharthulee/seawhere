@@ -4,11 +4,7 @@ import Link from "next/link";
 export default function AdminHome() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
-      {/* Header styled like other sections */}
-      <div className="border-t-2 border-border pt-2">
-        <h1 className="text-3xl md:text-4xl font-medium">Admin Dashboard</h1>
-        <div className="border-b-2 border-border mt-3" />
-      </div>
+      <h1 className="text-3xl md:text-4xl font-medium">Admin Dashboard</h1>
 
       {/* Action cards */}
       <section className="mt-8 grid gap-6 sm:grid-cols-2">

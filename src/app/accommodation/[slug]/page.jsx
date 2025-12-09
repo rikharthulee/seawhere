@@ -32,16 +32,13 @@ export default async function AccommodationDetailPage(props) {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       {/* Page header */}
-      <div className="border-t-2 border-border pt-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
-            {row.name}
-          </h1>
-          <Link href="/accommodation" className="underline ml-4">
-            Back
-          </Link>
-        </div>
-        <div className="border-b-2 border-border mt-3" />
+      <div className="flex items-center justify-between pt-2">
+        <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
+          {row.name}
+        </h1>
+        <Link href="/accommodation" className="underline ml-4">
+          Back
+        </Link>
       </div>
 
       {/* Hero image or gallery */}

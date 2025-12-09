@@ -55,25 +55,22 @@ export default async function TourBySlugPage(props) {
         </pre>
       ) : null}
 
-      <div className="border-t-2 border-border pt-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
-            {tour?.name || "Tour"}
-          </h1>
-          {destination?.slug ? (
-            <Link
-              href={`/tours/destination/${destination.slug}`}
-              className="underline ml-4"
-            >
-              Back
-            </Link>
-          ) : (
-            <Link href="/tours" className="underline ml-4">
-              Back
-            </Link>
-          )}
-        </div>
-        <div className="border-b-2 border-border mt-3" />
+      <div className="flex items-center justify-between pt-2">
+        <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
+          {tour?.name || "Tour"}
+        </h1>
+        {destination?.slug ? (
+          <Link
+            href={`/tours/destination/${destination.slug}`}
+            className="underline ml-4"
+          >
+            Back
+          </Link>
+        ) : (
+          <Link href="/tours" className="underline ml-4">
+            Back
+          </Link>
+        )}
       </div>
 
       {tour ? (

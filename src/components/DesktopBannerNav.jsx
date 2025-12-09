@@ -44,7 +44,7 @@ export default function DesktopBannerNav({ links, isAuthed }) {
           className="flex items-center gap-3 text-3xl font-semibold tracking-tight text-foreground"
         >
           <Image
-            src="/crane.png"
+            src="/logo.png"
             alt="Seawhere logo"
             width={56}
             height={56}

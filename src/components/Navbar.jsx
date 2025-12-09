@@ -90,7 +90,7 @@ export default function Navbar() {
             aria-label="Seawhere home"
           >
             <Image
-              src="/crane.png"
+              src="/logo.png"
               alt="Seawhere logo"
               width={40}
               height={40}

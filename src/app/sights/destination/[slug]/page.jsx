@@ -16,16 +16,13 @@ export default async function SightsByDestinationPage(props) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
-      <div className="border-t-2 border-border pt-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
-            Sights in {dst.name}
-          </h1>
-          <Link href="/sights" className="underline ml-4">
-            Back
-          </Link>
-        </div>
-        <div className="border-b-2 border-border mt-3" />
+      <div className="flex items-center justify-between pt-2">
+        <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
+          Sights in {dst.name}
+        </h1>
+        <Link href="/sights" className="underline ml-4">
+          Back
+        </Link>
       </div>
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
