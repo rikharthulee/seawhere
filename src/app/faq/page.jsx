@@ -14,7 +14,7 @@ const faqItems = [
   {
     question: "Who is behind Seawhere?",
     answer:
-      "We are a two-person team based in the region, pairing years of specialist travel planning with technical delivery. You can check out our LinkedIn profiles here: <a href='https://www.linkedin.com/in/david-wall-16a05441/' target='_blank' rel='noopener noreferrer'>David Wall</a> and <a href='https://www.linkedin.com/in/richard-lee-314aa333/' target='_blank' rel='noopener noreferrer'>Richard Lee</a>.",
+      "Seawhere is run by a small team of travel specialists and technologists based in Southeast Asia, combining on-the-ground research with product expertise to build a better planning experience.",
   },
   {
     question: "Which countries are covered?",

@@ -28,7 +28,7 @@ export async function listDestinationsByCountryId(countryId) {
   const db = getPublicDB();
   const { data, error } = await db
     .from("destinations")
-    .select("id, name, slug, status, images, country_id, destination_id")
+    .select("id, name, slug, status, images, country_id")
     .eq("country_id", countryId)
     .eq("status", "published")
     .order("name", { ascending: true });
