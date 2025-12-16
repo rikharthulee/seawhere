@@ -14,7 +14,9 @@ export async function GET() {
         .order("name", { ascending: true }),
       db
         .from("destinations")
-        .select("id,name,slug,country_id,status")
+        .select(
+          "id,name,slug,summary,body_richtext,images,credit,country_id,status,gyg_location_id"
+        )
         .order("name", { ascending: true }),
     ]);
 

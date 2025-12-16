@@ -29,4 +29,4 @@ Open http://localhost:3000 to view the app.
 
 - Countries → destinations → points of interest (sights, experiences, tours, food & drink, accommodation).
 - Excursions are curated bundles of items plus transport legs.
-- Admin tooling lives under `/admin/*`; public browsing under `/country/[slug]`, `/destination/[slug]`, `/sights`, `/experiences`, `/tours`, etc.
+- Admin tooling lives under `/admin/*`; public browsing under `/country/[slug]`, `/destinations/[slug]`, `/sights`, `/experiences`, `/tours`, etc.

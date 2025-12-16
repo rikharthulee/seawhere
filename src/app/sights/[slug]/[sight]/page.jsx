@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
+import EmblaCarousel from "@/components/EmblaCarousel";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
-import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
+import {
+  firstImageFromImages,
+  imagesToGallery,
+  resolveImageUrl,
+} from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
@@ -28,7 +33,9 @@ export default async function SightDetailBySlugPage(props) {
   const lng =
     typeof p.lng === "number" ? p.lng : Number.parseFloat(String(p.lng ?? ""));
   const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
-  const img = resolveImageUrl(firstImageFromImages(p?.images));
+  const gallery = imagesToGallery(p?.images ?? []);
+  const hero = gallery[0] || resolveImageUrl(firstImageFromImages(p?.images));
+  const slides = gallery.length > 0 ? gallery : hero ? [hero] : [];
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -43,14 +50,22 @@ export default async function SightDetailBySlugPage(props) {
 
       <section className="mt-6 grid grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-6 lg:gap-8 items-start">
         <div className="space-y-6">
-          {img ? (
+          {slides.length > 1 ? (
+            <EmblaCarousel
+              images={slides}
+              options={{ loop: true, align: "start" }}
+              className="rounded-xl overflow-hidden"
+              slideClass="h-[48vh] min-h-[320px]"
+            />
+          ) : slides.length === 1 ? (
             <SafeImage
-              src={img}
+              src={slides[0]}
               alt={p.name}
               width={1200}
               height={800}
               className="w-full h-auto rounded-xl object-cover"
             />
+          ) : null}
           ) : null}
 
           <div className="space-y-4">
@@ -112,7 +127,7 @@ export default async function SightDetailBySlugPage(props) {
                   Destination:
                 </span>{" "}
                 <Link
-                    href={`/destination/${dest.slug}`}
+                    href={`/destinations/${dest.slug}`}
                     className="underline"
                   >
                     {dest.name}

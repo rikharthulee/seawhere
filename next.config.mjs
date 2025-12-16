@@ -40,30 +40,6 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   httpAgentOptions: { keepAlive: true },
-  async redirects() {
-    return [
-      {
-        source: "/locations",
-        destination: "/destinations",
-        permanent: true,
-      },
-      {
-        source: "/locations/:slug",
-        destination: "/destination/:slug",
-        permanent: true,
-      },
-      {
-        source: "/destinations/:slug",
-        destination: "/destination/:slug",
-        permanent: true,
-      },
-      {
-        source: "/admin/locations",
-        destination: "/admin/destinations",
-        permanent: true,
-      },
-    ];
-  },
 };
 
 export default nextConfig;

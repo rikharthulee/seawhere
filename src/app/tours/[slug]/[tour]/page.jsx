@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
+import EmblaCarousel from "@/components/EmblaCarousel";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
-import { resolveImageUrl } from "@/lib/imageUrl";
+import {
+  firstImageFromImages,
+  imagesToGallery,
+  resolveImageUrl,
+} from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
 import { getTourBySlugsPublic } from "@/lib/data/public/tours";
@@ -29,18 +34,9 @@ export default async function TourDetailBySlugPage(props) {
   let rules = [];
   let exceptions = [];
 
-  let imgPath = null;
-  if (p.images) {
-    if (Array.isArray(p.images) && p.images.length > 0) {
-      const first = p.images[0];
-      imgPath =
-        (first && (first.url || first.src)) ||
-        (typeof first === "string" ? first : null);
-    } else if (typeof p.images === "string") {
-      imgPath = p.images;
-    }
-  }
-  const img = resolveImageUrl(imgPath);
+  const gallery = imagesToGallery(p.images ?? []);
+  const hero = gallery[0] || resolveImageUrl(firstImageFromImages(p.images ?? []));
+  const slides = gallery.length > 0 ? gallery : hero ? [hero] : [];
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -55,9 +51,16 @@ export default async function TourDetailBySlugPage(props) {
 
       <section className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
         <div className="md:col-span-2">
-          {img ? (
+          {slides.length > 1 ? (
+            <EmblaCarousel
+              images={slides}
+              options={{ loop: true, align: "start" }}
+              className="rounded-xl overflow-hidden"
+              slideClass="h-[48vh] min-h-[320px]"
+            />
+          ) : slides.length === 1 ? (
             <SafeImage
-              src={img}
+              src={slides[0]}
               alt={p.name}
               width={1200}
               height={800}
@@ -77,7 +80,7 @@ export default async function TourDetailBySlugPage(props) {
                         Destination:
                       </span>{" "}
                         <Link
-                        href={`/destination/${dest.slug}`}
+                        href={`/destinations/${dest.slug}`}
                         className="underline"
                       >
                         {dest.name}

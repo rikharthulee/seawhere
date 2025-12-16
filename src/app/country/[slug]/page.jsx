@@ -31,7 +31,7 @@ export default async function CountryPage(props) {
               asChild
               className="overflow-hidden transition-shadow hover:shadow-md"
             >
-              <Link href={`/destination/${dst.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring">
+              <Link href={`/destinations/${dst.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring">
                 <div className="aspect-[4/3] relative bg-black/5">
                   {img ? (
                     <SafeImage

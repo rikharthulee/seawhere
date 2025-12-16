@@ -26,8 +26,9 @@ export default async function AccommodationDetailPage(props) {
   const row = await getAccommodationBySlugPublic(slug);
   if (!row) notFound();
 
-  const hero = resolveImageUrl(firstImageFromImages(row.images ?? []));
-  const gallery = imagesToGallery(row.images ?? []).slice(1);
+  const gallery = imagesToGallery(row.images ?? []);
+  const hero = gallery[0] || resolveImageUrl(firstImageFromImages(row.images ?? []));
+  const slides = gallery.length > 0 ? gallery : hero ? [hero] : [];
   const lat =
     typeof row?.lat === "number"
       ? row.lat
@@ -53,16 +54,16 @@ export default async function AccommodationDetailPage(props) {
       {/* Hero image or gallery */}
       <section className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
         <div className="order-1 md:order-2">
-          {gallery.length > 0 ? (
+          {slides.length > 1 ? (
             <EmblaCarousel
-              images={gallery}
+              images={slides}
               options={{ loop: true, align: "start" }}
               className="rounded-xl overflow-hidden"
               slideClass="h-[48vh] min-h-[320px]"
             />
-          ) : hero ? (
+          ) : slides.length === 1 ? (
             <SafeImage
-              src={hero}
+              src={slides[0]}
               alt={row.name}
               width={1200}
               height={800}
