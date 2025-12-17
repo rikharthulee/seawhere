@@ -15,6 +15,7 @@ export default function Navbar() {
   const [userName, setUserName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [user, setUser] = useState(null);
+  const [countries, setCountries] = useState([]);
   const router = useRouter();
   // Track auth state and show Sign out when logged in
   useEffect(() => {
@@ -42,6 +43,25 @@ export default function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCountries() {
+      try {
+        const res = await fetch("/api/public/countries", { cache: "force-cache" });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (cancelled) return;
+        setCountries(Array.isArray(json.countries) ? json.countries : []);
+      } catch (e) {
+        console.error("Failed to load countries", e);
+      }
+    }
+    loadCountries();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function handleSignOut() {
     setSigningOut(true);
     // Hit server route to clear auth cookies for SSR/middleware
@@ -58,16 +78,18 @@ export default function Navbar() {
     setSigningOut(false);
   }
 
-  const links = [
-    { href: "/", label: "Home" },
-    { href: "/countries", label: "Countries" },
+  const exploreLinks = [
     { href: "/destinations", label: "Destinations" },
     { href: "/sights", label: "Sights" },
-    { href: "/tours", label: "Tours" },
-    { href: "/accommodation", label: "Accommodation" },
     { href: "/experiences", label: "Experiences" },
-    { href: "/transportation", label: "Transportation" },
     { href: "/food-drink", label: "Food & Drink" },
+    { href: "/accommodation", label: "Accommodation" },
+    { href: "/tours", label: "Tours" },
+    { href: "/transportation", label: "Transport" },
+  ];
+
+  const topLinks = [
+    { href: "/countries", label: "Countries" },
     { href: "/blog", label: "Blog" },
     { href: "/about", label: "About" },
     { href: "/faq", label: "FAQ" },
@@ -77,8 +99,8 @@ export default function Navbar() {
   // Show Admin link to any authenticated user; access is still enforced
   // by server-side checks in admin layout and middleware.
   const computedLinks = isAuthed
-    ? [...links, { href: "/admin", label: "Admin" }]
-    : links;
+    ? [...topLinks, { href: "/admin", label: "Admin" }]
+    : topLinks;
 
   return (
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-sm border-b lg:static lg:bg-transparent lg:backdrop-blur-0 lg:border-b-0">
@@ -97,7 +119,7 @@ export default function Navbar() {
               className="h-10 w-10 object-contain"
               priority
             />
-            <span className="text-lg font-semibold text-foreground">Seawhere</span>
+            <span className="text-lg font-semibold text-foreground">SEAwhere</span>
           </Link>
 
           {/* Burger (mobile only) */}
@@ -171,12 +193,19 @@ export default function Navbar() {
         </div>
       ) : null}
 
-      <DesktopBannerNav links={computedLinks} isAuthed={isAuthed} />
+      <DesktopBannerNav
+        links={computedLinks}
+        exploreLinks={exploreLinks}
+        countries={countries}
+        isAuthed={isAuthed}
+      />
 
       <MobileNavbar
         open={open}
         setOpen={setOpen}
         links={computedLinks}
+        exploreLinks={exploreLinks}
+        countries={countries}
         isAuthed={isAuthed}
         userName={userName}
         avatarUrl={avatarUrl}

@@ -66,7 +66,6 @@ export default async function SightDetailBySlugPage(props) {
               className="w-full h-auto rounded-xl object-cover"
             />
           ) : null}
-          ) : null}
 
           <div className="space-y-4">
             {p.summary ? (

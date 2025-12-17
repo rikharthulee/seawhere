@@ -4,7 +4,7 @@ export async function listCountriesPublic() {
   const db = getPublicDB();
   const { data, error } = await db
     .from("countries")
-    .select("id, name, slug, iso_code, default_currency")
+    .select("id, name, slug, iso_code, default_currency, summary, hero_image")
     .order("name", { ascending: true });
   if (error) throw error;
   return data ?? [];
@@ -16,7 +16,7 @@ export async function getCountryBySlugPublic(slug) {
   if (!normalized) return null;
   const { data, error } = await db
     .from("countries")
-    .select("id, name, slug, iso_code, default_currency")
+    .select("id, name, slug, iso_code, default_currency, summary, hero_image")
     .eq("slug", normalized)
     .maybeSingle();
   if (error) throw error;

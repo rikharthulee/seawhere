@@ -14,13 +14,13 @@ export default function AboutPage() {
         </p>
         <p>
           Our team has lived around the region, travelled extensively and
-          designed hundreds of client itineraries. All of that knowledge flows
-          into Seawhere: curated excursions, experiences, accommodation and food
+          designed hundreds of client trips. All of that knowledge flows
+          into Seawhere: curated day itineraries, experiences, accommodation and food
           picks that make every day of your trip make sense.
         </p>
         <p>
-          At the heart of Seawhere is our itinerary builder. Choose from
-          templates or start from scratch, add and swap excursions, experiences,
+          At the heart of Seawhere is our trip builder. Choose from
+          day itinerary templates or start from scratch, add and swap day itineraries, experiences,
           tours and hotels, and export a plan that matches your dates. It
           highlights scheduling clashes and keeps everything organised while you
           book directly with trusted partners.

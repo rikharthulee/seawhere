@@ -12,17 +12,7 @@ import Image from "next/image";
  * Desktop-only banner + black nav bar.
  * Groups key site sections under a shadcn dropdown: “Explore”
  */
-export default function DesktopBannerNav({ links, isAuthed }) {
-  const exploreHrefs = new Set([
-    "/destinations",
-    "/sights",
-    "/tours",
-    "/accommodation",
-    "/experiences",
-    "/transportation",
-    "/food-drink",
-  ]);
-
+export default function DesktopBannerNav({ links, exploreLinks = [], countries = [], isAuthed }) {
   const exploreDescriptions = {
     "/destinations": "Towns, cities and rural locations",
     "/sights": "Temples, museums, viewpoints",
@@ -32,9 +22,6 @@ export default function DesktopBannerNav({ links, isAuthed }) {
     "/transportation": "Stations, hubs & travel links",
     "/food-drink": "Eat & drink across SEA",
   };
-
-  const exploreItems = links.filter((l) => exploreHrefs.has(l.href));
-  const topLevel = links.filter((l) => !exploreHrefs.has(l.href));
 
   return (
     <div className="hidden lg:block border-b bg-background">
@@ -51,13 +38,13 @@ export default function DesktopBannerNav({ links, isAuthed }) {
             className="h-14 w-14 object-contain"
             priority
           />
-          <span>Seawhere</span>
+          <span>SEAwhere</span>
         </Link>
 
-        <div className="flex flex-wrap items-center justify-center gap-7 text-base font-semibold text-foreground/80">
+        <div className="flex flex-wrap items-center justify-center gap-6 text-base font-semibold text-foreground/80">
           <DropdownMenu>
             <DropdownMenuTrigger className="group inline-flex items-center gap-1 rounded px-2 py-1 transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40">
-              Explore
+              Countries
               <svg
                 className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180"
                 viewBox="0 0 20 20"
@@ -71,32 +58,48 @@ export default function DesktopBannerNav({ links, isAuthed }) {
                 />
               </svg>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[220px]">
-              {exploreItems.map((l) => (
-                <DropdownMenuItem key={l.href} asChild className="py-2">
-                  <Link href={l.href} className="block">
-                    <div className="flex items-center gap-2 text-sm leading-tight">
-                      <span>{l.label}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {exploreDescriptions[l.href] || "Explore more"}
-                      </span>
+            <DropdownMenuContent align="start" className="min-w-[240px]">
+              {countries.slice(0, 6).map((c) => (
+                <DropdownMenuItem key={c.id} asChild className="py-2">
+                  <Link href={`/countries/${c.slug}`} className="block">
+                    <div className="flex items-center justify-between">
+                      <span>{c.name}</span>
                     </div>
                   </Link>
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuItem asChild className="py-2">
+                <Link href="/countries" className="block font-semibold">
+                  Browse all countries
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {topLevel.map((l) => (
+          {exploreLinks.map((l) => (
             <Link
               key={l.href}
               className="group relative rounded px-2 py-1 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               href={l.href}
+              title={exploreDescriptions[l.href] || "Explore"}
             >
               <span className="pointer-events-none absolute inset-x-2 bottom-0 h-0.5 origin-left scale-x-0 bg-primary transition-transform duration-200 group-hover:scale-x-100 group-focus-visible:scale-x-100" />
               {l.label}
             </Link>
           ))}
+
+          {links
+            .filter((l) => l.href !== "/countries")
+            .map((l) => (
+              <Link
+                key={l.href}
+                className="group relative rounded px-2 py-1 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                href={l.href}
+              >
+                <span className="pointer-events-none absolute inset-x-2 bottom-0 h-0.5 origin-left scale-x-0 bg-primary transition-transform duration-200 group-hover:scale-x-100 group-focus-visible:scale-x-100" />
+                {l.label}
+              </Link>
+            ))}
 
           {!isAuthed ? (
             <Link

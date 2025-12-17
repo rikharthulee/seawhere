@@ -36,7 +36,7 @@ export default async function DestinationPage(props) {
         <div>
           {country ? (
             <div className="text-sm text-muted-foreground mb-1">
-              <Link href={`/country/${country.slug}`} className="underline">
+              <Link href={`/countries/${country.slug}`} className="underline">
                 {country.name}
               </Link>
             </div>

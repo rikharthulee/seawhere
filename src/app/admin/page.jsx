@@ -85,7 +85,7 @@ export default function AdminHome() {
         <article className="p-5 rounded-xl ring-1 ring-black/10">
           <h2 className="text-xl font-semibold">🍣 Food &amp; Drink</h2>
           <p className="mt-2 text-gray-700">
-            Manage restaurants, bars, and cafés featured in itineraries.
+            Manage restaurants, bars, and cafés featured in trips.
           </p>
           <Link
             href="/admin/food-drink"
@@ -99,7 +99,7 @@ export default function AdminHome() {
         <article className="p-5 rounded-xl ring-1 ring-black/10">
           <h2 className="text-xl font-semibold">🚉 Transportation</h2>
           <p className="mt-2 text-gray-700">
-            Manage stations, terminals, and other transit points for itineraries.
+            Manage stations, terminals, and other transit points for trips.
           </p>
           <Link
             href="/admin/transportation"
@@ -109,18 +109,18 @@ export default function AdminHome() {
           </Link>
         </article>
 
-        {/* Excursions */}
+        {/* Day Itineraries */}
         <article className="p-5 rounded-xl ring-1 ring-black/10">
-          <h2 className="text-xl font-semibold">🗺️ Excursions</h2>
+          <h2 className="text-xl font-semibold">🗺️ Day Itineraries</h2>
           <p className="mt-2 text-gray-700">
             Curate day plans by combining sights, experiences, tours, transport,
             and notes.
           </p>
           <Link
-            href="/admin/excursions"
+            href="/admin/itineraries"
             className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
           >
-            Open Excursions Builder
+            Open Day Itinerary Builder
           </Link>
         </article>
 

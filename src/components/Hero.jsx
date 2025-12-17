@@ -25,7 +25,7 @@ export default function Hero() {
             Tailor-made journeys across Southeast Asia
           </h1>
           <p className="mt-4 text-white/90 drop-shadow text-lg max-w-2xl font-medium">
-            Bespoke itineraries to Laos, Thailand, Vietnam, Cambodia and beyond.
+            Bespoke trips to Laos, Thailand, Vietnam, Cambodia and beyond.
           </p>
         </div>
       </section>
@@ -47,12 +47,12 @@ export default function Hero() {
 
           <ul className="mt-3 list-disc pl-6 space-y-2 text-lg leading-relaxed text-gray-800">
             <li>
-              Dozens of sample itineraries covering beaches, mountains and cities
+              Dozens of sample trips covering beaches, mountains and cities
               across Southeast Asia, all fully customisable using Seawhere&apos;s
-              itinerary builder.
+              trip builder.
             </li>
             <li>
-              Hundreds of curated excursions combining sights, transport info and
+              Hundreds of curated day itineraries combining sights, transport info and
               maps to minimise hassle and maximise your time on the ground.
             </li>
             <li>
@@ -69,7 +69,7 @@ export default function Hero() {
               food allergies and more.
             </li>
             <li>
-              Helpdesk email support including itinerary reviews to ensure it
+              Helpdesk email support including trip reviews to ensure it
               all runs smoothly.
             </li>
           </ul>

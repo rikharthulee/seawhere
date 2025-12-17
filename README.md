@@ -1,6 +1,6 @@
 # Seawhere
 
-Next.js 15 + Supabase app for building and browsing Southeast Asia itineraries. The stack uses the App Router with SSR for public pages and a client-side admin workspace for editing content.
+Next.js 15 + Supabase app for building and browsing Southeast Asia trips. The stack uses the App Router with SSR for public pages and a client-side admin workspace for editing content.
 
 ## Environment
 
@@ -28,5 +28,9 @@ Open http://localhost:3000 to view the app.
 ## Feature map
 
 - Countries → destinations → points of interest (sights, experiences, tours, food & drink, accommodation).
-- Excursions are curated bundles of items plus transport legs.
-- Admin tooling lives under `/admin/*`; public browsing under `/country/[slug]`, `/destinations/[slug]`, `/sights`, `/experiences`, `/tours`, etc.
+- Day itineraries (formerly excursions) are curated bundles of items plus transport legs.
+- Admin tooling lives under `/admin/*`; public browsing under `/countries/[slug]`, `/destinations/[slug]`, `/sights`, `/experiences`, `/tours`, etc.
+
+## Migrations
+
+- `scripts/migrations/2024-06-01-countries-fields.sql` adds optional `summary` and `hero_image` columns on `public.countries` plus an index on `name`. Apply this to surface country cards/hero content.

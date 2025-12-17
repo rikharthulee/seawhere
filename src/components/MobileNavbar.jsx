@@ -12,6 +12,8 @@ export default function MobileNavbar({
   open,
   setOpen,
   links,
+  exploreLinks = [],
+  countries = [],
   isAuthed,
   userName = "",
   avatarUrl = "",
@@ -19,32 +21,12 @@ export default function MobileNavbar({
   signingOut = false,
 }) {
   const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
+  const [mobileCountriesOpen, setMobileCountriesOpen] = useState(false);
 
-  const exploreDescriptions = {
-    "/destinations": "Towns, cities and rural locations",
-    "/sights": "Temples, museums, viewpoints",
-    "/tours": "Guided tours & tickets",
-    "/accommodation": "Hotels, villas and boutiques",
-    "/experiences": "Classes, shows & activities",
-    "/transportation": "Stations, hubs & travel links",
-    "/food-drink": "Eat & drink across SEA",
-  };
-
-  const { exploreItems, topLevel } = useMemo(() => {
-    const exploreHrefs = new Set([
-      "/destinations",
-      "/sights",
-      "/tours",
-      "/accommodation",
-      "/experiences",
-      "/transportation",
-      "/food-drink",
-    ]);
-    return {
-      exploreItems: links.filter((l) => exploreHrefs.has(l.href)),
-      topLevel: links.filter((l) => !exploreHrefs.has(l.href)),
-    };
-  }, [links]);
+  const topLevel = useMemo(
+    () => (links || []).filter((l) => l.href !== "/countries"),
+    [links]
+  );
 
   return (
     <div
@@ -56,18 +38,18 @@ export default function MobileNavbar({
     >
       <div className="px-4 pb-4 bg-background text-foreground">
         <ul className="flex flex-col gap-2">
-          {/* Explore collapsible */}
+          {/* Countries collapsible */}
           <li>
             <button
               className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-accent"
-              onClick={() => setMobileExploreOpen((v) => !v)}
-              aria-expanded={mobileExploreOpen}
-              aria-controls="mobile-explore-panel"
+              onClick={() => setMobileCountriesOpen((v) => !v)}
+              aria-expanded={mobileCountriesOpen}
+              aria-controls="mobile-countries-panel"
             >
-              <span>Explore</span>
+              <span>Countries</span>
               <svg
                 className={`h-4 w-4 transition-transform ${
-                  mobileExploreOpen ? "rotate-180" : "rotate-0"
+                  mobileCountriesOpen ? "rotate-180" : "rotate-0"
                 }`}
                 viewBox="0 0 20 20"
                 fill="currentColor"
@@ -81,31 +63,50 @@ export default function MobileNavbar({
               </svg>
             </button>
             <div
-              id="mobile-explore-panel"
+              id="mobile-countries-panel"
               className={`overflow-hidden transition-[max-height,opacity] duration-300 ${
-                mobileExploreOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                mobileCountriesOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
               <ul className="mt-1 ml-2 flex flex-col gap-1 border-l border-border">
-                {exploreItems.map((l) => (
-                  <li key={l.href}>
+                {countries.slice(0, 6).map((c) => (
+                  <li key={c.id}>
                     <Link
                       className="block rounded-lg px-3 py-2 hover:bg-accent"
-                      href={l.href}
+                      href={`/countries/${c.slug}`}
                       onClick={() => setOpen(false)}
                     >
-                      <div className="text-sm leading-tight flex items-center gap-1">
-                        <span>{l.label}</span>
-                        <span className="text-xs text-muted-foreground">
-                          - {exploreDescriptions[l.href] || "Explore more"}
-                        </span>
+                      <div className="text-sm leading-tight flex items-center gap-2">
+                        <span>{c.name}</span>
                       </div>
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <Link
+                    className="block rounded-lg px-3 py-2 hover:bg-accent"
+                    href="/countries"
+                    onClick={() => setOpen(false)}
+                  >
+                    Browse all
+                  </Link>
+                </li>
               </ul>
             </div>
           </li>
+
+          {/* Explore links inline */}
+          {exploreLinks.map((l) => (
+            <li key={l.href}>
+              <Link
+                className="block rounded-lg px-3 py-2 hover:bg-accent"
+                href={l.href}
+                onClick={() => setOpen(false)}
+              >
+                {l.label}
+              </Link>
+            </li>
+          ))}
 
           {/* Remaining top-level links */}
           {topLevel.map((l) => (

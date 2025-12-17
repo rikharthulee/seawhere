@@ -9,7 +9,7 @@ const faqItems = [
   {
     question: "What is Seawhere?",
     answer:
-      "Seawhere is a curated planning platform for Southeast Asia. Browse destinations, excursions, accommodation and food picks, then tailor an itinerary with our admin tools and helpdesk support.",
+      "Seawhere is a curated planning platform for Southeast Asia. Browse destinations, day itineraries, accommodation and food picks, then tailor a trip with our admin tools and helpdesk support.",
   },
   {
     question: "Who is behind Seawhere?",

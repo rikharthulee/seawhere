@@ -37,8 +37,8 @@ export default function DestinationsManager() {
       setDestinations(Array.isArray(json.destinations) ? json.destinations : []);
       setCountries(Array.isArray(json.countries) ? json.countries : []);
     } catch (e) {
-      console.error("Failed to load locations", e);
-      setError(e?.message || "Failed to load locations");
+      console.error("Failed to load destinations", e);
+      setError(e?.message || "Failed to load destinations");
     } finally {
       setLoading(false);
     }

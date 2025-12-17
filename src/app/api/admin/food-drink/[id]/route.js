@@ -44,7 +44,7 @@ export async function DELETE(_req, ctx) {
       const status = error.code === "23503" ? 409 : 400; // foreign key violation
       const friendly =
         error.code === "23503"
-          ? "Cannot delete this item because other records reference it (e.g., itinerary items). Remove those first."
+          ? "Cannot delete this item because other records reference it (e.g., trip day items). Remove those first."
           : error.message;
       return NextResponse.json({ error: friendly }, { status });
     }
@@ -56,4 +56,3 @@ export async function DELETE(_req, ctx) {
     );
   }
 }
-

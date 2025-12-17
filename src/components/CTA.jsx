@@ -14,7 +14,7 @@ export default function CTA() {
                   Plan your tailor-made journey
                 </h3>
                 <p className="mt-2 text-primary-foreground/80">
-                  Speak to a specialist to craft an itinerary around you.
+                  Speak to a specialist to craft a trip around you.
                 </p>
               </div>
               <div className="md:text-right">

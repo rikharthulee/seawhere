@@ -44,7 +44,7 @@ export async function DELETE(_req, ctx) {
       const status = error.code === "23503" ? 409 : 400; // foreign key violation
       const friendly =
         error.code === "23503"
-          ? "Cannot delete this accommodation because other records reference it (e.g., itineraries). Remove those first or detach their accommodation."
+          ? "Cannot delete this accommodation because other records reference it (e.g., trips). Remove those first or detach their accommodation."
           : error.message;
       return NextResponse.json({ error: friendly }, { status });
     }

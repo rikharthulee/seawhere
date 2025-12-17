@@ -5,7 +5,7 @@ export default function Footer() {
         <div>
           <div className="font-semibold">Seawhere</div>
           <p className="mt-2 text-sm text-neutral-600">
-            Bespoke itineraries across Southeast Asia&apos;s most extraordinary places.
+            Bespoke trips across Southeast Asia&apos;s most extraordinary places.
           </p>
         </div>
         <div>
