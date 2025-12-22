@@ -70,38 +70,27 @@ CREATE TABLE public.countries (
   hero_image text,
   CONSTRAINT countries_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.destination_links (
-  from_location_id uuid NOT NULL,
-  to_location_id uuid NOT NULL,
-  relation text NOT NULL CHECK (relation = ANY (ARRAY['nearby'::text, 'day_trip'::text, 'gateway'::text, 'sister_area'::text])),
-  weight integer DEFAULT 0,
-  CONSTRAINT destination_links_pkey PRIMARY KEY (from_location_id, relation, to_location_id),
-  CONSTRAINT destination_links_from_location_id_fkey FOREIGN KEY (from_location_id) REFERENCES public.destinations(id),
-  CONSTRAINT destination_links_to_location_id_fkey FOREIGN KEY (to_location_id) REFERENCES public.destinations(id)
-);
-CREATE TABLE public.destinations (
+CREATE TABLE public.day_itineraries (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  country_id uuid NOT NULL,
   name text NOT NULL,
-  slug text NOT NULL UNIQUE,
-  summary text,
-  body_richtext jsonb,
-  credit text,
-  lat numeric,
-  lng numeric,
+  description jsonb,
+  maps_url text,
   status USER-DEFINED NOT NULL DEFAULT 'draft'::content_status,
-  published_at timestamp with time zone,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
-  gyg_location_id numeric,
-  images jsonb,
-  CONSTRAINT destinations_pkey PRIMARY KEY (id),
-  CONSTRAINT destinations_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id)
-);
-CREATE TABLE public.exchange_rates (
-  currency text NOT NULL,
-  units_per_usd numeric NOT NULL CHECK (units_per_usd > 0::numeric),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT exchange_rates_pkey PRIMARY KEY (currency)
+  updated_at timestamp with time zone,
+  summary text,
+  destination_id uuid,
+  country_id uuid,
+  slug text UNIQUE,
+  cover_image text,
+  tags ARRAY DEFAULT '{}'::text[],
+  cost_band text CHECK (cost_band = ANY (ARRAY['budget'::text, 'midrange'::text, 'premium'::text, 'luxury'::text])),
+  notes text,
+  wheelchair_friendly boolean NOT NULL DEFAULT false,
+  good_with_kids boolean NOT NULL DEFAULT false,
+  CONSTRAINT day_itineraries_pkey PRIMARY KEY (id),
+  CONSTRAINT excursions_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT excursions_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id)
 );
 CREATE TABLE public.day_itinerary_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -143,32 +132,57 @@ CREATE TABLE public.day_itinerary_transport_legs (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT day_itinerary_transport_legs_pkey PRIMARY KEY (id),
-  CONSTRAINT day_itinerary_transport_legs_day_itinerary_id_fkey FOREIGN KEY (day_itinerary_id) REFERENCES public.day_itineraries(id),
-  CONSTRAINT day_itinerary_transport_legs_from_item_id_fkey FOREIGN KEY (from_item_id) REFERENCES public.day_itinerary_items(id),
-  CONSTRAINT day_itinerary_transport_legs_to_item_id_fkey FOREIGN KEY (to_item_id) REFERENCES public.day_itinerary_items(id),
-  CONSTRAINT day_itinerary_transport_legs_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.transport_templates(id)
+  CONSTRAINT excursion_transport_legs_excursion_id_fkey FOREIGN KEY (day_itinerary_id) REFERENCES public.day_itineraries(id),
+  CONSTRAINT excursion_transport_legs_from_item_id_fkey FOREIGN KEY (from_item_id) REFERENCES public.day_itinerary_items(id),
+  CONSTRAINT excursion_transport_legs_to_item_id_fkey FOREIGN KEY (to_item_id) REFERENCES public.day_itinerary_items(id),
+  CONSTRAINT excursion_transport_legs_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.transport_templates(id)
 );
-CREATE TABLE public.day_itineraries (
+CREATE TABLE public.destination_links (
+  from_location_id uuid NOT NULL,
+  to_location_id uuid NOT NULL,
+  relation text NOT NULL CHECK (relation = ANY (ARRAY['nearby'::text, 'day_trip'::text, 'gateway'::text, 'sister_area'::text])),
+  weight integer DEFAULT 0,
+  CONSTRAINT destination_links_pkey PRIMARY KEY (from_location_id, relation, to_location_id),
+  CONSTRAINT destination_links_from_location_id_fkey FOREIGN KEY (from_location_id) REFERENCES public.destinations(id),
+  CONSTRAINT destination_links_to_location_id_fkey FOREIGN KEY (to_location_id) REFERENCES public.destinations(id)
+);
+CREATE TABLE public.destinations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
+  country_id uuid NOT NULL,
   name text NOT NULL,
-  description jsonb,
-  maps_url text,
-  status USER-DEFINED NOT NULL DEFAULT 'draft'::content_status,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone,
+  slug text NOT NULL UNIQUE,
   summary text,
-  destination_id uuid,
-  country_id uuid,
-  slug text UNIQUE,
-  cover_image text,
-  tags ARRAY DEFAULT '{}'::text[],
-  cost_band text CHECK (cost_band = ANY (ARRAY['budget'::text, 'midrange'::text, 'premium'::text, 'luxury'::text])),
-  notes text,
-  wheelchair_friendly boolean NOT NULL DEFAULT false,
-  good_with_kids boolean NOT NULL DEFAULT false,
-  CONSTRAINT day_itineraries_pkey PRIMARY KEY (id),
-  CONSTRAINT day_itineraries_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
-  CONSTRAINT day_itineraries_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id)
+  body_richtext jsonb,
+  credit text,
+  lat numeric,
+  lng numeric,
+  status USER-DEFINED NOT NULL DEFAULT 'draft'::content_status,
+  published_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  gyg_location_id numeric,
+  images jsonb,
+  CONSTRAINT destinations_pkey PRIMARY KEY (id),
+  CONSTRAINT destinations_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id)
+);
+CREATE TABLE public.destinations_staging (
+  country_slug text NOT NULL,
+  name text NOT NULL,
+  slug text NOT NULL,
+  summary text,
+  body_richtext jsonb,
+  credit text,
+  lat numeric,
+  lng numeric,
+  status USER-DEFINED DEFAULT 'draft'::content_status,
+  published_at timestamp with time zone,
+  gyg_location_id numeric,
+  images jsonb
+);
+CREATE TABLE public.exchange_rates (
+  currency text NOT NULL,
+  units_per_usd numeric NOT NULL CHECK (units_per_usd > 0::numeric),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT exchange_rates_pkey PRIMARY KEY (currency)
 );
 CREATE TABLE public.experience_availability_rules (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -256,55 +270,9 @@ CREATE TABLE public.hotels (
   CONSTRAINT hotels_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
   CONSTRAINT hotels_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id)
 );
-CREATE TABLE public.trips (
+CREATE TABLE public.itinerary_flights (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  owner_id uuid,
-  title text,
-  destination_id uuid,
-  country_id uuid,
-  start_date date,
-  end_date date,
-  status USER-DEFINED NOT NULL DEFAULT 'draft'::trip_status,
-  visibility USER-DEFINED NOT NULL DEFAULT 'private'::visibility_status,
-  notes jsonb,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  created_by uuid DEFAULT auth.uid(),
-  CONSTRAINT trips_pkey PRIMARY KEY (id),
-  CONSTRAINT trips_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id),
-  CONSTRAINT trips_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
-  CONSTRAINT trips_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id)
-);
-CREATE TABLE public.trip_day_items (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  day_id uuid,
-  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['hotel'::text, 'day_itinerary'::text, 'sight'::text, 'tour'::text, 'food_drink'::text, 'note'::text, 'transport'::text, 'custom'::text])),
-  ref_id uuid,
-  notes text,
-  sort_order integer NOT NULL DEFAULT 0,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  created_by uuid DEFAULT auth.uid(),
-  CONSTRAINT trip_day_items_pkey PRIMARY KEY (id),
-  CONSTRAINT trip_day_items_day_id_fkey FOREIGN KEY (day_id) REFERENCES public.trip_days(id)
-);
-CREATE TABLE public.trip_days (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  trip_id uuid,
-  day_index integer NOT NULL,
-  title text,
-  destination_id uuid,
-  sub_destination_id uuid,
-  accommodation_id uuid,
-  date date,
-  created_by uuid DEFAULT auth.uid(),
-  CONSTRAINT trip_days_pkey PRIMARY KEY (id),
-  CONSTRAINT trip_days_trip_id_fkey FOREIGN KEY (trip_id) REFERENCES public.trips(id),
-  CONSTRAINT trip_days_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
-  CONSTRAINT trip_days_sub_destination_id_fkey FOREIGN KEY (sub_destination_id) REFERENCES public.destinations(id),
-  CONSTRAINT trip_days_accommodation_id_fkey FOREIGN KEY (accommodation_id) REFERENCES public.accommodation(id)
-);
-CREATE TABLE public.trip_flights (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  trip_id uuid,
+  itinerary_id uuid,
   flight_number text,
   departure_airport text,
   arrival_airport text,
@@ -312,8 +280,8 @@ CREATE TABLE public.trip_flights (
   arrival_time timestamp with time zone,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   created_by uuid DEFAULT auth.uid(),
-  CONSTRAINT trip_flights_pkey PRIMARY KEY (id),
-  CONSTRAINT trip_flights_trip_id_fkey FOREIGN KEY (trip_id) REFERENCES public.trips(id)
+  CONSTRAINT itinerary_flights_pkey PRIMARY KEY (id),
+  CONSTRAINT itinerary_flights_itinerary_id_fkey FOREIGN KEY (itinerary_id) REFERENCES public.trips(id)
 );
 CREATE TABLE public.profiles (
   id uuid NOT NULL,
@@ -404,6 +372,30 @@ CREATE TABLE public.sights (
   CONSTRAINT sights_pkey PRIMARY KEY (id),
   CONSTRAINT sights_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
   CONSTRAINT sights_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id)
+);
+CREATE TABLE public.sights_staging (
+  country_slug text,
+  destination_slug text,
+  name text NOT NULL,
+  slug text,
+  summary text,
+  description text,
+  body_richtext jsonb,
+  lat numeric,
+  lng numeric,
+  open_hours jsonb,
+  images jsonb,
+  tags ARRAY DEFAULT '{}'::text[],
+  status USER-DEFINED DEFAULT 'draft'::content_status,
+  duration_minutes integer,
+  provider text,
+  deeplink text,
+  external_ref_id numeric,
+  price_amount numeric,
+  price_currency text,
+  opening_times_url text,
+  maps_place_id text,
+  gyg_id numeric
 );
 CREATE TABLE public.tour_availability_rules (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -496,6 +488,55 @@ CREATE TABLE public.transport_templates (
   CONSTRAINT transport_templates_from_transport_id_fkey FOREIGN KEY (from_transport_id) REFERENCES public.transport(id),
   CONSTRAINT transport_templates_to_transport_id_fkey FOREIGN KEY (to_transport_id) REFERENCES public.transport(id),
   CONSTRAINT transport_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.trip_day_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  day_id uuid,
+  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['hotel'::text, 'excursion'::text, 'sight'::text, 'tour'::text, 'food_drink'::text, 'note'::text, 'transport'::text, 'custom'::text])),
+  ref_id uuid,
+  notes text,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_by uuid DEFAULT auth.uid(),
+  CONSTRAINT trip_day_items_pkey PRIMARY KEY (id),
+  CONSTRAINT trip_day_items_day_id_fkey FOREIGN KEY (day_id) REFERENCES public.trip_days(id)
+);
+CREATE TABLE public.trip_days (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  trip_id uuid,
+  day_index integer NOT NULL,
+  title text,
+  destination_id uuid,
+  sub_destination_id uuid,
+  accommodation_id uuid,
+  date date,
+  created_by uuid DEFAULT auth.uid(),
+  day_itinerary_id uuid,
+  CONSTRAINT trip_days_pkey PRIMARY KEY (id),
+  CONSTRAINT itinerary_days_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT itinerary_days_sub_destination_id_fkey FOREIGN KEY (sub_destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT itinerary_days_accommodation_id_fkey FOREIGN KEY (accommodation_id) REFERENCES public.accommodation(id),
+  CONSTRAINT trip_days_trip_id_fkey FOREIGN KEY (trip_id) REFERENCES public.trips(id),
+  CONSTRAINT trip_days_day_itinerary_id_fkey FOREIGN KEY (day_itinerary_id) REFERENCES public.day_itineraries(id)
+);
+CREATE TABLE public.trips (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  owner_id uuid,
+  title text,
+  summary text,
+  destination_id uuid,
+  country_id uuid,
+  start_date date,
+  end_date date,
+  status USER-DEFINED NOT NULL DEFAULT 'draft'::itinerary_status,
+  visibility USER-DEFINED NOT NULL DEFAULT 'private'::visibility_status,
+  notes jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_by uuid DEFAULT auth.uid(),
+  CONSTRAINT trips_pkey PRIMARY KEY (id),
+  CONSTRAINT itineraries_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id),
+  CONSTRAINT itineraries_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT itineraries_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.countries(id)
 );
 CREATE TABLE public.user_roles (
   user_id uuid NOT NULL,

@@ -124,6 +124,20 @@ export default function AdminHome() {
           </Link>
         </article>
 
+        {/* Trips */}
+        <article className="p-5 rounded-xl ring-1 ring-black/10">
+          <h2 className="text-xl font-semibold">🧭 Trips</h2>
+          <p className="mt-2 text-gray-700">
+            Build multi-day trips by assigning day itineraries to each day.
+          </p>
+          <Link
+            href="/admin/trips"
+            className="inline-block mt-4 rounded bg-black text-white px-4 py-2 hover:opacity-90"
+          >
+            Open Trip Planner
+          </Link>
+        </article>
+
         {/* View Website */}
         <article className="p-5 rounded-xl ring-1 ring-black/10">
           <h2 className="text-xl font-semibold">🌐 View Website</h2>
