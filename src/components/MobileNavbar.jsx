@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
-import SafeImage from "@/components/SafeImage";
-import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 /**
  * Mobile-only slide-down panel for site navigation.
@@ -11,22 +11,13 @@ import { Button } from "@/components/ui/button";
 export default function MobileNavbar({
   open,
   setOpen,
-  links,
-  exploreLinks = [],
-  countries = [],
-  isAuthed,
-  userName = "",
-  avatarUrl = "",
-  onSignOut = () => {},
-  signingOut = false,
+  navItems = [],
+  aboutItems = [],
+  onSearchSubmit,
+  searchOpen,
+  setSearchOpen,
 }) {
-  const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
-  const [mobileCountriesOpen, setMobileCountriesOpen] = useState(false);
-
-  const topLevel = useMemo(
-    () => (links || []).filter((l) => l.href !== "/countries"),
-    [links]
-  );
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
     <div
@@ -38,18 +29,29 @@ export default function MobileNavbar({
     >
       <div className="px-4 pb-4 bg-background text-foreground">
         <ul className="flex flex-col gap-2">
-          {/* Countries collapsible */}
+          {navItems.map((l) => (
+            <li key={l.href}>
+              <Link
+                className="block rounded-lg px-3 py-2 hover:bg-accent"
+                href={l.href}
+                onClick={() => setOpen(false)}
+              >
+                {l.label}
+              </Link>
+            </li>
+          ))}
+
           <li>
             <button
               className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-accent"
-              onClick={() => setMobileCountriesOpen((v) => !v)}
-              aria-expanded={mobileCountriesOpen}
-              aria-controls="mobile-countries-panel"
+              onClick={() => setAboutOpen((v) => !v)}
+              aria-expanded={aboutOpen}
+              aria-controls="mobile-about-panel"
             >
-              <span>Countries</span>
+              <span>About</span>
               <svg
                 className={`h-4 w-4 transition-transform ${
-                  mobileCountriesOpen ? "rotate-180" : "rotate-0"
+                  aboutOpen ? "rotate-180" : "rotate-0"
                 }`}
                 viewBox="0 0 20 20"
                 fill="currentColor"
@@ -63,110 +65,51 @@ export default function MobileNavbar({
               </svg>
             </button>
             <div
-              id="mobile-countries-panel"
+              id="mobile-about-panel"
               className={`overflow-hidden transition-[max-height,opacity] duration-300 ${
-                mobileCountriesOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                aboutOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
               <ul className="mt-1 ml-2 flex flex-col gap-1 border-l border-border">
-                {countries.slice(0, 6).map((c) => (
-                  <li key={c.id}>
+                {aboutItems.map((item) => (
+                  <li key={item.href}>
                     <Link
                       className="block rounded-lg px-3 py-2 hover:bg-accent"
-                      href={`/countries/${c.slug}`}
+                      href={item.href}
                       onClick={() => setOpen(false)}
                     >
-                      <div className="text-sm leading-tight flex items-center gap-2">
-                        <span>{c.name}</span>
-                      </div>
+                      {item.label}
                     </Link>
                   </li>
                 ))}
-                <li>
-                  <Link
-                    className="block rounded-lg px-3 py-2 hover:bg-accent"
-                    href="/countries"
-                    onClick={() => setOpen(false)}
-                  >
-                    Browse all
-                  </Link>
-                </li>
               </ul>
             </div>
           </li>
-
-          {/* Explore links inline */}
-          {exploreLinks.map((l) => (
-            <li key={l.href}>
-              <Link
-                className="block rounded-lg px-3 py-2 hover:bg-accent"
-                href={l.href}
-                onClick={() => setOpen(false)}
-              >
-                {l.label}
-              </Link>
-            </li>
-          ))}
-
-          {/* Remaining top-level links */}
-          {topLevel.map((l) => (
-            <li key={l.href}>
-              <Link
-                className="block rounded-lg px-3 py-2 hover:bg-accent"
-                href={l.href}
-                onClick={() => setOpen(false)}
-              >
-                {l.label}
-              </Link>
-            </li>
-          ))}
-
-          {/* Login (if not authed) */}
-          {!isAuthed ? (
-            <li>
-              <Link
-                className="block rounded-lg px-3 py-2 hover:bg-accent"
-                href="/login"
-                onClick={() => setOpen(false)}
-              >
-                Login
-              </Link>
-            </li>
-          ) : null}
         </ul>
-
-        {/* Authed block */}
-        {isAuthed ? (
-          <div className="mt-3">
-            <div className="mb-2 flex items-center gap-2">
-              {avatarUrl ? (
-                <SafeImage
-                  src={avatarUrl}
-                  alt="Avatar"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 rounded-full object-cover"
-                />
-              ) : (
-                <div className="h-8 w-8 rounded-full bg-black/10 grid place-items-center text-xs">
-                  {(userName || "").slice(0, 1).toUpperCase()}
-                </div>
-              )}
-              <span className="text-sm">{userName}</span>
-            </div>
-            <Button
-              onClick={() => {
-                setOpen(false);
-                onSignOut();
-              }}
-              disabled={signingOut}
-              className="w-full"
-            >
-              {signingOut ? "Signing out…" : "Sign out"}
-            </Button>
-          </div>
-        ) : null}
       </div>
+
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Search Seawhere</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={onSearchSubmit} className="flex items-center gap-2">
+            <Input
+              name="q"
+              type="search"
+              placeholder="Search destinations, sights, tours..."
+              className="flex-1"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              Search
+            </button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

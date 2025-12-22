@@ -2,8 +2,9 @@ import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
+import { destinationItemPath } from "@/lib/routes";
 
-export default function Experiences({ items = [] }) {
+export default function Experiences({ items = [], countrySlug, destinationSlug }) {
   const sorted = Array.isArray(items)
     ? [...items].sort((a, b) =>
         (a.title || a.name || "").localeCompare(b.title || b.name || "")
@@ -32,7 +33,22 @@ export default function Experiences({ items = [] }) {
             }
           }
           const img = resolveImageUrl(imgPath);
-          const href = p?.slug ? `/experiences/${encodeURIComponent(p.slug)}` : null;
+          const href =
+            p?.slug && countrySlug && destinationSlug
+              ? destinationItemPath(
+                  countrySlug,
+                  destinationSlug,
+                  "experiences",
+                  p.slug
+                )
+              : p?.slug
+                ? destinationItemPath(
+                    p?.countries?.slug,
+                    p?.destinations?.slug,
+                    "experiences",
+                    p.slug
+                  )
+                : null;
           const CardTag = href ? Link : "div";
           const cardProps = href ? { href } : {};
           return (

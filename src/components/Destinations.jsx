@@ -1,6 +1,7 @@
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
+import { destinationPath } from "@/lib/routes";
 
 function destinationHref(dest) {
   const countrySlug =
@@ -10,9 +11,7 @@ function destinationHref(dest) {
     null;
   const destinationSlug = dest?.slug || dest?.destination_slug || null;
   if (countrySlug && destinationSlug) {
-    return `/destinations/${encodeURIComponent(countrySlug)}/${encodeURIComponent(
-      destinationSlug
-    )}`;
+    return destinationPath(countrySlug, destinationSlug);
   }
   return null;
 }

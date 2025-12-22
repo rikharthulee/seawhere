@@ -40,6 +40,19 @@ export async function listSightsByDestinationSlug(destinationSlug) {
   return { destination: dst, sights: data ?? [] };
 }
 
+export async function listSightsByDestinationId(destinationId) {
+  if (!destinationId) return [];
+  const db = getPublicDB();
+  const { data, error } = await db
+    .from("sights")
+    .select("id, slug, name, summary, images, destination_id, country_id, status")
+    .eq("destination_id", destinationId)
+    .eq("status", "published")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 const trimTime = (value) => {
   if (!value) return "";
   const match = String(value).match(/^([0-9]{1,2}:[0-9]{2})/);

@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { destinationItemPath } from "@/lib/routes";
 
 export default function SightsManager() {
   const [items, setItems] = useState([]);
@@ -70,9 +71,7 @@ export default function SightsManager() {
     const destSlug = dest?.slug;
     const countrySlug = dest?.countries?.slug;
     if (destSlug && countrySlug && it.slug) {
-      return `/sights/${encodeURIComponent(countrySlug)}/${encodeURIComponent(
-        destSlug
-      )}/${encodeURIComponent(it.slug)}`;
+      return destinationItemPath(countrySlug, destSlug, "sights", it.slug);
     }
     return null;
   };

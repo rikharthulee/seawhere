@@ -8,6 +8,7 @@ import RichText from "@/components/RichText";
 import { getTourBySlugPublic } from "@/lib/data/public/tours";
 import { fmtJPY } from "@/lib/format";
 import GygWidget from "@/components/GygWidget";
+import { destinationPath, destinationSectionPath } from "@/lib/routes";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -61,7 +62,11 @@ export default async function TourBySlugPage(props) {
         </h1>
         {destination?.slug ? (
           <Link
-            href={`/tours/destination/${destination.slug}`}
+            href={destinationSectionPath(
+              destination?.countries?.slug,
+              destination?.slug,
+              "tours"
+            )}
             className="underline ml-4"
           >
             Back
@@ -100,7 +105,10 @@ export default async function TourBySlugPage(props) {
                         <Link
                           href={
                             destination?.countries?.slug && destination?.slug
-                              ? `/destinations/${destination.countries.slug}/${destination.slug}`
+                              ? destinationPath(
+                                  destination.countries.slug,
+                                  destination.slug
+                                )
                               : "#"
                           }
                           className="underline"

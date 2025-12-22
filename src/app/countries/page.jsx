@@ -3,6 +3,7 @@ import SafeImage from "@/components/SafeImage";
 import { Card, CardContent } from "@/components/ui/card";
 import { listCountriesPublic, listDestinationsByCountryId } from "@/lib/data/public/geo";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
+import { countryPath, destinationPath } from "@/lib/routes";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -46,7 +47,7 @@ function CountryCard({ country, destinations }) {
   return (
     <Card className="overflow-hidden transition hover:shadow-md">
       <Link
-        href={`/countries/${country.slug}`}
+        href={countryPath(country.slug)}
         className="block focus:outline-none focus:ring-2 focus:ring-ring/40"
       >
         <div className="relative aspect-[4/3] bg-black/5">
@@ -80,7 +81,7 @@ function CountryCard({ country, destinations }) {
                   key={d.id}
                   href={
                     d.slug && country.slug
-                      ? `/destinations/${country.slug}/${d.slug}`
+                      ? destinationPath(country.slug, d.slug)
                       : "#"
                   }
                   className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground hover:text-foreground"

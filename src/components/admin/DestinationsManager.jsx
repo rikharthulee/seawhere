@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { destinationPath } from "@/lib/routes";
 
 export default function DestinationsManager() {
   const [destinations, setDestinations] = useState([]);
@@ -206,22 +207,31 @@ export default function DestinationsManager() {
                               >
                                 Edit
                               </Button>
-                              <Button
-                                asChild
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-20"
-                              >
-                                <a
-                                  href={`/destinations/${encodeURIComponent(
-                                    it.slug
-                                  )}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  View
-                                </a>
-                              </Button>
+                              {(() => {
+                                const country = countries.find(
+                                  (c) => c.id === it.country_id
+                                );
+                                const href =
+                                  country?.slug && it.slug
+                                    ? destinationPath(country.slug, it.slug)
+                                    : null;
+                                return href ? (
+                                  <Button
+                                    asChild
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-20"
+                                  >
+                                    <a
+                                      href={href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      View
+                                    </a>
+                                  </Button>
+                                ) : null;
+                              })()}
                               <ConfirmDeleteButton
                                 title="Delete this destination?"
                                 description="This action cannot be undone. This will permanently delete the destination and attempt to revalidate related pages."

@@ -21,35 +21,39 @@ export async function fetchCountryHighlights(countryId) {
         .limit(BASE_LIMIT),
       db
         .from("sights")
-        .select(`${SIGHT_PUBLIC_COLUMNS}`)
+        .select(`${SIGHT_PUBLIC_COLUMNS}, destinations ( slug )`)
         .eq("country_id", countryId)
         .eq("status", "published")
         .order("updated_at", { ascending: false })
         .limit(BASE_LIMIT),
       db
         .from("experiences")
-        .select(`${EXPERIENCE_PUBLIC_COLUMNS}`)
+        .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( slug )`)
         .eq("country_id", countryId)
         .eq("status", "published")
         .order("updated_at", { ascending: false })
         .limit(BASE_LIMIT),
       db
         .from("food_drink")
-        .select("id, slug, name, description, images, status, type, price_band, rating, booking_url, address, destination_id, country_id")
+        .select(
+          "id, slug, name, description, images, status, type, price_band, rating, booking_url, address, destination_id, country_id, destinations ( slug )"
+        )
         .eq("country_id", countryId)
         .eq("status", "published")
         .order("updated_at", { ascending: false })
         .limit(BASE_LIMIT),
       db
         .from("accommodation")
-        .select("id, slug, name, summary, description, images, status, price_band, rating, affiliate_url, destination_id, country_id")
+        .select(
+          "id, slug, name, summary, description, images, status, price_band, rating, affiliate_url, destination_id, country_id, destinations ( slug )"
+        )
         .eq("country_id", countryId)
         .eq("status", "published")
         .order("updated_at", { ascending: false })
         .limit(BASE_LIMIT),
       db
         .from("tours")
-        .select(`${TOUR_PUBLIC_COLUMNS}`)
+        .select(`${TOUR_PUBLIC_COLUMNS}, destinations ( slug )`)
         .eq("country_id", countryId)
         .eq("status", "published")
         .order("updated_at", { ascending: false })
@@ -88,31 +92,37 @@ export async function fetchPopularContent(limitPerType = 4) {
         .limit(limitPerType),
       db
         .from("sights")
-        .select(`${SIGHT_PUBLIC_COLUMNS}`)
+        .select(`${SIGHT_PUBLIC_COLUMNS}, destinations ( slug, countries ( slug ) )`)
         .eq("status", "published")
         .order("updated_at", { ascending: false })
         .limit(limitPerType),
       db
         .from("experiences")
-        .select(`${EXPERIENCE_PUBLIC_COLUMNS}`)
+        .select(
+          `${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( slug, countries ( slug ) )`
+        )
         .eq("status", "published")
         .order("updated_at", { ascending: false })
         .limit(limitPerType),
       db
         .from("food_drink")
-        .select("id, slug, name, description, images, status, type, price_band, rating, booking_url, address, destination_id, country_id")
+        .select(
+          "id, slug, name, description, images, status, type, price_band, rating, booking_url, address, destination_id, country_id, destinations ( slug, countries ( slug ) )"
+        )
         .eq("status", "published")
         .order("updated_at", { ascending: false })
         .limit(limitPerType),
       db
         .from("accommodation")
-        .select("id, slug, name, summary, description, images, status, price_band, rating, affiliate_url, destination_id, country_id")
+        .select(
+          "id, slug, name, summary, description, images, status, price_band, rating, affiliate_url, destination_id, country_id, destinations ( slug, countries ( slug ) )"
+        )
         .eq("status", "published")
         .order("updated_at", { ascending: false })
         .limit(limitPerType),
       db
         .from("tours")
-        .select(`${TOUR_PUBLIC_COLUMNS}`)
+        .select(`${TOUR_PUBLIC_COLUMNS}, destinations ( slug, countries ( slug ) )`)
         .eq("status", "published")
         .order("updated_at", { ascending: false })
         .limit(limitPerType),

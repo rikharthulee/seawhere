@@ -1,6 +1,7 @@
 import SafeImage from "@/components/SafeImage";
 import { Tile } from "@/components/ui/tile";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
+import { destinationItemPath } from "@/lib/routes";
 
 function firstParagraph(value) {
   try {
@@ -41,7 +42,7 @@ function firstParagraph(value) {
   return "";
 }
 
-export default function FoodDrink({ items }) {
+export default function FoodDrink({ items, countrySlug, destinationSlug }) {
   if (!Array.isArray(items) || items.length === 0) {
     return (
       <section id="food-drink">
@@ -72,7 +73,22 @@ export default function FoodDrink({ items }) {
         {sorted.map((item) => {
           const img = resolveImageUrl(firstImageFromImages(item?.images));
           const displayName = item.title || item.name || "Food & Drink";
-          const href = item.slug ? `/food-drink/${item.slug}` : "#";
+          const href =
+            item.slug && countrySlug && destinationSlug
+              ? destinationItemPath(
+                  countrySlug,
+                  destinationSlug,
+                  "food-drink",
+                  item.slug
+                )
+              : item.slug
+                ? destinationItemPath(
+                    item?.countries?.slug,
+                    item?.destinations?.slug,
+                    "food-drink",
+                    item.slug
+                  )
+                : "#";
           const summary = firstParagraph(item.summary ?? item.description);
 
           return (

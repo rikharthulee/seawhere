@@ -7,6 +7,7 @@ import StatusBadge from "@/components/admin/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { destinationItemPath } from "@/lib/routes";
 
 export default function ExperiencesManager() {
   const [items, setItems] = useState([]);
@@ -115,16 +116,28 @@ export default function ExperiencesManager() {
                         alert(e?.message || "Failed to load experience");
                       }
                       }}>Edit</Button>
-                      {it.slug ? (
+                      {(() => {
+                        const dest = destMap[it.destination_id];
+                        const href =
+                          dest?.countries?.slug && dest?.slug && it.slug
+                            ? destinationItemPath(
+                                dest.countries.slug,
+                                dest.slug,
+                                "experiences",
+                                it.slug
+                              )
+                            : null;
+                        return href ? (
                         <Button asChild variant="outline" size="sm" className="h-8 w-20">
                           <Link
-                            href={`/experiences/${encodeURIComponent(it.slug)}`}
+                            href={href}
                             target="_blank"
                           >
                             View
                           </Link>
                         </Button>
-                      ) : null}
+                        ) : null;
+                      })()}
                       <ConfirmDeleteButton
                         title="Delete this experience?"
                         description="This action cannot be undone. This will permanently delete the item and remove any associated data."

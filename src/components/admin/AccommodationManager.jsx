@@ -18,12 +18,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { destinationItemPath } from "@/lib/routes";
 
 export default function AccommodationsManager() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState("");
+  const [destMap, setDestMap] = useState({});
 
   async function load() {
     setLoading(true);
@@ -35,6 +37,14 @@ export default function AccommodationsManager() {
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       setItems(json.items || []);
+      const res2 = await fetch("/api/admin/meta/destinations", {
+        cache: "no-store",
+      });
+      const json2 = await res2.json();
+      if (res2.ok) {
+        const map = Object.fromEntries((json2.items || []).map((d) => [d.id, d]));
+        setDestMap(map);
+      }
     } catch (e) {
       console.error("Failed to load accommodation", e);
       setError(e?.message || "Failed to load accommodation");
@@ -149,7 +159,18 @@ export default function AccommodationsManager() {
                     >
                       Edit
                     </Button>
-                    {it.slug ? (
+                    {(() => {
+                      const dest = destMap[it.destination_id];
+                      const href =
+                        dest?.countries?.slug && dest?.slug && it.slug
+                          ? destinationItemPath(
+                              dest.countries.slug,
+                              dest.slug,
+                              "accommodation",
+                              it.slug
+                            )
+                          : null;
+                      return href ? (
                       <Button
                         asChild
                         variant="outline"
@@ -157,14 +178,15 @@ export default function AccommodationsManager() {
                         className="h-8 w-20"
                       >
                         <a
-                          href={`/accommodation/${encodeURIComponent(it.slug)}`}
+                          href={href}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           View
                         </a>
                       </Button>
-                    ) : null}
+                      ) : null;
+                    })()}
                     <ConfirmDeleteButton
                       title="Delete this accommodation?"
                       description="This action cannot be undone. This will permanently delete the accommodation and attempt to revalidate related pages."

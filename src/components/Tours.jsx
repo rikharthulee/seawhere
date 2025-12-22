@@ -2,8 +2,9 @@ import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Tile } from "@/components/ui/tile";
+import { destinationItemPath } from "@/lib/routes";
 
-export default function Tours({ items = [] }) {
+export default function Tours({ items = [], countrySlug, destinationSlug }) {
   const sorted = Array.isArray(items)
     ? [...items].sort((a, b) =>
         (a.title || a.name || "").localeCompare(b.title || b.name || "")
@@ -32,7 +33,17 @@ export default function Tours({ items = [] }) {
             }
           }
           const img = resolveImageUrl(imgPath);
-          const href = p?.slug ? `/tours/${encodeURIComponent(p.slug)}` : null;
+          const href =
+            p?.slug && countrySlug && destinationSlug
+              ? destinationItemPath(
+                  countrySlug,
+                  destinationSlug,
+                  "tours",
+                  p.slug
+                )
+              : p?.slug
+                ? `/tours/${encodeURIComponent(p.slug)}`
+                : null;
           return (
             <Tile.Link key={p.id} href={href || "#"}>
               <Tile.Image>

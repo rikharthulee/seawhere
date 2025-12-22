@@ -7,18 +7,23 @@ import {
   fetchFeaturedCountries,
   fetchPopularContent,
 } from "@/lib/data/public/country";
+import {
+  countryPath,
+  destinationItemPath,
+  destinationPath,
+} from "@/lib/routes";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
 const INTERESTS = [
-  { label: "Temples", href: "/sights?tag=temples" },
-  { label: "Waterfalls", href: "/sights?tag=waterfalls" },
-  { label: "Beaches", href: "/destinations?tag=beach" },
-  { label: "Night markets", href: "/food-drink?tag=night%20market" },
-  { label: "Adventure", href: "/experiences?tag=adventure" },
-  { label: "Wellness", href: "/experiences?tag=wellness" },
-  { label: "Cafés", href: "/food-drink?tag=cafe" },
+  { label: "Temples", href: "/search?q=temples" },
+  { label: "Waterfalls", href: "/search?q=waterfalls" },
+  { label: "Beaches", href: "/search?q=beaches" },
+  { label: "Night markets", href: "/search?q=night%20markets" },
+  { label: "Adventure", href: "/search?q=adventure" },
+  { label: "Wellness", href: "/search?q=wellness" },
+  { label: "Cafés", href: "/search?q=caf%C3%A9s" },
 ];
 
 export default async function HomePage() {
@@ -30,14 +35,74 @@ export default async function HomePage() {
       type: "Destination",
       href:
         p?.countries?.slug && p?.slug
-          ? `/destinations/${p.countries.slug}/${p.slug}`
+          ? destinationPath(p.countries.slug, p.slug)
           : null,
     })),
-    ...popular.sights.map((p) => ({ ...p, type: "Sight", href: "/sights" })),
-    ...popular.experiences.map((p) => ({ ...p, type: "Experience", href: "/experiences" })),
-    ...popular.food.map((p) => ({ ...p, type: "Food & Drink", href: "/food-drink" })),
-    ...popular.accommodation.map((p) => ({ ...p, type: "Stay", href: "/accommodation" })),
-    ...popular.tours.map((p) => ({ ...p, type: "Tour", href: "/tours" })),
+    ...popular.sights.map((p) => ({
+      ...p,
+      type: "Sight",
+      href:
+        p?.destinations?.countries?.slug && p?.destinations?.slug
+          ? destinationItemPath(
+              p.destinations.countries.slug,
+              p.destinations.slug,
+              "sights",
+              p.slug
+            )
+          : null,
+    })),
+    ...popular.experiences.map((p) => ({
+      ...p,
+      type: "Experience",
+      href:
+        p?.destinations?.countries?.slug && p?.destinations?.slug
+          ? destinationItemPath(
+              p.destinations.countries.slug,
+              p.destinations.slug,
+              "experiences",
+              p.slug
+            )
+          : null,
+    })),
+    ...popular.food.map((p) => ({
+      ...p,
+      type: "Food & Drink",
+      href:
+        p?.destinations?.countries?.slug && p?.destinations?.slug
+          ? destinationItemPath(
+              p.destinations.countries.slug,
+              p.destinations.slug,
+              "food-drink",
+              p.slug
+            )
+          : null,
+    })),
+    ...popular.accommodation.map((p) => ({
+      ...p,
+      type: "Stay",
+      href:
+        p?.destinations?.countries?.slug && p?.destinations?.slug
+          ? destinationItemPath(
+              p.destinations.countries.slug,
+              p.destinations.slug,
+              "accommodation",
+              p.slug
+            )
+          : null,
+    })),
+    ...popular.tours.map((p) => ({
+      ...p,
+      type: "Tour",
+      href:
+        p?.destinations?.countries?.slug && p?.destinations?.slug
+          ? destinationItemPath(
+              p.destinations.countries.slug,
+              p.destinations.slug,
+              "tours",
+              p.slug
+            )
+          : null,
+    })),
   ].slice(0, 12);
 
   return (
@@ -60,10 +125,10 @@ export default async function HomePage() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link href="/countries">Browse countries</Link>
+              <Link href={countryPath()}>Browse countries</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="bg-white text-black hover:bg-white/90">
-              <Link href="/sights">Explore by interest</Link>
+              <Link href="/search">Explore by interest</Link>
             </Button>
           </div>
         </div>
@@ -73,7 +138,7 @@ export default async function HomePage() {
       <section className="mx-auto max-w-6xl px-4 py-12 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold">Featured countries</h2>
-          <Link href="/countries" className="text-sm underline text-muted-foreground">
+          <Link href={countryPath()} className="text-sm underline text-muted-foreground">
             View all
           </Link>
         </div>
@@ -89,7 +154,7 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl px-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold">Popular right now</h2>
-            <Link href="/destinations" className="text-sm underline text-muted-foreground">
+            <Link href={countryPath()} className="text-sm underline text-muted-foreground">
               See more
             </Link>
           </div>
@@ -171,7 +236,10 @@ function CountryCard({ country }) {
   const hero = resolveImageUrl(country.hero_image);
   return (
     <Card className="overflow-hidden transition hover:shadow-md">
-      <Link href={`/countries/${country.slug}`} className="block focus:outline-none focus:ring-2 focus:ring-ring/40">
+      <Link
+        href={countryPath(country.slug)}
+        className="block focus:outline-none focus:ring-2 focus:ring-ring/40"
+      >
         <div className="relative aspect-[4/3] bg-black/5">
           {hero ? (
             <SafeImage

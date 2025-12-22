@@ -1,25 +1,24 @@
 import SafeImage from "@/components/SafeImage";
-import Link from "next/link";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Tile } from "@/components/ui/tile";
+import { destinationItemPath } from "@/lib/routes";
 
-function sightHref(sight) {
-  const countrySlug =
+function sightHref(sight, countrySlug, destinationSlug) {
+  const country =
+    countrySlug ||
     sight?.countries?.slug ||
     sight?.destination_country_slug ||
     sight?.destinations?.countries?.slug ||
     null;
-  const destinationSlug =
-    sight?.destination_slug || sight?.destinations?.slug || null;
-  if (countrySlug && destinationSlug && sight?.slug) {
-    return `/sights/${encodeURIComponent(countrySlug)}/${encodeURIComponent(
-      destinationSlug
-    )}/${encodeURIComponent(sight.slug)}`;
+  const destination =
+    destinationSlug || sight?.destination_slug || sight?.destinations?.slug || null;
+  if (country && destination && sight?.slug) {
+    return destinationItemPath(country, destination, "sights", sight.slug);
   }
   return null;
 }
 
-export default function Sights({ items = [] }) {
+export default function Sights({ items = [], countrySlug, destinationSlug }) {
   const sorted = Array.isArray(items)
     ? [...items].sort((a, b) =>
         (a.title || a.name || "").localeCompare(b.title || b.name || "")
@@ -37,7 +36,7 @@ export default function Sights({ items = [] }) {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {sorted.map((p) => {
           const img = resolveImageUrl(firstImageFromImages(p?.images));
-          const href = sightHref(p);
+          const href = sightHref(p, countrySlug, destinationSlug);
           return (
             <Tile.Link key={p.id} href={href || "#"}>
               <Tile.Image>

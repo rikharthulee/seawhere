@@ -1,5 +1,6 @@
 import { getPublicDB } from "@/lib/supabase/public";
 import { EXPERIENCE_PUBLIC_COLUMNS } from "@/lib/data/public/selects";
+import { getDestinationBySlugsPublic } from "@/lib/data/public/destinations";
 
 function isUUID(v) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -34,6 +35,19 @@ export async function listExperiencesByDestinationSlug(destSlug) {
     .order("name", { ascending: true });
   if (error) throw error;
   return { destination: dst, experiences: data ?? [] };
+}
+
+export async function listExperiencesByDestinationId(destinationId) {
+  if (!destinationId) return [];
+  const db = getPublicDB();
+  const { data, error } = await db
+    .from("experiences")
+    .select("id, slug, name, summary, images, destination_id, country_id, status")
+    .eq("destination_id", destinationId)
+    .eq("status", "published")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function getExperienceBySlugPublic(slug) {
@@ -132,4 +146,34 @@ export async function getExperienceBySlugsPublic(destinationSlug, experienceSlug
   if (error || !data) return { experience: null, destination: dst };
   const { destinations: destination, ...experience } = data;
   return { experience, destination: destination || dst };
+}
+
+export async function getExperienceByDestinationSlugsPublic({
+  countrySlug,
+  destinationSlug,
+  experienceSlug,
+}) {
+  const destination = await getDestinationBySlugsPublic(
+    countrySlug,
+    destinationSlug
+  );
+  if (!destination?.id || !experienceSlug) {
+    return { experience: null, destination: null };
+  }
+
+  const db = getPublicDB();
+  const { data, error } = await db
+    .from("experiences")
+    .select(
+      `${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug, name ) )`
+    )
+    .eq("destination_id", destination.id)
+    .eq("slug", String(experienceSlug || "").trim())
+    .eq("status", "published")
+    .maybeSingle();
+  if (error || !data) {
+    return { experience: null, destination };
+  }
+  const { destinations: destinationData, ...experience } = data;
+  return { experience, destination: destinationData || destination };
 }

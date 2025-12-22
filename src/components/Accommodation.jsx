@@ -1,8 +1,9 @@
 import SafeImage from "@/components/SafeImage";
 import { Tile } from "@/components/ui/tile";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
+import { destinationItemPath } from "@/lib/routes";
 
-export default function Accommodation({ items }) {
+export default function Accommodation({ items, countrySlug, destinationSlug }) {
   // Require items to be passed in - no fallback to static data
   if (!Array.isArray(items) || items.length === 0) {
     console.error("Accommodation component: No items provided");
@@ -35,7 +36,22 @@ export default function Accommodation({ items }) {
         {sorted.map((item) => {
           const img = resolveImageUrl(firstImageFromImages(item?.images));
           const displayName = item.title || item.name || "Accommodation";
-          const href = item.slug ? `/accommodation/${item.slug}` : "#";
+          const href =
+            item.slug && countrySlug && destinationSlug
+              ? destinationItemPath(
+                  countrySlug,
+                  destinationSlug,
+                  "accommodation",
+                  item.slug
+                )
+              : item.slug
+                ? destinationItemPath(
+                    item?.countries?.slug,
+                    item?.destinations?.slug,
+                    "accommodation",
+                    item.slug
+                  )
+                : "#";
 
           if (!item.slug) {
             console.error("Missing slug for accommodation:", item);

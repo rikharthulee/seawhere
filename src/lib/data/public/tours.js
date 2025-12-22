@@ -1,5 +1,6 @@
 import { getPublicDB } from "@/lib/supabase/public";
 import { TOUR_PUBLIC_COLUMNS } from "@/lib/data/public/selects";
+import { getDestinationBySlugsPublic } from "@/lib/data/public/destinations";
 
 function isUUID(v) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -38,6 +39,19 @@ export async function listToursByDestinationSlug(destinationSlug) {
     .order("name", { ascending: true });
   if (error) throw error;
   return { destination: dst, tours: data ?? [] };
+}
+
+export async function listToursByDestinationId(destinationId) {
+  if (!destinationId) return [];
+  const db = getPublicDB();
+  const { data, error } = await db
+    .from("tours")
+    .select("id, slug, name, summary, images, destination_id, country_id, status")
+    .eq("destination_id", destinationId)
+    .eq("status", "published")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function getTourBySlugPublic(slug) {
@@ -136,4 +150,34 @@ export async function getTourBySlugsPublic(destinationSlug, tourSlug) {
   if (error || !data) return { tour: null, destination: dst };
   const { destinations: destination, ...tour } = data;
   return { tour, destination: destination || dst };
+}
+
+export async function getTourByDestinationSlugsPublic({
+  countrySlug,
+  destinationSlug,
+  tourSlug,
+}) {
+  const destination = await getDestinationBySlugsPublic(
+    countrySlug,
+    destinationSlug
+  );
+  if (!destination?.id || !tourSlug) {
+    return { tour: null, destination: null };
+  }
+
+  const db = getPublicDB();
+  const { data, error } = await db
+    .from("tours")
+    .select(
+      `${TOUR_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug, name ) )`
+    )
+    .eq("destination_id", destination.id)
+    .eq("slug", String(tourSlug || "").trim())
+    .eq("status", "published")
+    .maybeSingle();
+  if (error || !data) {
+    return { tour: null, destination };
+  }
+  const { destinations: destinationData, ...tour } = data;
+  return { tour, destination: destinationData || destination };
 }
