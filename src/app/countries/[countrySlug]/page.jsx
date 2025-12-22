@@ -15,6 +15,7 @@ import {
   getCountryBySlugPublic,
 } from "@/lib/data/public/geo";
 import { fetchCountryHighlights } from "@/lib/data/public/country";
+import { getPublicDB } from "@/lib/supabase/public";
 import {
   countryPath,
   destinationItemPath,
@@ -91,6 +92,14 @@ export default async function CountryLandingPage(props) {
   if (!country) notFound();
 
   const highlights = await fetchCountryHighlights(country.id);
+  const db = getPublicDB();
+  const { data: trips } = await db
+    .from("trips")
+    .select("id, title, summary, visibility, destination_id, destinations ( name )")
+    .eq("country_id", country.id)
+    .eq("visibility", "public")
+    .order("created_at", { ascending: false })
+    .limit(6);
 
   const hero = resolveImageUrl(
     country.hero_image || firstImageFromImages(highlights.destinations?.[0]?.images)
@@ -161,6 +170,48 @@ export default async function CountryLandingPage(props) {
           }
           summaryKey="summary"
         />
+      </section>
+
+      {/* Popular tabs */}
+      <section className="mt-12 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-semibold">Trips in {country.name}</h2>
+        </div>
+        {Array.isArray(trips) && trips.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {trips.map((trip) => (
+              <Card key={trip.id} className="overflow-hidden transition hover:shadow-md">
+                <Link
+                  href={`/trips/${trip.id}`}
+                  className="block focus:outline-none focus:ring-2 focus:ring-ring/40"
+                >
+                  <CardContent className="p-4 space-y-2">
+                    <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      Trip
+                    </div>
+                    <div className="text-lg font-semibold">
+                      {trip.title || "Untitled trip"}
+                    </div>
+                    {trip.destinations?.name ? (
+                      <div className="text-sm text-muted-foreground">
+                        {trip.destinations.name}
+                      </div>
+                    ) : null}
+                    {trip.summary ? (
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {trip.summary}
+                      </p>
+                    ) : null}
+                  </CardContent>
+                </Link>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded border bg-muted/50 p-4 text-muted-foreground">
+            Trips coming soon.
+          </div>
+        )}
       </section>
 
       {/* Popular tabs */}

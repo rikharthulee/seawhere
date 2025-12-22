@@ -59,12 +59,19 @@ export default async function DestinationHubPage(props) {
   const gallery = imagesToGallery(dst.images ?? []);
   const hero = gallery[0] || resolveImageUrl(firstImageFromImages(dst.images ?? []));
 
-  const [sights, food, accommodation, experiences, tours] = await Promise.all([
-    fetchSectionPreview(
-      dst.id,
-      "sights",
-      "id, slug, name, summary, images"
-    ),
+  const [dayItineraries, food, accommodation, experiences, tours] = await Promise.all([
+    (async () => {
+      const db = getPublicDB();
+      const { data, error } = await db
+        .from("day_itineraries")
+        .select("id, slug, name, summary, destination_id, status, updated_at")
+        .eq("destination_id", dst.id)
+        .eq("status", "published")
+        .order("updated_at", { ascending: false })
+        .limit(3);
+      if (error) return [];
+      return data ?? [];
+    })(),
     fetchSectionPreview(
       dst.id,
       "food_drink",
@@ -84,7 +91,7 @@ export default async function DestinationHubPage(props) {
   ]);
 
   const sections = [
-    { key: "sights", label: "Sights", items: sights },
+    { key: "day-itineraries", label: "Day Itineraries", items: dayItineraries },
     { key: "food-drink", label: "Food & Drink", items: food },
     { key: "accommodation", label: "Accommodation", items: accommodation },
     { key: "experiences", label: "Experiences", items: experiences },
@@ -159,11 +166,15 @@ export default async function DestinationHubPage(props) {
             >
               <div className="flex items-center justify-between gap-3">
                 <Link
-                  href={destinationSectionPath(
-                    countrySlug,
-                    destinationSlug,
-                    section.key
-                  )}
+                  href={
+                    section.key === "day-itineraries"
+                      ? "/day-itineraries"
+                      : destinationSectionPath(
+                          countrySlug,
+                          destinationSlug,
+                          section.key
+                        )
+                  }
                   className="text-lg font-semibold underline underline-offset-4"
                 >
                   {section.label}
@@ -175,15 +186,19 @@ export default async function DestinationHubPage(props) {
                   {section.items.map((item) => (
                     <li key={item.id}>
                       <Link
-                        href={destinationItemPath(
-                          countrySlug,
-                          destinationSlug,
-                          section.key,
-                          item.slug
-                        )}
+                        href={
+                          section.key === "day-itineraries"
+                            ? `/day-itineraries/${encodeURIComponent(item.slug)}`
+                            : destinationItemPath(
+                                countrySlug,
+                                destinationSlug,
+                                section.key,
+                                item.slug
+                              )
+                        }
                         className="underline underline-offset-4"
                       >
-                        {item.name}
+                        {item.name || item.title}
                       </Link>
                     </li>
                   ))}
