@@ -25,7 +25,14 @@ export default async function HomePage() {
   const featuredCountries = await fetchFeaturedCountries(6);
   const popular = await fetchPopularContent(4);
   const mixedPopular = [
-    ...popular.destinations.map((p) => ({ ...p, type: "Destination", href: `/destinations/${p.slug}` })),
+    ...popular.destinations.map((p) => ({
+      ...p,
+      type: "Destination",
+      href:
+        p?.countries?.slug && p?.slug
+          ? `/destinations/${p.countries.slug}/${p.slug}`
+          : null,
+    })),
     ...popular.sights.map((p) => ({ ...p, type: "Sight", href: "/sights" })),
     ...popular.experiences.map((p) => ({ ...p, type: "Experience", href: "/experiences" })),
     ...popular.food.map((p) => ({ ...p, type: "Food & Drink", href: "/food-drink" })),

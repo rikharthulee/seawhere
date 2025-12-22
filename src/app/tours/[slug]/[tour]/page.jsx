@@ -80,7 +80,11 @@ export default async function TourDetailBySlugPage(props) {
                         Destination:
                       </span>{" "}
                         <Link
-                        href={`/destinations/${dest.slug}`}
+                        href={
+                          dest?.countries?.slug && dest?.slug
+                            ? `/destinations/${dest.countries.slug}/${dest.slug}`
+                            : "#"
+                        }
                         className="underline"
                       >
                         {dest.name}

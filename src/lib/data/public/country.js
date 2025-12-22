@@ -14,7 +14,7 @@ export async function fetchCountryHighlights(countryId) {
     await Promise.all([
       db
         .from("destinations")
-        .select("id, name, slug, summary, images, country_id")
+        .select("id, name, slug, summary, images, country_id, countries ( slug )")
         .eq("country_id", countryId)
         .eq("status", "published")
         .order("published_at", { ascending: false })
@@ -82,7 +82,7 @@ export async function fetchPopularContent(limitPerType = 4) {
     await Promise.all([
       db
         .from("destinations")
-        .select("id, slug, name, summary, images, country_id")
+        .select("id, slug, name, summary, images, country_id, countries ( slug )")
         .eq("status", "published")
         .order("published_at", { ascending: false })
         .limit(limitPerType),

@@ -97,7 +97,11 @@ export default async function ExperienceBySlugPage(props) {
                           Destination:
                         </span>{" "}
                         <Link
-                          href={`/destinations/${destination.slug}`}
+                          href={
+                            destination?.countries?.slug && destination?.slug
+                              ? `/destinations/${destination.countries.slug}/${destination.slug}`
+                              : "#"
+                          }
                           className="underline"
                         >
                           {destination.name}

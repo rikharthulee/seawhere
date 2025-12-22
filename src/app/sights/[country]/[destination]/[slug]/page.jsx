@@ -12,20 +12,24 @@ import RichTextReadOnly from "@/components/RichTextReadOnly";
 import GygWidget from "@/components/GygWidget";
 import OpeningTimesPublic from "@/components/OpeningTimesPublic";
 import AdmissionPricesPublic from "@/components/AdmissionPricesPublic";
-import { getSightBySlugPublic } from "@/lib/data/public/sights";
+import { getSightBySlugsPublic } from "@/lib/data/public/sights";
 import { fmtJPY } from "@/lib/format";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
 
 export default async function SightBySlugPage(props) {
-  const { slug } = (await props.params) || {};
+  const { country, destination, slug } = (await props.params) || {};
   const { debug } = (await props.searchParams) || {};
-  const result = await getSightBySlugPublic(slug);
+  const result = await getSightBySlugsPublic({
+    countrySlug: country,
+    destinationSlug: destination,
+    sightSlug: slug,
+  });
   if (!result?.sight && !debug) notFound();
 
   const sight = result?.sight || null;
-  const destination = result?.destination || null;
+  const destinationData = result?.destination || null;
   const admissions = result?.admissions || [];
   const openingTimes = result?.openingTimes || null;
 
@@ -38,8 +42,8 @@ export default async function SightBySlugPage(props) {
       ? sight.lng
       : Number.parseFloat(String(sight?.lng ?? ""));
   const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
-  const hero = resolveImageUrl(firstImageFromImages(sight?.images));
-  const gallery = imagesToGallery(sight?.images ?? []).slice(1);
+  const gallery = imagesToGallery(sight?.images ?? []);
+  const hero = gallery[0] || resolveImageUrl(firstImageFromImages(sight?.images));
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
@@ -53,9 +57,9 @@ export default async function SightBySlugPage(props) {
         <h1 className="text-3xl md:text-4xl font-medium text-center md:text-left flex-1">
           {sight?.name || "Sight"}
         </h1>
-        {destination?.slug ? (
+        {destinationData?.slug ? (
           <Link
-            href={`/sights/destination/${destination.slug}`}
+            href={`/sights/destination/${destinationData.slug}`}
             className="underline ml-4"
           >
             Back
@@ -144,16 +148,20 @@ export default async function SightBySlugPage(props) {
           <Card>
             <CardContent className="p-3 space-y-3">
               <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
-                {destination ? (
+                {destinationData ? (
                   <span>
                     <span className="font-medium text-foreground">
                       Destination:
                     </span>{" "}
                       <Link
-                      href={`/destinations/${destination.slug}`}
+                      href={
+                        destinationData?.slug && country
+                          ? `/destinations/${country}/${destinationData.slug}`
+                          : "#"
+                      }
                       className="underline"
                     >
-                      {destination.name}
+                      {destinationData.name}
                     </Link>
                   </span>
                 ) : null}

@@ -11,7 +11,9 @@ export async function listPublishedSights() {
   const db = getPublicDB();
   const { data, error } = await db
     .from("sights")
-    .select("id, slug, name, summary, images, destination_id, country_id, status, destinations ( slug )")
+    .select(
+      "id, slug, name, summary, images, destination_id, country_id, status, destinations ( slug, countries ( slug ) )"
+    )
     .eq("status", "published")
     .order("name", { ascending: true });
   if (error) throw error;
@@ -22,13 +24,15 @@ export async function listSightsByDestinationSlug(destinationSlug) {
   const db = getPublicDB();
   const { data: dst } = await db
     .from("destinations")
-    .select("id, slug, name, country_id")
+    .select("id, slug, name, country_id, countries ( slug )")
     .eq("slug", String(destinationSlug || "").trim())
     .maybeSingle();
   if (!dst?.id) return { destination: null, sights: [] };
   const { data, error } = await db
     .from("sights")
-    .select("id, slug, name, summary, images, destination_id, country_id, status, destinations ( slug )")
+    .select(
+      "id, slug, name, summary, images, destination_id, country_id, status, destinations ( slug, countries ( slug ) )"
+    )
     .eq("destination_id", dst.id)
     .eq("status", "published")
     .order("name", { ascending: true });
@@ -121,7 +125,7 @@ export async function getSightBySlugPublic(slug) {
   const { data, error, status } = await db
     .from("sights")
     .select(
-      `${SIGHT_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`
+      `${SIGHT_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug, name ) )`
     )
     .eq("slug", normalized)
     .eq("status", "published")
@@ -173,7 +177,7 @@ export async function getSightByIdPublic(id) {
   const { data, error, status } = await db
     .from("sights")
     .select(
-      `${SIGHT_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`
+      `${SIGHT_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug, name ) )`
     )
     .eq("id", normalized)
     .eq("status", "published")
@@ -212,37 +216,114 @@ export async function getSightByIdPublic(id) {
   };
 }
 
-export async function getSightBySlugsPublic(destinationSlug, sightSlug) {
+export async function getSightBySlugsPublic({
+  countrySlug,
+  destinationSlug,
+  sightSlug,
+}) {
   const db = getPublicDB();
-  const { data: dst } = await db
+  const normalizedSight = String(sightSlug || "").trim();
+  const normalizedDestination = String(destinationSlug || "").trim();
+  const normalizedCountry = String(countrySlug || "").trim();
+  if (!normalizedSight || !normalizedDestination || !normalizedCountry) {
+    console.warn("[public:sights] invalid slug set", {
+      countrySlug,
+      destinationSlug,
+      sightSlug,
+    });
+    return {
+      sight: null,
+      destination: null,
+      admissions: [],
+      openingTimes: null,
+    };
+  }
+
+  const { data: dst, error: dstErr } = await db
     .from("destinations")
-    .select("id, slug, name, country_id")
-    .eq("slug", String(destinationSlug || "").trim())
+    .select("id, slug, name, country_id, countries ( slug, name )")
+    .eq("slug", normalizedDestination)
     .maybeSingle();
-  if (!dst?.id) return { sight: null, destination: null, admissions: [], openingTimes: null };
+  if (dstErr) {
+    console.error("[public:sights] destination lookup failed", {
+      slug: normalizedDestination,
+      msg: dstErr.message,
+    });
+    return {
+      sight: null,
+      destination: null,
+      admissions: [],
+      openingTimes: null,
+    };
+  }
+  if (!dst?.id) {
+    return {
+      sight: null,
+      destination: null,
+      admissions: [],
+      openingTimes: null,
+    };
+  }
+  const countryMatches =
+    String(dst?.countries?.slug || "").toLowerCase() ===
+    normalizedCountry.toLowerCase();
+  if (!countryMatches) {
+    return {
+      sight: null,
+      destination: null,
+      admissions: [],
+      openingTimes: null,
+    };
+  }
 
   const { data, error, status } = await db
     .from("sights")
-    .select(`${SIGHT_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`)
+    .select(
+      `${SIGHT_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug, name ) )`
+    )
+    .eq("slug", normalizedSight)
     .eq("destination_id", dst.id)
-    .eq("slug", String(sightSlug || "").trim())
     .eq("status", "published")
     .maybeSingle();
 
-  if (error || !data) {
-    if (error) {
-      console.error("[public:sights] select failed", { status, msg: error.message });
-    }
-    return { sight: null, destination: dst, admissions: [], openingTimes: null };
+  if (error) {
+    console.error("[public:sights] select failed", {
+      table: "sights",
+      status,
+      msg: error.message,
+      destinationId: dst.id,
+    });
+    return {
+      sight: null,
+      destination: null,
+      admissions: [],
+      openingTimes: null,
+    };
+  }
+
+  if (!data) {
+    return {
+      sight: null,
+      destination: null,
+      admissions: [],
+      openingTimes: null,
+    };
   }
 
   const { destinations: destinationRaw, ...sight } = data;
-  const destination = destinationRaw || dst;
+  const destination = destinationRaw || null;
+
   const { openingTimes, admissions } = await loadSightMeta(db, sight.id);
+
   const mergedOpeningTimes = {
     ...(openingTimes || {}),
     officialUrl: sight.opening_times_url || openingTimes?.officialUrl || "",
   };
 
-  return { sight, destination, admissions, openingTimes: mergedOpeningTimes };
+  return {
+    sight,
+    destination,
+    admissions,
+    openingTimes: mergedOpeningTimes,
+  };
 }

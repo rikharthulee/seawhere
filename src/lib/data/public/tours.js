@@ -11,7 +11,9 @@ export async function listPublishedTours() {
   const db = getPublicDB();
   const { data, error } = await db
     .from("tours")
-    .select("id, slug, name, summary, images, destination_id, country_id, status, destinations ( slug )")
+    .select(
+      "id, slug, name, summary, images, destination_id, country_id, status, destinations ( slug, countries ( slug ) )"
+    )
     .eq("status", "published")
     .order("name", { ascending: true });
   if (error) throw error;
@@ -22,13 +24,15 @@ export async function listToursByDestinationSlug(destinationSlug) {
   const db = getPublicDB();
   const { data: dst } = await db
     .from("destinations")
-    .select("id, slug, name, country_id")
+    .select("id, slug, name, country_id, countries ( slug )")
     .eq("slug", String(destinationSlug || "").trim())
     .maybeSingle();
   if (!dst?.id) return { destination: null, tours: [] };
   const { data, error } = await db
     .from("tours")
-    .select("id, slug, name, summary, images, destination_id, country_id, status, destinations ( slug )")
+    .select(
+      "id, slug, name, summary, images, destination_id, country_id, status, destinations ( slug, countries ( slug ) )"
+    )
     .eq("destination_id", dst.id)
     .eq("status", "published")
     .order("name", { ascending: true });
@@ -46,7 +50,9 @@ export async function getTourBySlugPublic(slug) {
 
   const { data, error, status } = await db
     .from("tours")
-    .select(`${TOUR_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`)
+    .select(
+      `${TOUR_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug ) )`
+    )
     .eq("slug", normalized)
     .eq("status", "published")
     .maybeSingle();
@@ -82,7 +88,9 @@ export async function getTourByIdPublic(id) {
 
   const { data, error, status } = await db
     .from("tours")
-    .select(`${TOUR_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`)
+    .select(
+      `${TOUR_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug ) )`
+    )
     .eq("id", normalized)
     .eq("status", "published")
     .maybeSingle();
@@ -112,13 +120,15 @@ export async function getTourBySlugsPublic(destinationSlug, tourSlug) {
   const db = getPublicDB();
   const { data: dst } = await db
     .from("destinations")
-    .select("id, slug, name, country_id")
+    .select("id, slug, name, country_id, countries ( slug )")
     .eq("slug", String(destinationSlug || "").trim())
     .maybeSingle();
   if (!dst?.id) return { tour: null, destination: null };
   const { data, error } = await db
     .from("tours")
-    .select(`${TOUR_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`)
+    .select(
+      `${TOUR_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug ) )`
+    )
     .eq("destination_id", dst.id)
     .eq("slug", String(tourSlug || "").trim())
     .eq("status", "published")

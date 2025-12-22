@@ -14,6 +14,17 @@ export default async function SightsByDestinationPage(props) {
   const { destination: dst, sights } = await listSightsByDestinationSlug(slug);
   if (!dst) notFound();
 
+  const countrySlug = dst?.countries?.slug || null;
+
+  const sightHref = (sight) => {
+    if (countrySlug && dst.slug && sight.slug) {
+      return `/sights/${encodeURIComponent(countrySlug)}/${encodeURIComponent(
+        dst.slug
+      )}/${encodeURIComponent(sight.slug)}`;
+    }
+    return sight.slug ? `/sights/${encodeURIComponent(sight.slug)}` : null;
+  };
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex items-center justify-between pt-2">
@@ -29,7 +40,7 @@ export default async function SightsByDestinationPage(props) {
         {Array.isArray(sights) && sights.length > 0 ? (
           sights.map((p) => {
             const img = resolveImageUrl(firstImageFromImages(p?.images));
-            const href = p.slug ? `/sights/${encodeURIComponent(p.slug)}` : null;
+            const href = sightHref(p);
             const CardTag = href ? Link : "div";
             const cardProps = href ? { href } : {};
             return (

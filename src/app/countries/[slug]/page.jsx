@@ -123,7 +123,11 @@ export default async function CountryLandingPage(props) {
         </div>
         <ContentGrid
           items={destinations}
-          hrefFor={(d) => `/destinations/${d.slug}`}
+          hrefFor={(d) =>
+            d?.slug && country?.slug
+              ? `/destinations/${country.slug}/${d.slug}`
+              : null
+          }
           summaryKey="summary"
         />
       </section>

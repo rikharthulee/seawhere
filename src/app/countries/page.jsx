@@ -78,7 +78,11 @@ function CountryCard({ country, destinations }) {
               {destinations.map((d) => (
                 <Link
                   key={d.id}
-                  href={`/destinations/${d.slug}`}
+                  href={
+                    d.slug && country.slug
+                      ? `/destinations/${country.slug}/${d.slug}`
+                      : "#"
+                  }
                   className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground hover:text-foreground"
                 >
                   {d.name}

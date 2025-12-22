@@ -75,13 +75,17 @@ export default async function ExperienceDetailBySlugPage(props) {
             <CardContent className="p-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="text-sm text-muted-foreground flex flex-wrap gap-3">
-                  {dest ? (
-                    <span>
-                      <span className="font-medium text-foreground">
-                        Destination:
-                      </span>{" "}
+                    {dest ? (
+                      <span>
+                        <span className="font-medium text-foreground">
+                          Destination:
+                        </span>{" "}
                         <Link
-                        href={`/destinations/${dest.slug}`}
+                        href={
+                          dest?.countries?.slug && dest?.slug
+                            ? `/destinations/${dest.countries.slug}/${dest.slug}`
+                            : "#"
+                        }
                         className="underline"
                       >
                         {dest.name}

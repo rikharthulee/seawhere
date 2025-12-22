@@ -2,10 +2,22 @@ import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 
-export default function Destinations({
-  items = [],
-  basePath = "/destination",
-}) {
+function destinationHref(dest) {
+  const countrySlug =
+    dest?.countries?.slug ||
+    dest?.country_slug ||
+    dest?.country?.slug ||
+    null;
+  const destinationSlug = dest?.slug || dest?.destination_slug || null;
+  if (countrySlug && destinationSlug) {
+    return `/destinations/${encodeURIComponent(countrySlug)}/${encodeURIComponent(
+      destinationSlug
+    )}`;
+  }
+  return null;
+}
+
+export default function Destinations({ items = [] }) {
   // Normalize input to an array; keep quiet logs in production
   const source = Array.isArray(items) ? items : [];
 
@@ -75,11 +87,12 @@ export default function Destinations({
               </>
             );
 
+            const href = destinationHref(d);
             return (
               <div key={key} className="group">
-                {slug ? (
+                {href ? (
                   <Link
-                    href={`${basePath}/${slug}`}
+                    href={href}
                     className="relative overflow-hidden rounded-xl block"
                   >
                     {CardInner}

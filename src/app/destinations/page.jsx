@@ -13,6 +13,8 @@ export default async function DestinationsPage() {
     ? rows.map((r) => ({
         slug: r.slug,
         title: r.name,
+        countries: r.countries || null,
+        country_slug: r?.countries?.slug || null,
         images: Array.isArray(r.images) ? r.images : [],
         credit: r.credit || null,
       }))

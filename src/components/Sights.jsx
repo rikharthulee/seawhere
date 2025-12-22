@@ -3,6 +3,22 @@ import Link from "next/link";
 import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import { Tile } from "@/components/ui/tile";
 
+function sightHref(sight) {
+  const countrySlug =
+    sight?.countries?.slug ||
+    sight?.destination_country_slug ||
+    sight?.destinations?.countries?.slug ||
+    null;
+  const destinationSlug =
+    sight?.destination_slug || sight?.destinations?.slug || null;
+  if (countrySlug && destinationSlug && sight?.slug) {
+    return `/sights/${encodeURIComponent(countrySlug)}/${encodeURIComponent(
+      destinationSlug
+    )}/${encodeURIComponent(sight.slug)}`;
+  }
+  return null;
+}
+
 export default function Sights({ items = [] }) {
   const sorted = Array.isArray(items)
     ? [...items].sort((a, b) =>
@@ -21,7 +37,7 @@ export default function Sights({ items = [] }) {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {sorted.map((p) => {
           const img = resolveImageUrl(firstImageFromImages(p?.images));
-          const href = p?.slug ? `/sights/${encodeURIComponent(p.slug)}` : null;
+          const href = sightHref(p);
           return (
             <Tile.Link key={p.id} href={href || "#"}>
               <Tile.Image>

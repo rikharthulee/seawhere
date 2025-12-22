@@ -153,7 +153,7 @@ export default function Navbar() {
 
       {/* Top-right user area (always visible when authed) */}
       {isAuthed ? (
-        <div className="absolute right-3 top-2 z-20 flex items-center gap-2 pl-2 pr-2">
+        <div className="absolute top-2 right-20 lg:right-3 z-20 flex items-center gap-2 pl-2 pr-2">
           {(() => {
             const displayName = userName || user?.email || "";
             const initial = (displayName || "")

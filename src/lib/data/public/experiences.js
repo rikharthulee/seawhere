@@ -46,7 +46,9 @@ export async function getExperienceBySlugPublic(slug) {
 
   const { data, error, status } = await db
     .from("experiences")
-    .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`)
+    .select(
+      `${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug ) )`
+    )
     .eq("slug", normalized)
     .eq("status", "published")
     .maybeSingle();
@@ -82,7 +84,9 @@ export async function getExperienceByIdPublic(id) {
 
   const { data, error, status } = await db
     .from("experiences")
-    .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`)
+    .select(
+      `${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug ) )`
+    )
     .eq("id", normalized)
     .eq("status", "published")
     .maybeSingle();
@@ -112,13 +116,15 @@ export async function getExperienceBySlugsPublic(destinationSlug, experienceSlug
   const db = getPublicDB();
   const { data: dst } = await db
     .from("destinations")
-    .select("id, slug, name, country_id")
+    .select("id, slug, name, country_id, countries ( slug )")
     .eq("slug", String(destinationSlug || "").trim())
     .maybeSingle();
   if (!dst?.id) return { experience: null, destination: null };
   const { data, error } = await db
     .from("experiences")
-    .select(`${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id )`)
+    .select(
+      `${EXPERIENCE_PUBLIC_COLUMNS}, destinations ( id, slug, name, country_id, countries ( slug ) )`
+    )
     .eq("destination_id", dst.id)
     .eq("slug", String(experienceSlug || "").trim())
     .eq("status", "published")
