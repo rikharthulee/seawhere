@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SafeImage from "@/components/SafeImage";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import ContentViewTracker from "@/components/ContentViewTracker";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { Card, CardContent } from "@/components/ui/card";
 import RichTextReadOnly from "@/components/RichTextReadOnly";
@@ -68,6 +69,9 @@ export default async function ExperienceBySlugPage(props) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
+      {experience?.id ? (
+        <ContentViewTracker type="experience" id={experience.id} />
+      ) : null}
       <Breadcrumbs
         items={[
           { label: "Countries", href: countryPath() },

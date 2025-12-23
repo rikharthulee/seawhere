@@ -35,20 +35,29 @@ export default function DesktopBannerNav({ navItems = [], aboutItems = [], onSea
         </Link>
 
         <div className="flex flex-wrap items-center justify-center gap-6 text-base font-semibold text-foreground/80">
-          {navItems.map((l) => (
-            <Link
-              key={l.href}
-              className={`group relative rounded px-2 py-1 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
-                l.label === "Destinations" && pathname?.startsWith("/countries")
-                  ? "text-foreground"
-                  : ""
-              }`}
-              href={l.href}
-            >
-              <span className="pointer-events-none absolute inset-x-2 bottom-0 h-0.5 origin-left scale-x-0 bg-primary transition-transform duration-200 group-hover:scale-x-100 group-focus-visible:scale-x-100" />
-              {l.label}
-            </Link>
-          ))}
+          {navItems.map((l) => {
+            const isActive =
+              l.label === "Destinations" && pathname?.startsWith("/countries");
+            const isCta = !!l.cta;
+            return (
+              <Link
+                key={l.href}
+                className={
+                  isCta
+                    ? "rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                    : `group relative rounded px-2 py-1 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
+                        isActive ? "text-foreground" : ""
+                      }`
+                }
+                href={l.href}
+              >
+                {!isCta ? (
+                  <span className="pointer-events-none absolute inset-x-2 bottom-0 h-0.5 origin-left scale-x-0 bg-primary transition-transform duration-200 group-hover:scale-x-100 group-focus-visible:scale-x-100" />
+                ) : null}
+                {l.label}
+              </Link>
+            );
+          })}
 
           <DropdownMenu>
             <DropdownMenuTrigger className="group inline-flex items-center gap-1 rounded px-2 py-1 transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40">
@@ -97,7 +106,7 @@ export default function DesktopBannerNav({ navItems = [], aboutItems = [], onSea
             <Input
               name="q"
               type="search"
-              placeholder="Search destinations, sights, tours..."
+              placeholder="Search"
               className="h-8 w-56 border-0 bg-transparent px-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <button type="submit" className="text-xs font-semibold text-primary">

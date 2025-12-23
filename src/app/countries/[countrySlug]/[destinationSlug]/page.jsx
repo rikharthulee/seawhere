@@ -4,6 +4,9 @@ import EmblaCarousel from "@/components/EmblaCarousel";
 import SafeImage from "@/components/SafeImage";
 import RichText from "@/components/RichText";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import ContentViewTracker from "@/components/ContentViewTracker";
+import PopularRightNow from "@/components/PopularRightNow";
+import { Card } from "@/components/ui/card";
 import {
   firstImageFromImages,
   imagesToGallery,
@@ -20,6 +23,16 @@ import {
 
 export const revalidate = 300;
 export const runtime = "nodejs";
+
+const INTERESTS = [
+  { label: "Temples", query: "temples" },
+  { label: "Waterfalls", query: "waterfalls" },
+  { label: "Beaches", query: "beaches" },
+  { label: "Night markets", query: "night markets" },
+  { label: "Adventure", query: "adventure" },
+  { label: "Wellness", query: "wellness" },
+  { label: "Cafes", query: "cafes" },
+];
 
 async function fetchSectionPreview(destinationId, table, columns, limit = 3) {
   const db = getPublicDB();
@@ -59,7 +72,7 @@ export default async function DestinationHubPage(props) {
   const gallery = imagesToGallery(dst.images ?? []);
   const hero = gallery[0] || resolveImageUrl(firstImageFromImages(dst.images ?? []));
 
-  const [dayItineraries, food, accommodation, experiences, tours] = await Promise.all([
+  const [dayItineraries, sights, food, accommodation, experiences, tours] = await Promise.all([
     (async () => {
       const db = getPublicDB();
       const { data, error } = await db
@@ -72,6 +85,12 @@ export default async function DestinationHubPage(props) {
       if (error) return [];
       return data ?? [];
     })(),
+    fetchSectionPreview(
+      dst.id,
+      "sights",
+      "id, slug, name, summary, images",
+      6
+    ),
     fetchSectionPreview(
       dst.id,
       "food_drink",
@@ -92,15 +111,18 @@ export default async function DestinationHubPage(props) {
 
   const sections = [
     { key: "day-itineraries", label: "Day Itineraries", items: dayItineraries },
+    { key: "sights", label: "Sights", items: sights },
     { key: "food-drink", label: "Food & Drink", items: food },
     { key: "accommodation", label: "Accommodation", items: accommodation },
     { key: "experiences", label: "Experiences", items: experiences },
     { key: "tours", label: "Tours", items: tours },
-    { key: "transport", label: "Transport", items: [] },
   ];
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
+      {dst?.id ? (
+        <ContentViewTracker type="destination" id={dst.id} />
+      ) : null}
       <div className="space-y-3">
         <Breadcrumbs
           items={[
@@ -156,6 +178,67 @@ export default async function DestinationHubPage(props) {
         </div>
       </section>
 
+      <PopularRightNow
+        heading="Popular right now"
+        compact
+        limitPerType={3}
+        maxItems={6}
+        linkHref={null}
+      />
+
+      <section className="mt-10 space-y-4">
+        <h2 className="text-2xl font-semibold">Top sights</h2>
+        {sights.length === 0 ? (
+          <div className="rounded-xl border bg-muted/50 p-4 text-muted-foreground">
+            Top sights coming soon.
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {sights.map((sight) => {
+              const img = resolveImageUrl(firstImageFromImages(sight?.images));
+              return (
+                <Card key={sight.id} className="overflow-hidden transition hover:shadow-md">
+                  <Link
+                    href={destinationItemPath(
+                      countrySlug,
+                      destinationSlug,
+                      "sights",
+                      sight.slug
+                    )}
+                    className="block focus:outline-none focus:ring-2 focus:ring-ring/40"
+                  >
+                    <div className="relative aspect-[4/3] bg-black/5">
+                      {img ? (
+                        <SafeImage
+                          src={img}
+                          alt={sight.name}
+                          fill
+                          className="object-cover"
+                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        />
+                      ) : null}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                        <div className="text-base font-semibold">
+                          {sight.name}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-2">
+                      {sight.summary ? (
+                        <p className="text-sm text-muted-foreground line-clamp-3">
+                          {sight.summary}
+                        </p>
+                      ) : null}
+                    </div>
+                  </Link>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       <section className="mt-10 space-y-4">
         <h2 className="text-2xl font-semibold">Explore {dst.name}</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -209,6 +292,30 @@ export default async function DestinationHubPage(props) {
                 </p>
               )}
             </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-12 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-semibold">
+            Browse {dst.name} by interest
+          </h2>
+          <span className="text-sm text-muted-foreground">
+            Start with a theme.
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {INTERESTS.map((interest) => (
+            <Link
+              key={interest.label}
+              href={`/search?q=${encodeURIComponent(
+                `${interest.query} ${dst.name}`
+              )}`}
+              className="rounded-full border px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition"
+            >
+              {interest.label}
+            </Link>
           ))}
         </div>
       </section>

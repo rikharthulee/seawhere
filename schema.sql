@@ -545,3 +545,44 @@ CREATE TABLE public.user_roles (
   CONSTRAINT user_roles_pkey PRIMARY KEY (user_id),
   CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+
+CREATE TABLE public.content_views (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  content_type text NOT NULL,
+  content_id uuid NOT NULL,
+  views_total bigint NOT NULL DEFAULT 0,
+  last_viewed_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT content_views_pkey PRIMARY KEY (id),
+  CONSTRAINT content_views_content_unique UNIQUE (content_type, content_id)
+);
+
+CREATE INDEX content_views_type_last_viewed_idx
+  ON public.content_views (content_type, last_viewed_at DESC);
+
+CREATE INDEX content_views_type_views_idx
+  ON public.content_views (content_type, views_total DESC);
+
+CREATE OR REPLACE FUNCTION public.increment_view(type text, id uuid)
+RETURNS void
+LANGUAGE sql
+AS $$
+  INSERT INTO public.content_views (content_type, content_id, views_total, last_viewed_at, created_at, updated_at)
+  VALUES (type, id, 1, now(), now(), now())
+  ON CONFLICT (content_type, content_id)
+  DO UPDATE SET
+    views_total = public.content_views.views_total + 1,
+    last_viewed_at = now(),
+    updated_at = now();
+$$;
+
+CREATE TABLE public.site_settings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  hero_headline text,
+  hero_tagline text,
+  hero_images jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT site_settings_pkey PRIMARY KEY (id)
+);

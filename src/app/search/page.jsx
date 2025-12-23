@@ -53,7 +53,7 @@ export default async function SearchPage(props) {
           <input
             type="search"
             name="q"
-            placeholder="Try 'Luang Prabang' or 'street food'"
+            placeholder="Search"
             className="flex-1 rounded-md border px-3 py-2"
           />
           <button
@@ -305,6 +305,7 @@ export default async function SearchPage(props) {
           type="search"
           name="q"
           defaultValue={q}
+          placeholder="Search"
           className="flex-1 rounded-md border px-3 py-2"
         />
         <button

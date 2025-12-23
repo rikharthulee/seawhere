@@ -10,7 +10,7 @@ import Script from "next/script";
  * - Else: falls back to Generic (auto) widget
  */
 export default function GygWidget({
-  partnerId = "WVS8AHI",
+  partnerId = "RAFRPPC",
   className = "",
   // Optional IDs to choose the widget type
   tourId,

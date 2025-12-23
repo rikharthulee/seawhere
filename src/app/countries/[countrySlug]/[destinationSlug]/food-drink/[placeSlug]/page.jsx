@@ -3,6 +3,7 @@ import Link from "next/link";
 import EmblaCarousel from "@/components/EmblaCarousel";
 import SafeImage from "@/components/SafeImage";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import ContentViewTracker from "@/components/ContentViewTracker";
 import RichText from "@/components/RichText";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -69,6 +70,9 @@ export default async function FoodDrinkDetailPage(props) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
+      {row?.id ? (
+        <ContentViewTracker type="food_drink" id={row.id} />
+      ) : null}
       <Breadcrumbs
         items={[
           { label: "Countries", href: countryPath() },

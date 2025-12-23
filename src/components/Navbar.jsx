@@ -13,8 +13,7 @@ export default function Navbar() {
   const router = useRouter();
   const navItems = [
     { href: countryPath(), label: "Destinations" },
-    { href: "/contact", label: "Plan a Trip" },
-    { href: "/tours", label: "Tours" },
+    { href: "/trips", label: "Plan a Trip", cta: true },
     { href: "/blog", label: "Blog" },
   ];
 

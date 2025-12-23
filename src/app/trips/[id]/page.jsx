@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getPublicDB } from "@/lib/supabase/public";
 import TripDaysAccordion from "@/components/trips/TripDaysAccordion";
+import ContentViewTracker from "@/components/ContentViewTracker";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -63,6 +64,7 @@ export default async function TripDetailPage(props) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 space-y-6">
+      {trip?.id ? <ContentViewTracker type="trip" id={trip.id} /> : null}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl md:text-4xl font-semibold">

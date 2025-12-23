@@ -5,6 +5,7 @@ import EmblaCarousel from "@/components/EmblaCarousel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import PopularRightNow from "@/components/PopularRightNow";
 import {
   firstImageFromImages,
   imagesToGallery,
@@ -109,12 +110,14 @@ export default async function CountryLandingPage(props) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
-      <Breadcrumbs
-        items={[
-          { label: "Countries", href: countryPath() },
-          { label: country.name, href: countryPath(country.slug) },
-        ]}
-      />
+      <div className="mb-6">
+        <Breadcrumbs
+          items={[
+            { label: "Countries", href: countryPath() },
+            { label: country.name, href: countryPath(country.slug) },
+          ]}
+        />
+      </div>
 
       {/* Hero */}
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
@@ -152,6 +155,14 @@ export default async function CountryLandingPage(props) {
           </div>
         </div>
       </section>
+
+      <PopularRightNow
+        heading="Popular right now"
+        compact
+        limitPerType={3}
+        maxItems={6}
+        linkHref={null}
+      />
 
       {/* Featured destinations */}
       <section className="mt-10 space-y-4">

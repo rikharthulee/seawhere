@@ -32,7 +32,11 @@ export default function MobileNavbar({
           {navItems.map((l) => (
             <li key={l.href}>
               <Link
-                className="block rounded-lg px-3 py-2 hover:bg-accent"
+                className={
+                  l.cta
+                    ? "block rounded-lg bg-primary px-3 py-2 text-primary-foreground font-semibold hover:bg-primary/90"
+                    : "block rounded-lg px-3 py-2 hover:bg-accent"
+                }
                 href={l.href}
                 onClick={() => setOpen(false)}
               >
@@ -97,7 +101,7 @@ export default function MobileNavbar({
             <Input
               name="q"
               type="search"
-              placeholder="Search destinations, sights, tours..."
+              placeholder="Search"
               className="flex-1"
               autoFocus
             />
