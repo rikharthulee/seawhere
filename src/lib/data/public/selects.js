@@ -7,7 +7,7 @@ export const ENTITY_PUBLIC_COLUMNS =
 
 // Day Itineraries (templates)
 export const DAY_ITINERARY_PUBLIC_COLUMNS =
-  "id,slug,name,summary,description,cover_image,maps_url,destination_id,country_id,status,tags,updated_at,cost_band,notes,wheelchair_friendly,good_with_kids";
+  "id,slug,name,summary,description,cover_image,maps_url,destination_id,country_id,status,tags,updated_at,cost_band,notes,wheelchair_friendly,good_with_kids,highlights,full_description,includes,not_suitable_for,important_information";
 
 // Link-table minimal shape for curated items
 export const DAY_ITINERARY_LINK_COLUMNS = "id,item_type,ref_id,sort_order,is_optional,meal_type,details,duration_minutes,maps_url";

@@ -5,7 +5,7 @@ import ItineraryRow from "./ItineraryRow";
 import TransportLegRow from "./TransportLegRow";
 import OptionalStopsAccordion from "./OptionalStopsAccordion";
 import ItineraryDetailsPanel from "./ItineraryDetailsPanel";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 function entryKey(entry, idx) {
   if (!entry) return `entry-${idx}`;
@@ -82,6 +82,9 @@ export default function ItineraryTimeline({ flow = [], optionalItems = [] }) {
         }}
       >
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Stop details</SheetTitle>
+          </SheetHeader>
           <ItineraryDetailsPanel entry={activeEntry} />
         </SheetContent>
       </Sheet>

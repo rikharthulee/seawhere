@@ -45,6 +45,14 @@ function normalizeTags(value) {
   return tags.length > 0 ? tags : [];
 }
 
+function normalizeList(value) {
+  if (!Array.isArray(value)) return null;
+  const list = value
+    .map((item) => (typeof item === "string" ? item.trim() : String(item || "")))
+    .filter(Boolean);
+  return list.length > 0 ? list : [];
+}
+
 function normalizeNotes(value) {
   if (Array.isArray(value)) {
     const text = value
@@ -142,6 +150,40 @@ async function insertDayItineraryItems(db, dayItineraryId, rawItems = []) {
         details,
         duration_minutes: durationMinutes,
         maps_url: mapsUrl,
+        is_optional: Boolean(raw.is_optional),
+        meal_type: null,
+      });
+      return;
+    }
+
+    if (itemType === "meal") {
+      const details =
+        typeof raw.details === "string" && raw.details.trim().length > 0
+          ? raw.details.trim()
+          : null;
+      const duration =
+        raw.duration_minutes === "" || raw.duration_minutes === null
+          ? null
+          : Number(raw.duration_minutes);
+      const durationMinutes = Number.isFinite(duration) ? duration : null;
+      const mapsUrl =
+        typeof raw.maps_url === "string" && raw.maps_url.trim().length > 0
+          ? raw.maps_url.trim()
+          : null;
+      const mealType =
+        typeof raw.meal_type === "string" && raw.meal_type.trim().length > 0
+          ? raw.meal_type.trim()
+          : null;
+      noteLinkRows.push({
+        day_itinerary_id: dayItineraryId,
+        item_type: "meal",
+        ref_id: null,
+        sort_order: sortOrder,
+        details,
+        duration_minutes: durationMinutes,
+        maps_url: mapsUrl,
+        is_optional: Boolean(raw.is_optional),
+        meal_type: mealType,
       });
       return;
     }
@@ -152,6 +194,7 @@ async function insertDayItineraryItems(db, dayItineraryId, rawItems = []) {
           ? raw.ref_id.trim()
           : null;
       const { title, details } = normalizeNoteDraft(raw);
+      const isOptional = Boolean(raw.is_optional);
       if (isUUID(refId)) {
         noteUpserts.push({
           id: refId,
@@ -166,12 +209,15 @@ async function insertDayItineraryItems(db, dayItineraryId, rawItems = []) {
           details: null,
           duration_minutes: null,
           maps_url: null,
+          is_optional: isOptional,
+          meal_type: null,
         });
       } else if (title || details) {
         noteCreates.push({
           sort_order: sortOrder,
           title,
           details,
+          is_optional: isOptional,
         });
       }
     }
@@ -214,6 +260,8 @@ async function insertDayItineraryItems(db, dayItineraryId, rawItems = []) {
           details: null,
           duration_minutes: null,
           maps_url: null,
+          is_optional: Boolean(note.is_optional),
+          meal_type: null,
         });
       }
     });
@@ -252,7 +300,7 @@ export async function GET(_req, ctx) {
     const { data: items } = await db
       .from("day_itinerary_items")
       .select(
-        "id, item_type, ref_id, sort_order, details, duration_minutes, maps_url"
+        "id, item_type, ref_id, sort_order, details, duration_minutes, maps_url, is_optional, meal_type"
       )
       .eq("day_itinerary_id", id)
       .order("sort_order", { ascending: true });
@@ -298,16 +346,25 @@ export async function PUT(request, ctx) {
     const body = await request.json();
 
     const tags = normalizeTags(body.tags);
+    const highlights = normalizeList(body.highlights);
+    const includes = normalizeList(body.includes);
+    const notSuitableFor = normalizeList(body.not_suitable_for);
+    const importantInformation = normalizeList(body.important_information);
     const payload = {
       name: body.name || null,
       slug: body.slug || null,
       summary: body.summary || null,
       description: body.description || null,
+      full_description: body.full_description || null,
       cover_image: body.cover_image || null,
       maps_url: body.maps_url || null,
       destination_id: normalizeDestinationId(body.destination_id),
       status: body.status || "draft",
       tags: tags ?? null,
+      highlights: highlights ?? null,
+      includes: includes ?? null,
+      not_suitable_for: notSuitableFor ?? null,
+      important_information: importantInformation ?? null,
       cost_band: normalizeCostBand(body.cost_band),
       notes: normalizeNotes(body.notes),
       wheelchair_friendly: coerceNullableBoolean(

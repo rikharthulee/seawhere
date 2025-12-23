@@ -25,7 +25,9 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import SingleImageUpload from "@/components/admin/SingleImageUpload";
 import {
   Plus,
   Trash2,
@@ -68,6 +70,18 @@ function minsToLabel(mins) {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function listToText(value) {
+  if (!Array.isArray(value)) return "";
+  return value.filter(Boolean).join("\n");
+}
+
+function textToList(value) {
+  return String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 function modeIcon(m) {
@@ -375,6 +389,8 @@ function bgByType(t) {
       return "bg-slate-50/60 dark:bg-slate-800/40";
     case "note":
       return "bg-emerald-50/60 dark:bg-emerald-900/20";
+    case "meal":
+      return "bg-lime-50/60 dark:bg-lime-900/20";
     default:
       return "bg-muted";
   }
@@ -387,7 +403,9 @@ function newDayItineraryDraft() {
     id: uid(),
     name: "",
     status: "draft",
+    summary: "",
     description: "",
+    full_description: "",
     destination_id: "",
     // NEW: dayItinerary-level meta
     tags: [],
@@ -395,6 +413,10 @@ function newDayItineraryDraft() {
     notes: "",
     accessible: false,
     with_kids: false,
+    highlights: [],
+    includes: [],
+    not_suitable_for: [],
+    important_information: [],
     items: [],
   };
 }
@@ -427,6 +449,10 @@ export default function DayItineraryBuilder() {
   // patchItem is a local draft for editing
   const [patchItem, setPatchItem] = useState(null);
   const [tagsRaw, setTagsRaw] = useState("");
+  const [highlightsRaw, setHighlightsRaw] = useState("");
+  const [includesRaw, setIncludesRaw] = useState("");
+  const [notSuitableRaw, setNotSuitableRaw] = useState("");
+  const [importantRaw, setImportantRaw] = useState("");
 
   const [countries, setCountries] = useState([]);
   const [destinations, setDestinations] = useState([]);
@@ -546,6 +572,8 @@ export default function DayItineraryBuilder() {
         typeof it.maps_url === "string" && it.maps_url.trim().length > 0
           ? it.maps_url.trim()
           : null,
+      is_optional: Boolean(it.is_optional),
+      meal_type: null,
     }))
     .filter((it) => it.ref_id);
 
@@ -566,9 +594,38 @@ export default function DayItineraryBuilder() {
           typeof it.details === "string" && it.details.length > 0
             ? it.details
             : null,
+        is_optional: Boolean(it.is_optional),
+        meal_type: null,
       }));
 
-    const dbItems = [...entityItems, ...noteItems].sort(
+    const mealItems = items
+      .filter((it) => it.item_type === "meal")
+      .map((it) => ({
+        item_type: "meal",
+        sort_order: it.sort_order,
+        ref_id: null,
+        details:
+          typeof it.details === "string" && it.details.trim().length > 0
+            ? it.details.trim()
+            : null,
+        duration_minutes:
+          it.duration_minutes === "" || it.duration_minutes === null
+            ? null
+            : Number.isFinite(Number(it.duration_minutes))
+              ? Number(it.duration_minutes)
+              : null,
+        maps_url:
+          typeof it.maps_url === "string" && it.maps_url.trim().length > 0
+            ? it.maps_url.trim()
+            : null,
+        is_optional: Boolean(it.is_optional),
+        meal_type:
+          typeof it.meal_type === "string" && it.meal_type.trim().length > 0
+            ? it.meal_type.trim()
+            : null,
+      }));
+
+    const dbItems = [...entityItems, ...noteItems, ...mealItems].sort(
       (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
     );
 
@@ -605,13 +662,28 @@ export default function DayItineraryBuilder() {
     return {
       name: dayItinerary.name,
       slug: slug || slugify(dayItinerary.name || ""),
+      summary: typeof dayItinerary.summary === "string" ? dayItinerary.summary : null,
       cover_image: coverImage || null,
       status: statusOverride || dayItinerary.status || "draft",
       description,
+      full_description:
+        typeof dayItinerary.full_description === "string"
+          ? dayItinerary.full_description
+          : null,
       transport,
       items: dbItems,
       destination_id,
       tags,
+      highlights: Array.isArray(dayItinerary.highlights)
+        ? dayItinerary.highlights
+        : [],
+      includes: Array.isArray(dayItinerary.includes) ? dayItinerary.includes : [],
+      not_suitable_for: Array.isArray(dayItinerary.not_suitable_for)
+        ? dayItinerary.not_suitable_for
+        : [],
+      important_information: Array.isArray(dayItinerary.important_information)
+        ? dayItinerary.important_information
+        : [],
       cost_band: costBandValue || null,
       notes:
         typeof dayItinerary.notes === "string" &&
@@ -698,6 +770,8 @@ export default function DayItineraryBuilder() {
       details: "",
       duration_minutes: "",
       maps_url: "",
+      is_optional: false,
+      meal_type: null,
     };
     setDayItinerary((prev) => ({
       ...prev,
@@ -727,6 +801,28 @@ export default function DayItineraryBuilder() {
       details: "",
     });
     setOpenTransport(false);
+  }
+
+  function addMeal() {
+    const maxOrder = Math.max(
+      0,
+      ...dayItinerary.items.map((i) => i.sort_order || 0)
+    );
+    const meal = {
+      id: uid(),
+      sort_order: maxOrder + 10,
+      item_type: "meal",
+      meal_type: "lunch",
+      title: "Lunch",
+      details: "",
+      duration_minutes: "",
+      maps_url: "",
+      is_optional: false,
+    };
+    setDayItinerary((prev) => ({
+      ...prev,
+      items: sortByOrder([...prev.items, meal]),
+    }));
   }
 
   function removeItem(id) {
@@ -861,7 +957,7 @@ export default function DayItineraryBuilder() {
       const sortOrder = Number(it.sort_order) || (idx + 1) * 10;
       const baseId =
         typeof it.id === "string" || typeof it.id === "number"
-          ? `cur-${it.id}`
+          ? String(it.id)
           : `cur-${it.item_type}-${it.ref_id}-${idx}`;
       if ((it.item_type || "").toLowerCase() === "note") {
         return {
@@ -875,6 +971,36 @@ export default function DayItineraryBuilder() {
           title: typeof it.title === "string" ? it.title : "Note",
           details:
             typeof it.details === "string" ? it.details : "",
+          is_optional: Boolean(it.is_optional),
+        };
+      }
+      if ((it.item_type || "").toLowerCase() === "meal") {
+        const mealLabel =
+          typeof it.meal_type === "string" && it.meal_type.trim().length > 0
+            ? it.meal_type.trim()
+            : "meal";
+        return {
+          id: baseId,
+          item_type: "meal",
+          ref_id: null,
+          sort_order: sortOrder,
+          meal_type: mealLabel,
+          title: mealLabel.charAt(0).toUpperCase() + mealLabel.slice(1),
+          details:
+            typeof it.details === "string" && it.details.trim().length > 0
+              ? it.details
+              : "",
+          duration_minutes:
+            it.duration_minutes === null || it.duration_minutes === undefined
+              ? null
+              : Number.isFinite(Number(it.duration_minutes))
+                ? Number(it.duration_minutes)
+                : null,
+          maps_url:
+            typeof it.maps_url === "string" && it.maps_url.trim().length > 0
+              ? it.maps_url.trim()
+              : null,
+          is_optional: Boolean(it.is_optional),
         };
       }
       return {
@@ -898,6 +1024,8 @@ export default function DayItineraryBuilder() {
           typeof it.details === "string" && it.details.trim().length > 0
             ? it.details
             : "",
+        is_optional: Boolean(it.is_optional),
+        meal_type: it.meal_type || null,
       };
     });
     const hasLinkedNotes = curated.some((item) => item.item_type === "note");
@@ -930,7 +1058,9 @@ export default function DayItineraryBuilder() {
       id: data?.id,
       name: data?.name || "",
       status: data?.status || "draft",
+      summary: data?.summary || "",
       description: descriptionField,
+      full_description: data?.full_description || "",
       destination_id:
         typeof data?.destination_id === "string" ||
         typeof data?.destination_id === "number"
@@ -952,6 +1082,16 @@ export default function DayItineraryBuilder() {
         data?.wheelchair_friendly ?? data?.accessible ?? false
       ),
       with_kids: Boolean(data?.good_with_kids ?? data?.with_kids ?? false),
+      highlights: Array.isArray(data?.highlights)
+        ? data.highlights.filter(Boolean)
+        : [],
+      includes: Array.isArray(data?.includes) ? data.includes.filter(Boolean) : [],
+      not_suitable_for: Array.isArray(data?.not_suitable_for)
+        ? data.not_suitable_for.filter(Boolean)
+        : [],
+      important_information: Array.isArray(data?.important_information)
+        ? data.important_information.filter(Boolean)
+        : [],
       items: sortByOrder([
         ...curated,
         ...transportItems,
@@ -968,6 +1108,10 @@ export default function DayItineraryBuilder() {
             .join(", ")
         : ""
     );
+    setHighlightsRaw(listToText(data?.highlights || []));
+    setIncludesRaw(listToText(data?.includes || []));
+    setNotSuitableRaw(listToText(data?.not_suitable_for || []));
+    setImportantRaw(listToText(data?.important_information || []));
     setSavedId(data?.id || null);
     setDraggingId(null);
   }
@@ -984,6 +1128,10 @@ export default function DayItineraryBuilder() {
       setCoverImage("");
       setError("");
       setTagsRaw("");
+      setHighlightsRaw("");
+      setIncludesRaw("");
+      setNotSuitableRaw("");
+      setImportantRaw("");
       if (options.clearLoadError) setLoadError("");
       setDraggingId(null);
       router.replace(`/admin/itineraries/builder`, { scroll: false });
@@ -1329,12 +1477,23 @@ export default function DayItineraryBuilder() {
               placeholder="tokyo-nightlife"
             />
           </div>
-          <div>
-            <Label>Cover image</Label>
-            <Input
+          <div className="md:col-span-2">
+            <SingleImageUpload
+              label="Cover image"
               value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              placeholder="https://..."
+              onChange={setCoverImage}
+              prefix="media/day-itineraries"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Summary (highlights intro)</Label>
+            <Textarea
+              rows={2}
+              value={dayItinerary.summary}
+              onChange={(e) =>
+                setDayItinerary({ ...dayItinerary, summary: e.target.value })
+              }
+              placeholder="Short intro shown at the top of the public itinerary."
             />
           </div>
           <div className="md:col-span-2">
@@ -1345,6 +1504,84 @@ export default function DayItineraryBuilder() {
               onChange={(e) =>
                 setDayItinerary({ ...dayItinerary, description: e.target.value })
               }
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Full description (collapsible)</Label>
+            <Textarea
+              rows={4}
+              value={dayItinerary.full_description}
+              onChange={(e) =>
+                setDayItinerary({
+                  ...dayItinerary,
+                  full_description: e.target.value,
+                })
+              }
+              placeholder="Longer overview shown under 'Full description'."
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Highlights (one per line)</Label>
+            <Textarea
+              rows={4}
+              value={highlightsRaw}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setHighlightsRaw(raw);
+                setDayItinerary((prev) => ({
+                  ...prev,
+                  highlights: textToList(raw),
+                }));
+              }}
+              placeholder="Take in the unique sight of...\nExplore Kuang Si Falls..."
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Includes (one per line)</Label>
+            <Textarea
+              rows={3}
+              value={includesRaw}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setIncludesRaw(raw);
+                setDayItinerary((prev) => ({
+                  ...prev,
+                  includes: textToList(raw),
+                }));
+              }}
+              placeholder="Hotel pickup and drop-off\nEntrance fees"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Not suitable for (one per line)</Label>
+            <Textarea
+              rows={2}
+              value={notSuitableRaw}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setNotSuitableRaw(raw);
+                setDayItinerary((prev) => ({
+                  ...prev,
+                  not_suitable_for: textToList(raw),
+                }));
+              }}
+              placeholder="Wheelchair users"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Important information (one per line)</Label>
+            <Textarea
+              rows={4}
+              value={importantRaw}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setImportantRaw(raw);
+                setDayItinerary((prev) => ({
+                  ...prev,
+                  important_information: textToList(raw),
+                }));
+              }}
+              placeholder="Comfortable shoes\nSwimwear\nTowel"
             />
           </div>
           {/* --- NEW FIELDS --- */}
@@ -1575,6 +1812,8 @@ export default function DayItineraryBuilder() {
                   title: "Note",
                   details: "Add note text…",
                   ref_id: null,
+                  is_optional: false,
+                  meal_type: null,
                 };
                 setDayItinerary((prev) => ({
                   ...prev,
@@ -1583,6 +1822,9 @@ export default function DayItineraryBuilder() {
               }}
             >
               <Plus className="h-4 w-4 mr-1" /> Add Note
+            </Button>
+            <Button size="sm" variant="secondary" onClick={addMeal}>
+              <Plus className="h-4 w-4 mr-1" /> Add Meal
             </Button>
           </div>
         </CardHeader>
@@ -1741,6 +1983,38 @@ export default function DayItineraryBuilder() {
                             />
                           </>
                         )}
+                        {selectedItem.item_type === "meal" ? (
+                          <>
+                            <Label>Meal type</Label>
+                            <Select
+                              value={selectedItem.meal_type || "lunch"}
+                              onValueChange={(value) => {
+                                const label =
+                                  value.charAt(0).toUpperCase() + value.slice(1);
+                                setDayItinerary((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) =>
+                                    it.id === selectedItem.id
+                                      ? { ...it, meal_type: value, title: label }
+                                      : it
+                                  ),
+                                }));
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select meal type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="breakfast">
+                                  Breakfast
+                                </SelectItem>
+                                <SelectItem value="lunch">Lunch</SelectItem>
+                                <SelectItem value="dinner">Dinner</SelectItem>
+                                <SelectItem value="coffee">Coffee</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </>
+                        ) : null}
                         <Label>Details</Label>
                         <Textarea
                           rows={3}
@@ -1775,6 +2049,26 @@ export default function DayItineraryBuilder() {
                             }));
                           }}
                         />
+                        <div className="flex items-center gap-2 pt-2">
+                          <Checkbox
+                            id="day-itinerary-optional"
+                            checked={Boolean(selectedItem.is_optional)}
+                            onCheckedChange={(checked) => {
+                              const isOptional = checked === true;
+                              setDayItinerary((prev) => ({
+                                ...prev,
+                                items: prev.items.map((it) =>
+                                  it.id === selectedItem.id
+                                    ? { ...it, is_optional: isOptional }
+                                    : it
+                                ),
+                              }));
+                            }}
+                          />
+                          <Label htmlFor="day-itinerary-optional">
+                            Optional stop
+                          </Label>
+                        </div>
                         <div className="flex gap-2 pt-2">
                           <Button
                             type="button"

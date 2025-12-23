@@ -1,5 +1,12 @@
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Check, X } from "lucide-react";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { getCuratedDayItineraryBySlugPublic } from "@/lib/data/public/itineraries";
@@ -187,13 +194,24 @@ export default async function Page({ params, searchParams }) {
 
   const introText =
     dayItinerary?.summary || firstParagraph(dayItinerary?.description);
+  const highlights = Array.isArray(dayItinerary?.highlights)
+    ? dayItinerary.highlights.filter(Boolean)
+    : [];
+  const includes = Array.isArray(dayItinerary?.includes)
+    ? dayItinerary.includes.filter(Boolean)
+    : [];
+  const notSuitable = Array.isArray(dayItinerary?.not_suitable_for)
+    ? dayItinerary.not_suitable_for.filter(Boolean)
+    : [];
+  const importantInfo = Array.isArray(dayItinerary?.important_information)
+    ? dayItinerary.important_information.filter(Boolean)
+    : [];
+  const fullDescription =
+    dayItinerary?.full_description ||
+    firstParagraph(dayItinerary?.description);
 
-  const mainFlow = flow.filter(
-    (entry) => entry.kind === "leg" || !entry.isOptional
-  );
-  const optionalItems = flow.filter(
-    (entry) => entry.kind === "item" && entry.isOptional
-  );
+  const mainFlow = flow;
+  const optionalItems = [];
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
@@ -220,6 +238,18 @@ export default async function Page({ params, searchParams }) {
               <p className="text-base text-muted-foreground sm:text-lg">
                 {introText}
               </p>
+            ) : null}
+            {highlights.length > 0 ? (
+              <div className="space-y-2">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Highlights
+                </h2>
+                <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-5">
+                  {highlights.map((item, idx) => (
+                    <li key={`${item}-${idx}`}>{item}</li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
             {(Array.isArray(dayItinerary?.tags) && dayItinerary.tags.length > 0) ||
             dayItinerary?.cost_band ||
@@ -271,6 +301,69 @@ export default async function Page({ params, searchParams }) {
         </div>
       )}
 
+      {fullDescription ? (
+        <section className="rounded-xl border bg-card/40">
+          <Accordion type="single" collapsible>
+            <AccordionItem value="full-description" className="border-b-0">
+              <AccordionTrigger className="px-4 py-3 text-left">
+                Full description
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 text-sm text-muted-foreground whitespace-pre-line">
+                {fullDescription}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </section>
+      ) : null}
+
+      {(includes.length > 0 || notSuitable.length > 0) ? (
+        <section className="grid gap-4 md:grid-cols-2">
+          {includes.length > 0 ? (
+            <div className="rounded-xl border bg-card/40 p-4 space-y-2">
+              <h2 className="text-lg font-semibold">Includes</h2>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {includes.map((item, idx) => (
+                  <li key={`${item}-${idx}`} className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-emerald-600 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {notSuitable.length > 0 ? (
+            <div className="rounded-xl border bg-card/40 p-4 space-y-2">
+              <h2 className="text-lg font-semibold">Not suitable for</h2>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {notSuitable.map((item, idx) => (
+                  <li key={`${item}-${idx}`} className="flex items-start gap-2">
+                    <X className="h-4 w-4 text-rose-500 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {importantInfo.length > 0 || dayItinerary?.notes ? (
+        <section className="rounded-xl border bg-card/40 p-4 space-y-2">
+          <h2 className="text-lg font-semibold">Important information</h2>
+          {importantInfo.length > 0 ? (
+            <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-5">
+              {importantInfo.map((item, idx) => (
+                <li key={`${item}-${idx}`}>{item}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground whitespace-pre-line">
+              {dayItinerary?.notes}
+            </p>
+          )}
+        </section>
+      ) : null}
+
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Day Itinerary</h2>
         {flow.length === 0 ? (
@@ -282,14 +375,6 @@ export default async function Page({ params, searchParams }) {
         )}
       </section>
 
-      {dayItinerary?.notes ? (
-        <section className="space-y-2 rounded-xl border bg-card/40 p-4">
-          <h2 className="text-xl font-semibold">Notes</h2>
-          <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
-            {dayItinerary.notes}
-          </p>
-        </section>
-      ) : null}
     </main>
   );
 }
