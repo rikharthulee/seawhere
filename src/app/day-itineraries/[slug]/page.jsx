@@ -3,6 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import SafeImage from "@/components/SafeImage";
 import { resolveImageUrl } from "@/lib/imageUrl";
 import { getCuratedDayItineraryBySlugPublic } from "@/lib/data/public/itineraries";
+import { getPublicDB } from "@/lib/supabase/public";
+import { destinationItemPath } from "@/lib/routes";
+import ItineraryTimeline from "@/components/day-itineraries/ItineraryTimeline";
 
 export const revalidate = 300; // ISR every 5 minutes
 
@@ -65,7 +68,9 @@ function firstImage(srcLike) {
 
 function normalizeItem(it) {
   const e = it?.entity || null;
-  const isNote = (it?.item_type || "").toLowerCase() === "note";
+  const itemType = (it?.item_type || "").toLowerCase();
+  const isNote = itemType === "note";
+  const isMeal = itemType === "meal";
   const noteTitle = isNote ? e?.title || it?.title || "Note" : null;
   const noteDetails = isNote ? e?.details ?? it?.details ?? "" : null;
   const displayImage = isNote
@@ -74,10 +79,17 @@ function normalizeItem(it) {
   const entitySummary =
     e?.summary ||
     (e?.description ? firstParagraph(e.description) : "");
+  const mealLabel = it?.meal_type
+    ? it.meal_type.charAt(0).toUpperCase() + it.meal_type.slice(1)
+    : "Meal";
+  const latValue =
+    typeof e?.lat === "number" ? e.lat : Number.parseFloat(e?.lat ?? "");
+  const lngValue =
+    typeof e?.lng === "number" ? e.lng : Number.parseFloat(e?.lng ?? "");
   return {
     ...it,
     isNote,
-    displayName: isNote ? noteTitle : e?.name || it?.name || "(untitled)",
+    displayName: isMeal ? mealLabel : isNote ? noteTitle : e?.name || it?.name || "(untitled)",
     displaySummary: isNote
       ? noteDetails || ""
       : entitySummary || it?.summary || "",
@@ -90,6 +102,14 @@ function normalizeItem(it) {
       : typeof it?.details === "string" && it.details.trim().length > 0
         ? it.details
         : null,
+    descriptionText: e?.description ? firstParagraph(e.description) : "",
+    tags: Array.isArray(e?.tags) ? e.tags : [],
+    destination_id: e?.destination_id || it?.destination_id || null,
+    lat: Number.isFinite(latValue) ? latValue : null,
+    lng: Number.isFinite(lngValue) ? lngValue : null,
+    is_optional: Boolean(it?.is_optional),
+    meal_type: it?.meal_type || null,
+    slug: e?.slug || it?.slug || null,
   };
 }
 
@@ -102,16 +122,55 @@ export default async function Page({ params, searchParams }) {
   if (!dayItinerary && !debug) return notFound();
 
   const normalizedItems = (items || []).map((it) => normalizeItem(it));
+  const destinationIds = Array.from(
+    new Set(normalizedItems.map((it) => it.destination_id).filter(Boolean))
+  );
+  let destinationMap = new Map();
+  if (destinationIds.length > 0) {
+    const db = getPublicDB();
+    const { data: destinations } = await db
+      .from("destinations")
+      .select("id, slug, countries ( slug )")
+      .in("id", destinationIds);
+    destinationMap = new Map(
+      (destinations || []).map((row) => [row.id, row])
+    );
+  }
+  const enrichedItems = normalizedItems.map((it) => {
+    const destination = it.destination_id
+      ? destinationMap.get(it.destination_id)
+      : null;
+    if (
+      it.item_type === "sight" &&
+      destination?.slug &&
+      destination?.countries?.slug &&
+      it.slug
+    ) {
+      return {
+        ...it,
+        destinationSlug: destination.slug,
+        countrySlug: destination.countries.slug,
+        href: destinationItemPath(
+          destination.countries.slug,
+          destination.slug,
+          "sights",
+          it.slug
+        ),
+      };
+    }
+    return it;
+  });
   const flow = [
     ...(transport || []).map((leg) => ({
       kind: "leg",
       sort_order: Number.isFinite(leg?.sort_order) ? leg.sort_order : Infinity,
       leg,
     })),
-    ...normalizedItems.map((it) => ({
+    ...enrichedItems.map((it) => ({
       kind: "item",
       sort_order: Number.isFinite(it?.sort_order) ? it.sort_order : Infinity,
       isNote: it.isNote,
+      isOptional: it.is_optional,
       it,
     })),
   ].sort((a, b) => {
@@ -125,6 +184,16 @@ export default async function Page({ params, searchParams }) {
     };
     return priority(a) - priority(b);
   });
+
+  const introText =
+    dayItinerary?.summary || firstParagraph(dayItinerary?.description);
+
+  const mainFlow = flow.filter(
+    (entry) => entry.kind === "leg" || !entry.isOptional
+  );
+  const optionalItems = flow.filter(
+    (entry) => entry.kind === "item" && entry.isOptional
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
@@ -141,42 +210,50 @@ export default async function Page({ params, searchParams }) {
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           {dayItinerary ? dayItinerary.name : "Day Itinerary"}
         </h1>
-        {dayItinerary?.summary && (
-          <p className="text-base text-muted-foreground sm:text-lg">
-            {dayItinerary.summary}
-          </p>
-        )}
-        {(Array.isArray(dayItinerary?.tags) && dayItinerary.tags.length > 0) ||
+        {introText ||
+        (Array.isArray(dayItinerary?.tags) && dayItinerary.tags.length > 0) ||
         dayItinerary?.cost_band ||
         dayItinerary?.wheelchair_friendly ||
         dayItinerary?.good_with_kids ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {Array.isArray(dayItinerary?.tags) &&
-              dayItinerary.tags.map((t) => (
-                <Badge
-                  key={`tag-${t}`}
-                  variant="secondary"
-                  className="capitalize"
-                >
-                  {t}
-                </Badge>
-              ))}
-            {dayItinerary?.cost_band &&
-              (COST_BAND_LABELS[dayItinerary.cost_band] ||
-                dayItinerary.cost_band) && (
-                <Badge key="meta-cost" variant="outline" className="capitalize">
-                  {COST_BAND_LABELS[dayItinerary.cost_band] || dayItinerary.cost_band}
-                </Badge>
-              )}
-            {dayItinerary?.wheelchair_friendly ? (
-              <Badge key="meta-accessible" variant="secondary">
-                Accessible
-              </Badge>
+          <div className="rounded-xl border bg-card/40 p-4 space-y-3">
+            {introText ? (
+              <p className="text-base text-muted-foreground sm:text-lg">
+                {introText}
+              </p>
             ) : null}
-            {dayItinerary?.good_with_kids ? (
-              <Badge key="meta-kids" variant="secondary">
-                Good with kids
-              </Badge>
+            {(Array.isArray(dayItinerary?.tags) && dayItinerary.tags.length > 0) ||
+            dayItinerary?.cost_band ||
+            dayItinerary?.wheelchair_friendly ||
+            dayItinerary?.good_with_kids ? (
+              <div className="flex flex-wrap gap-2">
+                {Array.isArray(dayItinerary?.tags) &&
+                  dayItinerary.tags.map((t) => (
+                    <Badge
+                      key={`tag-${t}`}
+                      variant="secondary"
+                      className="capitalize"
+                    >
+                      {t}
+                    </Badge>
+                  ))}
+                {dayItinerary?.cost_band &&
+                  (COST_BAND_LABELS[dayItinerary.cost_band] ||
+                    dayItinerary.cost_band) && (
+                    <Badge key="meta-cost" variant="outline" className="capitalize">
+                      {COST_BAND_LABELS[dayItinerary.cost_band] || dayItinerary.cost_band}
+                    </Badge>
+                  )}
+                {dayItinerary?.wheelchair_friendly ? (
+                  <Badge key="meta-accessible" variant="secondary">
+                    Accessible
+                  </Badge>
+                ) : null}
+                {dayItinerary?.good_with_kids ? (
+                  <Badge key="meta-kids" variant="secondary">
+                    Good with kids
+                  </Badge>
+                ) : null}
+              </div>
             ) : null}
           </div>
         ) : null}
@@ -199,138 +276,8 @@ export default async function Page({ params, searchParams }) {
         {flow.length === 0 ? (
           <p className="text-sm text-muted-foreground">No items yet.</p>
         ) : (
-          <div className="mt-3 space-y-3">
-            {flow.map((row, idx) => {
-              if (row.kind === "item") {
-                const it = row.it;
-                if (it.isNote) {
-                  return (
-                    <div
-                      key={`note-${idx}`}
-                      className="rounded-xl border border-dashed bg-muted/50 p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 space-y-2 min-w-0">
-                          {it.displayName ? (
-                            <p className="font-medium">{it.displayName}</p>
-                          ) : null}
-                          {it.details ? (
-                            <p className="text-sm text-muted-foreground whitespace-pre-line">
-                              {it.details}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-muted-foreground italic">
-                              No details yet.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-                return (
-                  <div
-                    key={`it-${idx}`}
-                    className="overflow-hidden rounded-xl border bg-card/60"
-                  >
-                    <div className="p-4 flex items-start gap-4">
-                      {it.displayImage ? (
-                        <div className="relative h-16 w-16 rounded-full overflow-hidden border flex-none">
-                          <SafeImage
-                            src={it.displayImage}
-                            alt={it.displayName}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-16 w-16 rounded-full bg-muted border flex-none" />
-                      )}
-                      <div className="flex-1 space-y-2 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="capitalize">
-                            {String(it.item_type || "").replace("_", " ")}
-                          </Badge>
-                          {typeof it.duration_minutes === "number" &&
-                            it.duration_minutes > 0 && (
-                              <span className="text-xs text-muted-foreground">
-                                {it.duration_minutes} min
-                              </span>
-                            )}
-                        </div>
-                        <p className="font-medium truncate">{it.displayName}</p>
-                        {it.displaySummary && (
-                          <p className="text-sm text-muted-foreground line-clamp-3">
-                            {it.displaySummary}
-                          </p>
-                        )}
-                        {it.details && (
-                          <p className="text-sm text-muted-foreground line-clamp-3">
-                            {it.details}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-3 flex-wrap">
-                          {it.maps_url && (
-                            <a
-                              href={it.maps_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs underline"
-                            >
-                              Maps link
-                            </a>
-                          )}
-                          {it.opening_times_url && (
-                            <a
-                              href={it.opening_times_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs underline"
-                            >
-                              Opening times
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-              const leg = row.leg;
-              return (
-                <div
-                  key={`leg-${idx}`}
-                  className="rounded-lg bg-muted p-3 text-sm"
-                >
-                  <div className="font-medium">
-                    {leg.title || leg.primary_mode || "Transport"}
-                  </div>
-                  {leg.summary && <p className="mt-1">{leg.summary}</p>}
-                  {(leg.est_duration_min || leg.est_cost_min) && (
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {leg.est_duration_min
-                        ? `~${leg.est_duration_min} min`
-                        : ""}
-                      {leg.est_cost_min
-                        ? ` · ${leg.currency || "JPY"} ${leg.est_cost_min}${
-                            leg.est_cost_max ? `-${leg.est_cost_max}` : ""
-                          }`
-                        : ""}
-                    </div>
-                  )}
-                  {leg.maps_url && (
-                    <a
-                      href={leg.maps_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-1 inline-block text-xs underline"
-                    >
-                      Maps link
-                    </a>
-                  )}
-                </div>
-              );
-            })}
+          <div className="mt-3">
+            <ItineraryTimeline flow={mainFlow} optionalItems={optionalItems} />
           </div>
         )}
       </section>

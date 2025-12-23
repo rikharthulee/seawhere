@@ -98,6 +98,8 @@ CREATE TABLE public.day_itinerary_items (
   item_type text NOT NULL,
   ref_id uuid,
   sort_order integer DEFAULT 0,
+  is_optional boolean NOT NULL DEFAULT false,
+  meal_type text CHECK (meal_type = ANY (ARRAY['breakfast'::text, 'lunch'::text, 'dinner'::text, 'coffee'::text])),
   details text,
   duration_minutes integer,
   maps_url text,

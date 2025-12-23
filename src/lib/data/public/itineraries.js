@@ -126,15 +126,18 @@ async function fetchTransportLegs(supabase, dayItineraryId) {
 export async function hydrateDayItineraryItems(supabase, items = []) {
   return Promise.all(
     (items || []).map(async (it, idx) => {
-      const info = tableInfoForType(it?.item_type);
+      const itemType = (it?.item_type || "").toLowerCase().trim();
+      const info = tableInfoForType(itemType);
       const table = info?.table || null;
       const id =
         typeof it?.ref_id === "string" ? it.ref_id.trim() : it?.ref_id;
       if (!table) {
-        console.warn("[public:day-itineraries] unknown item_type", {
-          idx,
-          item_type: it?.item_type,
-        });
+        if (itemType !== "meal" && itemType !== "custom") {
+          console.warn("[public:day-itineraries] unknown item_type", {
+            idx,
+            item_type: it?.item_type,
+          });
+        }
         return { ...it, entity: null, table: null };
       }
       if (!isUUID(id)) {
