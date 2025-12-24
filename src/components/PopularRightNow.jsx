@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
+import SafeImage from "@/components/SafeImage";
 import { fetchPopularContent } from "@/lib/contentViews";
+import { firstImageFromImages, resolveImageUrl } from "@/lib/imageUrl";
 import {
   countryPath,
   destinationItemPath,
@@ -120,16 +122,39 @@ export default async function PopularRightNow({
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {mixedPopular.map((item, idx) => (
-              <Card key={`${item.type}-${item.id}-${idx}`} className="overflow-hidden transition hover:shadow-md">
-                <Link href={item.href || "#"} className="block focus:outline-none focus:ring-2 focus:ring-ring/40">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.15em] text-muted-foreground">
-                      <span>{item.type}</span>
-                      {item.country_id ? <span>SEA</span> : null}
-                    </div>
-                    <div className="font-semibold text-lg leading-tight">
-                      {item.title || item.name}
-                    </div>
+              <Card
+                key={`${item.type}-${item.id}-${idx}`}
+                className="overflow-hidden transition hover:shadow-md"
+              >
+                <Link
+                  href={item.href || "#"}
+                  className="block focus:outline-none focus:ring-2 focus:ring-ring/40"
+                >
+                  {(() => {
+                    const img = resolveImageUrl(
+                      firstImageFromImages(item?.images)
+                    );
+                    return (
+                      <div className="relative aspect-[4/3] bg-black/5">
+                        {img ? (
+                          <SafeImage
+                            src={img}
+                            alt={item.title || item.name || "Popular pick"}
+                            fill
+                            className="object-cover"
+                            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          />
+                        ) : null}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                          <div className="text-base font-semibold">
+                            {item.title || item.name}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <CardContent className="p-4 space-y-2">
                     {item.summary || item.description ? (
                       <p className="text-sm text-muted-foreground line-clamp-3">
                         {item.summary || item.description}

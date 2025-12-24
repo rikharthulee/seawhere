@@ -5,6 +5,7 @@ import SafeImage from "@/components/SafeImage";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import RichText from "@/components/RichText";
 import { Card, CardContent } from "@/components/ui/card";
+import ContentViewTracker from "@/components/ContentViewTracker";
 import {
   firstImageFromImages,
   imagesToGallery,
@@ -70,6 +71,7 @@ export default async function AccommodationDetailPage(props) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
+      {row?.id ? <ContentViewTracker type="accommodation" id={row.id} /> : null}
       <Breadcrumbs
         items={[
           { label: "Countries", href: countryPath() },

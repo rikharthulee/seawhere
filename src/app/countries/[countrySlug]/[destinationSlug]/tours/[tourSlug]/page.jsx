@@ -13,6 +13,7 @@ import RichTextReadOnly from "@/components/RichTextReadOnly";
 import { getTourByDestinationSlugsPublic } from "@/lib/data/public/tours";
 import { fmtJPY } from "@/lib/format";
 import GygWidget from "@/components/GygWidget";
+import ContentViewTracker from "@/components/ContentViewTracker";
 import {
   countryPath,
   destinationPath,
@@ -69,6 +70,7 @@ export default async function TourDetailBySlugPage(props) {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
+      {p?.id ? <ContentViewTracker type="tour" id={p.id} /> : null}
       <Breadcrumbs
         items={[
           { label: "Countries", href: countryPath() },
