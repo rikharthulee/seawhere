@@ -13,6 +13,7 @@ import { getCuratedDayItineraryBySlugPublic } from "@/lib/data/public/itinerarie
 import { getPublicDB } from "@/lib/supabase/public";
 import { destinationItemPath } from "@/lib/routes";
 import ItineraryTimeline from "@/components/day-itineraries/ItineraryTimeline";
+import DayMap from "@/components/day/DayMap";
 
 export const revalidate = 300; // ISR every 5 minutes
 
@@ -212,6 +213,20 @@ export default async function Page({ params, searchParams }) {
 
   const mainFlow = flow;
   const optionalItems = [];
+  const mapCandidates = mainFlow.filter(
+    (entry) => entry.kind === "item" && entry.it && !entry.it.isNote
+  );
+  const pins = mapCandidates
+    .filter((entry) => Number.isFinite(entry.it.lat) && Number.isFinite(entry.it.lng))
+    .map((entry, idx) => ({
+      id: entry.it.id,
+      name: entry.it.displayName || entry.it.name || "Stop",
+      lat: entry.it.lat,
+      lng: entry.it.lng,
+      order: idx + 1,
+      href: entry.it.href || null,
+    }));
+  const missingCoordsCount = mapCandidates.length - pins.length;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
@@ -372,6 +387,23 @@ export default async function Page({ params, searchParams }) {
             <ItineraryTimeline flow={mainFlow} optionalItems={optionalItems} />
           </div>
         )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-2xl font-semibold">Map</h2>
+        {pins.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No stops have coordinates yet.
+          </p>
+        ) : (
+          <DayMap pins={pins} />
+        )}
+        {missingCoordsCount > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            {missingCoordsCount} stop
+            {missingCoordsCount === 1 ? "" : "s"} don’t have coordinates yet.
+          </p>
+        ) : null}
       </section>
 
     </main>

@@ -26,6 +26,7 @@ export function resolveImageUrl(path) {
   if (!value) return null;
   if (/^https?:\/\//i.test(value)) return value;
   if (value.startsWith("//")) return `https:${value}`;
+  if (value.startsWith("/api/")) return value;
   const direct = buildMediaUrl(value);
   if (direct) return direct;
   return value.startsWith("/") ? value : `/${value}`;

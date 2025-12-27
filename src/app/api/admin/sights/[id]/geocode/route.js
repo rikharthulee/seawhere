@@ -49,13 +49,26 @@ export async function POST(request, ctx) {
     );
   }
 
-  const params = new URLSearchParams({ address: query, key: apiKey });
-  const res = await fetch(
-    `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`,
-    { cache: "no-store" }
+  const placesRes = await fetch(
+    "https://places.googleapis.com/v1/places:searchText",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask":
+          "places.id,places.displayName,places.formattedAddress,places.location",
+      },
+      body: JSON.stringify({ textQuery: query, maxResultCount: 1 }),
+      cache: "no-store",
+    }
   );
-  const json = await res.json().catch(() => ({}));
-  const status = json?.status || "UNKNOWN";
+  const placesJson = await placesRes.json().catch(() => ({}));
+  const placesError = placesJson?.error || null;
+  const places = Array.isArray(placesJson?.places) ? placesJson.places : [];
+  let status = places.length > 0 ? "OK" : "ZERO_RESULTS";
+  const placesErrorMessage = placesError?.message || null;
+  let geocodeErrorMessage = null;
   const nowIso = new Date().toISOString();
 
   const updatePayload = {
@@ -63,12 +76,39 @@ export async function POST(request, ctx) {
     geocoded_at: nowIso,
   };
 
-  if (status === "OK" && Array.isArray(json?.results) && json.results[0]) {
-    const result = json.results[0];
-    updatePayload.lat = result?.geometry?.location?.lat ?? null;
-    updatePayload.lng = result?.geometry?.location?.lng ?? null;
-    updatePayload.geocoded_address = result?.formatted_address || null;
-    updatePayload.geocode_place_id = result?.place_id || null;
+  if (placesError) {
+    status = placesError?.status || "PLACES_ERROR";
+    updatePayload.geocode_status = status;
+    updatePayload.geocode_source = "places";
+  } else if (status === "OK" && places[0]) {
+    const result = places[0];
+    updatePayload.lat = result?.location?.latitude ?? null;
+    updatePayload.lng = result?.location?.longitude ?? null;
+    updatePayload.geocoded_address = result?.formattedAddress || null;
+    updatePayload.geocode_place_id = result?.id || null;
+    updatePayload.geocoded_place_name = result?.displayName?.text || null;
+    updatePayload.geocode_source = "places";
+  } else {
+    const params = new URLSearchParams({ address: query, key: apiKey });
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`,
+      { cache: "no-store" }
+    );
+    const json = await res.json().catch(() => ({}));
+    status = json?.status || status || "UNKNOWN";
+    geocodeErrorMessage = json?.error_message || null;
+    updatePayload.geocode_status = status;
+    if (status === "OK" && Array.isArray(json?.results) && json.results[0]) {
+      const result = json.results[0];
+      updatePayload.lat = result?.geometry?.location?.lat ?? null;
+      updatePayload.lng = result?.geometry?.location?.lng ?? null;
+      updatePayload.geocoded_address = result?.formatted_address || null;
+      updatePayload.geocode_place_id = result?.place_id || null;
+      updatePayload.geocoded_place_name = result?.name || null;
+      updatePayload.geocode_source = "geocode";
+    } else {
+      updatePayload.geocode_source = "geocode";
+    }
   }
 
   const { data: updated, error: updateErr } = await db
@@ -76,7 +116,7 @@ export async function POST(request, ctx) {
     .update(updatePayload)
     .eq("id", id)
     .select(
-      "id, lat, lng, geocoded_address, geocode_place_id, geocode_status, geocoded_at"
+      "id, lat, lng, geocoded_address, geocode_place_id, geocoded_place_name, geocode_source, geocode_status, geocoded_at"
     )
     .maybeSingle();
 
@@ -89,7 +129,7 @@ export async function POST(request, ctx) {
       {
         ok: false,
         status,
-        error_message: json?.error_message || null,
+        error_message: geocodeErrorMessage || placesErrorMessage || null,
         sight: updated || null,
       },
       { status: 200 }

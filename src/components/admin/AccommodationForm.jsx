@@ -75,6 +75,27 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
     initial?.geocode_status || ""
   );
   const [geocodedAt, setGeocodedAt] = useState(initial?.geocoded_at || "");
+  const [googlePlaceId, setGooglePlaceId] = useState(
+    initial?.google_place_id || ""
+  );
+  const [googlePlaceName, setGooglePlaceName] = useState(
+    initial?.google_place_name || ""
+  );
+  const [googleFormattedAddress, setGoogleFormattedAddress] = useState(
+    initial?.google_formatted_address || ""
+  );
+  const [googlePhotos, setGooglePhotos] = useState(
+    Array.isArray(initial?.google_photos) ? initial.google_photos : []
+  );
+  const [googlePhotosStatus, setGooglePhotosStatus] = useState(
+    initial?.google_photos_status || ""
+  );
+  const [googlePhotosError, setGooglePhotosError] = useState(
+    initial?.google_photos_error || ""
+  );
+  const [googlePhotosSyncedAt, setGooglePhotosSyncedAt] = useState(
+    initial?.google_photos_synced_at || ""
+  );
   const [addressText, setAddressText] = useState(
     typeof initial?.address === "string" ? initial.address : initial?.address ? JSON.stringify(initial.address) : ""
   );
@@ -83,6 +104,9 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
   const [geocodeLoading, setGeocodeLoading] = useState(false);
   const [geocodeMessage, setGeocodeMessage] = useState("");
   const [geocodeError, setGeocodeError] = useState("");
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [photosMessage, setPhotosMessage] = useState("");
+  const [photosError, setPhotosError] = useState("");
   const isEditing = !!initial?.id;
 
   const [countries, setCountries] = useState([]);
@@ -131,6 +155,13 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
     setGeocodePlaceId(initial?.geocode_place_id || "");
     setGeocodeStatus(initial?.geocode_status || "");
     setGeocodedAt(initial?.geocoded_at || "");
+    setGooglePlaceId(initial?.google_place_id || "");
+    setGooglePlaceName(initial?.google_place_name || "");
+    setGoogleFormattedAddress(initial?.google_formatted_address || "");
+    setGooglePhotos(Array.isArray(initial?.google_photos) ? initial.google_photos : []);
+    setGooglePhotosStatus(initial?.google_photos_status || "");
+    setGooglePhotosError(initial?.google_photos_error || "");
+    setGooglePhotosSyncedAt(initial?.google_photos_synced_at || "");
     setAddressText(
       typeof initial?.address === "string" ? initial.address : initial?.address ? JSON.stringify(initial.address) : ""
     );
@@ -270,6 +301,52 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
     }
   }
 
+  async function handleSyncPhotos() {
+    setPhotosLoading(true);
+    setPhotosMessage("");
+    setPhotosError("");
+    try {
+      if (!isEditing || !initial?.id) {
+        throw new Error("Save the accommodation before syncing photos.");
+      }
+      if (!googlePlaceId.trim()) {
+        throw new Error("Resolve Google Place first.");
+      }
+      const res = await fetch(
+        `/api/admin/accommodation/${initial.id}/sync-photos`,
+        { method: "POST" }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error || `Sync failed (${res.status})`);
+      }
+      if (!json?.ok) {
+        throw new Error(json?.error || "Sync failed");
+      }
+
+      const updated = json?.accommodation || {};
+      setGooglePhotos(
+        Array.isArray(updated.google_photos) ? updated.google_photos : []
+      );
+      setGooglePlaceName(updated.google_place_name || json?.place_name || "");
+      setGoogleFormattedAddress(
+        updated.google_formatted_address || json?.formatted_address || ""
+      );
+      setGooglePhotosStatus(updated.google_photos_status || "OK");
+      setGooglePhotosError(updated.google_photos_error || "");
+      setGooglePhotosSyncedAt(updated.google_photos_synced_at || "");
+      setPhotosMessage(
+        typeof json?.photo_count === "number"
+          ? `Synced ${json.photo_count} photos.`
+          : "Photos synced."
+      );
+    } catch (e) {
+      setPhotosError(e?.message || "Failed to sync photos");
+    } finally {
+      setPhotosLoading(false);
+    }
+  }
+
   async function save(values) {
     const errs = {};
     if (!(values.name || "").trim()) errs.name = "Name is required";
@@ -298,6 +375,7 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
         lat: values.lat === undefined ? null : Number(values.lat),
         lng: values.lng === undefined ? null : Number(values.lng),
         address: values.addressText?.trim() ? values.addressText.trim() : null,
+        google_place_id: googlePlaceId?.trim() || null,
       };
       let savedSlug = payload.slug;
       let res, json;
@@ -479,6 +557,58 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
           <div>
             <label className="block text-sm font-medium">Longitude</label>
             <Input value={lng} onChange={(e) => { setLng(e.target.value); form.setValue("lng", e.target.value); }} />
+          </div>
+          <div className="md:col-span-2 space-y-2">
+            <label className="block text-sm font-medium">Google Place ID</label>
+            <Input
+              value={googlePlaceId}
+              onChange={(e) => setGooglePlaceId(e.target.value)}
+              placeholder="Paste a Google Place ID"
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSyncPhotos}
+                disabled={photosLoading || !googlePlaceId.trim()}
+              >
+                {photosLoading ? "Syncing..." : "Sync Google Photos"}
+              </Button>
+              {!googlePlaceId.trim() ? (
+                <span className="text-xs text-muted-foreground">
+                  Resolve Google Place first.
+                </span>
+              ) : null}
+            </div>
+            {photosMessage ? (
+              <div className="text-xs text-emerald-600">{photosMessage}</div>
+            ) : null}
+            {photosError ? (
+              <div className="text-xs text-red-600">{photosError}</div>
+            ) : null}
+            {(googlePlaceName || googleFormattedAddress || googlePhotosStatus) ? (
+              <div className="text-xs text-muted-foreground space-y-1">
+                {googlePhotosStatus ? (
+                  <div>Status: {googlePhotosStatus}</div>
+                ) : null}
+                {googlePhotosSyncedAt ? (
+                  <div>Last synced: {googlePhotosSyncedAt}</div>
+                ) : null}
+                {googlePlaceName ? (
+                  <div>Place name: {googlePlaceName}</div>
+                ) : null}
+                {googleFormattedAddress ? (
+                  <div>Place address: {googleFormattedAddress}</div>
+                ) : null}
+                {googlePhotosError ? (
+                  <div>Error: {googlePhotosError}</div>
+                ) : null}
+                {googlePhotos.length > 0 ? (
+                  <div>Photos: {googlePhotos.length}</div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div className="md:col-span-2 space-y-2">
             <div className="flex flex-wrap items-center gap-3">

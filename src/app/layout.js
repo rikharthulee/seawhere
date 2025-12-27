@@ -27,7 +27,10 @@ const jakarta = Plus_Jakarta_Sans({
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${jakarta.variable}`}>
-      <head>{/* GYG widget script is loaded where used (GygWidget) */}</head>
+      <head>
+        {/* GYG widget script is loaded where used (GygWidget) */}
+        <meta name="agd-partner-manual-verification" />
+      </head>
       <body className="font-sans">
         <Navbar />
         <div className="site-root antialiased bg-background text-foreground">{children}</div>

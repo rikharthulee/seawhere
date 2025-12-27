@@ -32,8 +32,14 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
   const [geocodedAddress, setGeocodedAddress] = useState(
     initial?.geocoded_address || ""
   );
+  const [geocodedPlaceName, setGeocodedPlaceName] = useState(
+    initial?.geocoded_place_name || ""
+  );
   const [geocodePlaceId, setGeocodePlaceId] = useState(
     initial?.geocode_place_id || ""
+  );
+  const [geocodeSource, setGeocodeSource] = useState(
+    initial?.geocode_source || ""
   );
   const [geocodeStatus, setGeocodeStatus] = useState(
     initial?.geocode_status || ""
@@ -127,7 +133,9 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
     setGeocodedAddress(initial?.geocoded_address || "");
+    setGeocodedPlaceName(initial?.geocoded_place_name || "");
     setGeocodePlaceId(initial?.geocode_place_id || "");
+    setGeocodeSource(initial?.geocode_source || "");
     setGeocodeStatus(initial?.geocode_status || "");
     setGeocodedAt(initial?.geocoded_at || "");
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
@@ -283,7 +291,9 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
         setLng(String(sight.lng));
       }
       setGeocodedAddress(sight.geocoded_address || "");
+      setGeocodedPlaceName(sight.geocoded_place_name || "");
       setGeocodePlaceId(sight.geocode_place_id || "");
+      setGeocodeSource(sight.geocode_source || "");
       setGeocodeStatus(sight.geocode_status || json?.status || "");
       setGeocodedAt(sight.geocoded_at || "");
 
@@ -505,8 +515,12 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
             {(geocodeStatus || geocodedAt || geocodePlaceId) ? (
               <div className="text-xs text-muted-foreground space-y-1">
                 {geocodeStatus ? <div>Status: {geocodeStatus}</div> : null}
+                {geocodeSource ? <div>Source: {geocodeSource}</div> : null}
                 {geocodedAt ? <div>Last resolved: {geocodedAt}</div> : null}
                 {geocodePlaceId ? <div>Place ID: {geocodePlaceId}</div> : null}
+                {geocodedPlaceName ? (
+                  <div>Place name: {geocodedPlaceName}</div>
+                ) : null}
                 {geocodedAddress ? <div>Address: {geocodedAddress}</div> : null}
               </div>
             ) : null}
