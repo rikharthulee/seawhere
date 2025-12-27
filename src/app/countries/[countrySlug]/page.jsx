@@ -162,6 +162,7 @@ export default async function CountryLandingPage(props) {
         limitPerType={3}
         maxItems={6}
         linkHref={null}
+        countrySlug={country?.slug || countrySlug}
       />
 
       {/* Featured destinations */}

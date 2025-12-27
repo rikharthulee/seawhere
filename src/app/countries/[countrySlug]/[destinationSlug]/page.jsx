@@ -184,6 +184,8 @@ export default async function DestinationHubPage(props) {
         limitPerType={3}
         maxItems={6}
         linkHref={null}
+        countrySlug={countrySlug}
+        destinationSlug={destinationSlug}
       />
 
       <section className="mt-10 space-y-4">

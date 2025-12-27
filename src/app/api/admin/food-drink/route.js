@@ -10,7 +10,7 @@ export async function GET() {
     const { data, error } = await db
       .from("food_drink")
       .select(
-        "id, slug, status, name, type, price_band, tags, booking_url, address, lat, lng, description, rating, images, destination_id, country_id, geocoded_address, geocode_place_id, geocode_status, geocoded_at, created_at, updated_at"
+        "id, slug, status, name, type, price_band, tags, booking_url, address, lat, lng, description, rating, images, destination_id, country_id, geocoded_address, geocode_place_id, geocode_status, geocoded_at, google_place_id, google_place_name, google_formatted_address, google_photos, google_photos_status, google_photos_error, google_photos_synced_at, created_at, updated_at"
       )
       .order("name", { ascending: true });
     if (error)

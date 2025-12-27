@@ -55,9 +55,21 @@ export default async function FoodDrinkDetailPage(props) {
 
   const row = result.place;
   const destination = result.destination || null;
+  const googlePhotos = Array.isArray(row.google_photos) ? row.google_photos : [];
+  const googleSlides = googlePhotos
+    .map((photo) => {
+      if (!photo?.name) return null;
+      const params = new URLSearchParams({
+        photoName: photo.name,
+        maxWidthPx: "1600",
+        maxHeightPx: "1200",
+      });
+      return `/api/public/places/photo?${params.toString()}`;
+    })
+    .filter(Boolean);
   const hero = resolveImageUrl(firstImageFromImages(row.images ?? []));
   const gallery = imagesToGallery(row.images ?? []);
-  const slides = gallery.length > 0 ? gallery : hero ? [hero] : [];
+  const slides = googleSlides.length > 0 ? googleSlides : gallery.length > 0 ? gallery : hero ? [hero] : [];
   const lat =
     typeof row?.lat === "number"
       ? row.lat
@@ -68,6 +80,7 @@ export default async function FoodDrinkDetailPage(props) {
       : Number.parseFloat(String(row?.lng ?? ""));
   const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
   const addressValue = (() => {
+    if (row?.google_formatted_address) return row.google_formatted_address;
     if (row?.geocoded_address) return row.geocoded_address;
     if (!row?.address) return "";
     if (typeof row.address === "string") {
@@ -80,6 +93,14 @@ export default async function FoodDrinkDetailPage(props) {
     if (row.address?.formatted_address) return row.address.formatted_address;
     return JSON.stringify(row.address);
   })();
+  const photoAttributions = Array.from(
+    new Map(
+      googlePhotos
+        .flatMap((photo) => photo?.authorAttributions || [])
+        .filter((attr) => attr?.displayName)
+        .map((attr) => [attr.displayName, attr])
+    ).values()
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -149,6 +170,28 @@ export default async function FoodDrinkDetailPage(props) {
               <span className="text-muted-foreground">No image available</span>
             </div>
           )}
+          {photoAttributions.length > 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Photo credits:{" "}
+              {photoAttributions.map((attr, idx) => (
+                <span key={`${attr.displayName}-${idx}`}>
+                  {attr.uri ? (
+                    <a
+                      href={attr.uri}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline"
+                    >
+                      {attr.displayName}
+                    </a>
+                  ) : (
+                    attr.displayName
+                  )}
+                  {idx < photoAttributions.length - 1 ? ", " : ""}
+                </span>
+              ))}
+            </p>
+          ) : null}
         </div>
 
         <div className="order-2 md:order-1">

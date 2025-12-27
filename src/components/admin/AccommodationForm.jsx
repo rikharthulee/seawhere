@@ -76,7 +76,7 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
   );
   const [geocodedAt, setGeocodedAt] = useState(initial?.geocoded_at || "");
   const [googlePlaceId, setGooglePlaceId] = useState(
-    initial?.google_place_id || ""
+    initial?.google_place_id || initial?.geocode_place_id || ""
   );
   const [googlePlaceName, setGooglePlaceName] = useState(
     initial?.google_place_name || ""
@@ -155,7 +155,9 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
     setGeocodePlaceId(initial?.geocode_place_id || "");
     setGeocodeStatus(initial?.geocode_status || "");
     setGeocodedAt(initial?.geocoded_at || "");
-    setGooglePlaceId(initial?.google_place_id || "");
+    setGooglePlaceId(
+      initial?.google_place_id || initial?.geocode_place_id || ""
+    );
     setGooglePlaceName(initial?.google_place_name || "");
     setGoogleFormattedAddress(initial?.google_formatted_address || "");
     setGooglePhotos(Array.isArray(initial?.google_photos) ? initial.google_photos : []);
@@ -278,6 +280,9 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
       }
       setGeocodedAddress(updated.geocoded_address || "");
       setGeocodePlaceId(updated.geocode_place_id || "");
+      if (!googlePlaceId && updated.geocode_place_id) {
+        setGooglePlaceId(updated.geocode_place_id);
+      }
       setGeocodeStatus(updated.geocode_status || json?.status || "");
       setGeocodedAt(updated.geocoded_at || "");
 
@@ -375,7 +380,7 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
         lat: values.lat === undefined ? null : Number(values.lat),
         lng: values.lng === undefined ? null : Number(values.lng),
         address: values.addressText?.trim() ? values.addressText.trim() : null,
-        google_place_id: googlePlaceId?.trim() || null,
+        google_place_id: googlePlaceId?.trim() || geocodePlaceId?.trim() || null,
       };
       let savedSlug = payload.slug;
       let res, json;
@@ -409,7 +414,7 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
           }),
         });
       } catch {}
-      onSaved?.();
+      onSaved?.({ id: json?.id || initial?.id || null });
     } catch (e) {
       console.error(e);
       const msg = e?.message || "Save failed";

@@ -16,6 +16,8 @@ export default async function PopularRightNow({
   linkHref = countryPath(),
   linkLabel = "See more",
   compact = false,
+  countrySlug = null,
+  destinationSlug = null,
 }) {
   const popular = await fetchPopularContent(limitPerType);
   const mixedPopular = [
@@ -97,7 +99,26 @@ export default async function PopularRightNow({
       type: "Trip",
       href: p?.slug ? `/trips/${p.slug}` : null,
     })),
-  ].slice(0, maxItems);
+  ];
+
+  const filteredPopular = mixedPopular.filter((item) => {
+    if (countrySlug) {
+      const destCountry = item?.countries?.slug;
+      const nestedCountry = item?.destinations?.countries?.slug;
+      const match = destCountry || nestedCountry || null;
+      if (match !== countrySlug) return false;
+    }
+    if (destinationSlug) {
+      const match =
+        item?.type === "Destination"
+          ? item?.slug === destinationSlug
+          : item?.destinations?.slug === destinationSlug;
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  const limitedPopular = filteredPopular.slice(0, maxItems);
 
   const sectionClassName = compact ? "mt-12 space-y-4" : "bg-muted/40 py-12";
   const containerClassName = compact
@@ -115,13 +136,13 @@ export default async function PopularRightNow({
             </Link>
           ) : null}
         </div>
-        {mixedPopular.length === 0 ? (
+        {limitedPopular.length === 0 ? (
           <div className="rounded-xl border bg-muted/40 p-4 text-muted-foreground">
             Popular picks will appear here as people explore the site.
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {mixedPopular.map((item, idx) => (
+            {limitedPopular.map((item, idx) => (
               <Card
                 key={`${item.type}-${item.id}-${idx}`}
                 className="overflow-hidden transition hover:shadow-md"

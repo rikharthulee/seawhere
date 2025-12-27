@@ -44,6 +44,27 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
     initial?.geocode_status || ""
   );
   const [geocodedAt, setGeocodedAt] = useState(initial?.geocoded_at || "");
+  const [googlePlaceId, setGooglePlaceId] = useState(
+    initial?.google_place_id || initial?.geocode_place_id || ""
+  );
+  const [googlePlaceName, setGooglePlaceName] = useState(
+    initial?.google_place_name || ""
+  );
+  const [googleFormattedAddress, setGoogleFormattedAddress] = useState(
+    initial?.google_formatted_address || ""
+  );
+  const [googlePhotos, setGooglePhotos] = useState(
+    Array.isArray(initial?.google_photos) ? initial.google_photos : []
+  );
+  const [googlePhotosStatus, setGooglePhotosStatus] = useState(
+    initial?.google_photos_status || ""
+  );
+  const [googlePhotosError, setGooglePhotosError] = useState(
+    initial?.google_photos_error || ""
+  );
+  const [googlePhotosSyncedAt, setGooglePhotosSyncedAt] = useState(
+    initial?.google_photos_synced_at || ""
+  );
   const [destinationId, setDestinationId] = useState(initial?.destination_id || "");
   const [countryId, setCountryId] = useState(initial?.country_id || "");
   const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
@@ -54,6 +75,9 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
   const [geocodeLoading, setGeocodeLoading] = useState(false);
   const [geocodeMessage, setGeocodeMessage] = useState("");
   const [geocodeError, setGeocodeError] = useState("");
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [photosMessage, setPhotosMessage] = useState("");
+  const [photosError, setPhotosError] = useState("");
 
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(name));
@@ -104,6 +128,13 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
     setDestinationId(initial?.destination_id || "");
     setCountryId(initial?.country_id || "");
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
+    setGooglePlaceId(initial?.google_place_id || initial?.geocode_place_id || "");
+    setGooglePlaceName(initial?.google_place_name || "");
+    setGoogleFormattedAddress(initial?.google_formatted_address || "");
+    setGooglePhotos(Array.isArray(initial?.google_photos) ? initial.google_photos : []);
+    setGooglePhotosStatus(initial?.google_photos_status || "");
+    setGooglePhotosError(initial?.google_photos_error || "");
+    setGooglePhotosSyncedAt(initial?.google_photos_synced_at || "");
   }, [initial]);
 
   useEffect(() => {
@@ -159,6 +190,9 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
       }
       setGeocodedAddress(updated.geocoded_address || "");
       setGeocodePlaceId(updated.geocode_place_id || "");
+      if (!googlePlaceId && updated.geocode_place_id) {
+        setGooglePlaceId(updated.geocode_place_id);
+      }
       setGeocodeStatus(updated.geocode_status || json?.status || "");
       setGeocodedAt(updated.geocoded_at || "");
 
@@ -179,6 +213,52 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
       setGeocodeError(e?.message || "Failed to resolve location");
     } finally {
       setGeocodeLoading(false);
+    }
+  }
+
+  async function handleSyncPhotos() {
+    setPhotosLoading(true);
+    setPhotosMessage("");
+    setPhotosError("");
+    try {
+      if (!isEditing || !initial?.id) {
+        throw new Error("Save the entry before syncing photos.");
+      }
+      if (!googlePlaceId.trim()) {
+        throw new Error("Resolve Google Place first.");
+      }
+      const res = await fetch(
+        `/api/admin/food-drink/${initial.id}/sync-photos`,
+        { method: "POST" }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error || `Sync failed (${res.status})`);
+      }
+      if (!json?.ok) {
+        throw new Error(json?.error || "Sync failed");
+      }
+
+      const updated = json?.food_drink || {};
+      setGooglePhotos(
+        Array.isArray(updated.google_photos) ? updated.google_photos : []
+      );
+      setGooglePlaceName(updated.google_place_name || json?.place_name || "");
+      setGoogleFormattedAddress(
+        updated.google_formatted_address || json?.formatted_address || ""
+      );
+      setGooglePhotosStatus(updated.google_photos_status || "OK");
+      setGooglePhotosError(updated.google_photos_error || "");
+      setGooglePhotosSyncedAt(updated.google_photos_synced_at || "");
+      setPhotosMessage(
+        typeof json?.photo_count === "number"
+          ? `Synced ${json.photo_count} photos.`
+          : "Photos synced."
+      );
+    } catch (e) {
+      setPhotosError(e?.message || "Failed to sync photos");
+    } finally {
+      setPhotosLoading(false);
     }
   }
 
@@ -212,6 +292,7 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
         destination_id: destinationId,
         country_id: countryId,
         tags: Array.isArray(tags) ? tags : [],
+        google_place_id: googlePlaceId?.trim() || geocodePlaceId?.trim() || null,
       };
 
       const res = await fetch(isEditing ? `/api/admin/food-drink/${initial.id}` : "/api/admin/food-drink", {
@@ -221,7 +302,7 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || `Save failed (${res.status})`);
-      onSaved?.();
+      onSaved?.({ id: json?.id || initial?.id || null });
     } catch (e) {
       console.error(e);
       setFormError(e?.message || "Save failed");
@@ -375,6 +456,58 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
               placeholder="e.g. 96.1951"
               inputMode="decimal"
             />
+          </div>
+          <div className="md:col-span-2 space-y-2">
+            <label className="block text-sm font-medium">Google Place ID</label>
+            <Input
+              value={googlePlaceId}
+              onChange={(e) => setGooglePlaceId(e.target.value)}
+              placeholder="Paste a Google Place ID"
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSyncPhotos}
+                disabled={photosLoading || !googlePlaceId.trim()}
+              >
+                {photosLoading ? "Syncing..." : "Sync Google Photos"}
+              </Button>
+              {!googlePlaceId.trim() ? (
+                <span className="text-xs text-muted-foreground">
+                  Resolve Google Place first.
+                </span>
+              ) : null}
+            </div>
+            {photosMessage ? (
+              <div className="text-xs text-emerald-600">{photosMessage}</div>
+            ) : null}
+            {photosError ? (
+              <div className="text-xs text-red-600">{photosError}</div>
+            ) : null}
+            {(googlePlaceName || googleFormattedAddress || googlePhotosStatus) ? (
+              <div className="text-xs text-muted-foreground space-y-1">
+                {googlePhotosStatus ? (
+                  <div>Status: {googlePhotosStatus}</div>
+                ) : null}
+                {googlePhotosSyncedAt ? (
+                  <div>Last synced: {googlePhotosSyncedAt}</div>
+                ) : null}
+                {googlePlaceName ? (
+                  <div>Place name: {googlePlaceName}</div>
+                ) : null}
+                {googleFormattedAddress ? (
+                  <div>Place address: {googleFormattedAddress}</div>
+                ) : null}
+                {googlePhotosError ? (
+                  <div>Error: {googlePhotosError}</div>
+                ) : null}
+                {googlePhotos.length > 0 ? (
+                  <div>Photos: {googlePhotos.length}</div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div className="md:col-span-2 space-y-2">
             <div className="flex flex-wrap items-center gap-3">
