@@ -2,6 +2,7 @@
 
 import { getPublicDB } from "@/lib/supabase/public";
 import { resolveImageUrl } from "@/lib/imageUrl";
+import { destinationItemPath } from "@/lib/routes";
 import { getCuratedDayItineraryByIdPublic } from "@/lib/data/public/itineraries";
 
 export async function getDayItineraryItems(dayItineraryId) {
@@ -10,13 +11,49 @@ export async function getDayItineraryItems(dayItineraryId) {
     dayItineraryId
   );
   const normalized = (items || []).map((it) => normalizeItem(it));
+  const destinationIds = Array.from(
+    new Set(normalized.map((it) => it.destination_id).filter(Boolean))
+  );
+  let destinationMap = new Map();
+  if (destinationIds.length > 0) {
+    const db = getPublicDB();
+    const { data: destinations } = await db
+      .from("destinations")
+      .select("id, slug, countries ( slug )")
+      .in("id", destinationIds);
+    destinationMap = new Map((destinations || []).map((row) => [row.id, row]));
+  }
+  const enriched = normalized.map((it) => {
+    const destination = it.destination_id
+      ? destinationMap.get(it.destination_id)
+      : null;
+    if (
+      it.item_type === "sight" &&
+      destination?.slug &&
+      destination?.countries?.slug &&
+      it.slug
+    ) {
+      return {
+        ...it,
+        destinationSlug: destination.slug,
+        countrySlug: destination.countries.slug,
+        href: destinationItemPath(
+          destination.countries.slug,
+          destination.slug,
+          "sights",
+          it.slug
+        ),
+      };
+    }
+    return it;
+  });
   const flow = [
     ...(transport || []).map((leg) => ({
       kind: "leg",
       sort_order: Number.isFinite(leg?.sort_order) ? leg.sort_order : Infinity,
       leg,
     })),
-    ...normalized.map((it) => ({
+    ...enriched.map((it) => ({
       kind: "item",
       sort_order: Number.isFinite(it?.sort_order) ? it.sort_order : Infinity,
       isNote: it.isNote,
@@ -33,7 +70,7 @@ export async function getDayItineraryItems(dayItineraryId) {
     };
     return priority(a) - priority(b);
   });
-  return { items: normalized, flow };
+  return { items: enriched, flow };
 }
 
 function firstParagraph(value) {
@@ -102,6 +139,10 @@ function normalizeItem(it) {
     : resolveImageUrl(firstImage(e?.images) || firstImage(it?.images));
   const entitySummary =
     e?.summary || (e?.description ? firstParagraph(e.description) : "");
+  const latValue =
+    typeof e?.lat === "number" ? e.lat : Number.parseFloat(e?.lat ?? "");
+  const lngValue =
+    typeof e?.lng === "number" ? e.lng : Number.parseFloat(e?.lng ?? "");
 
   return {
     ...it,
@@ -117,5 +158,11 @@ function normalizeItem(it) {
       : typeof it?.details === "string" && it.details.trim().length > 0
         ? it.details
         : null,
+    descriptionText: e?.description ? firstParagraph(e.description) : "",
+    tags: Array.isArray(e?.tags) ? e.tags : [],
+    destination_id: e?.destination_id || it?.destination_id || null,
+    lat: Number.isFinite(latValue) ? latValue : null,
+    lng: Number.isFinite(lngValue) ? lngValue : null,
+    slug: e?.slug || it?.slug || null,
   };
 }

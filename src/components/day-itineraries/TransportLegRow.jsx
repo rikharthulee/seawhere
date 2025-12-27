@@ -27,9 +27,9 @@ export default function TransportLegRow({ entry, isActive, onSelect }) {
   const duration = formatDuration(leg.est_duration_min);
 
   return (
-    <li className="relative flex gap-5">
+    <li className="relative flex items-center gap-5">
       <div className="flex w-8 justify-center">
-        <span className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon className="h-4 w-4" />
         </span>
       </div>

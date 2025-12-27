@@ -7,20 +7,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { getDayItineraryItems } from "@/app/trips/actions";
-import SafeImage from "@/components/SafeImage";
-import { Badge } from "@/components/ui/badge";
-
-function formatItemType(value) {
-  if (!value) return "";
-  const label = String(value).replace(/_/g, " ");
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function formatDuration(minutes) {
-  const value = Number(minutes);
-  if (!Number.isFinite(value) || value <= 0) return "";
-  return `${value} min`;
-}
+import ItineraryTimeline from "@/components/day-itineraries/ItineraryTimeline";
 
 export default function TripDayAccordionItem({
   day,
@@ -97,7 +84,7 @@ export default function TripDayAccordionItem({
           </div>
         </div>
       </AccordionTrigger>
-      <AccordionContent>
+      <AccordionContent contentClassName="overflow-visible">
         <div className="space-y-3">
           {day.day_itinerary_id ? (
             <>
@@ -118,143 +105,8 @@ export default function TripDayAccordionItem({
                   No items in this itinerary yet.
                 </div>
               ) : (
-                <div className="mt-3 space-y-3">
-                  {flow.map((entry, idx) => {
-                    if (entry.kind === "leg") {
-                      const leg = entry.leg;
-                      return (
-                        <div
-                          key={leg.id || `leg-${idx}`}
-                          className="rounded-lg bg-muted p-3 text-sm"
-                        >
-                          <div className="font-medium">
-                            {leg.title || leg.primary_mode || "Transport"}
-                          </div>
-                          {leg.summary ? (
-                            <p className="mt-1">{leg.summary}</p>
-                          ) : null}
-                          {(leg.est_duration_min || leg.est_cost_min) ? (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {leg.est_duration_min
-                                ? `~${leg.est_duration_min} min`
-                                : ""}
-                              {leg.est_cost_min
-                                ? ` · ${leg.currency || "JPY"} ${leg.est_cost_min}${
-                                    leg.est_cost_max ? `-${leg.est_cost_max}` : ""
-                                  }`
-                                : ""}
-                            </div>
-                          ) : null}
-                          {leg.maps_url ? (
-                            <a
-                              href={leg.maps_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="mt-1 inline-block text-xs underline"
-                            >
-                              Maps link
-                            </a>
-                          ) : null}
-                        </div>
-                      );
-                    }
-
-                    const item = entry.it;
-                    if (item?.isNote) {
-                      return (
-                        <div
-                          key={item.id || `note-${idx}`}
-                          className="rounded-xl border border-dashed bg-muted/50 p-4"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="flex-1 space-y-2 min-w-0">
-                              {item.displayName ? (
-                                <p className="font-medium">{item.displayName}</p>
-                              ) : null}
-                              {item.details ? (
-                                <p className="text-sm text-muted-foreground whitespace-pre-line">
-                                  {item.details}
-                                </p>
-                              ) : (
-                                <p className="text-sm text-muted-foreground italic">
-                                  No details yet.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div
-                        key={item.id || `${item.item_type}-${idx}`}
-                        className="overflow-hidden rounded-xl border bg-card/60"
-                      >
-                        <div className="p-4 flex items-start gap-4">
-                          {item.displayImage ? (
-                            <div className="relative h-16 w-16 rounded-full overflow-hidden border flex-none">
-                              <SafeImage
-                                src={item.displayImage}
-                                alt={item.displayName || "Itinerary item"}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="h-16 w-16 rounded-full bg-muted border flex-none" />
-                          )}
-                          <div className="flex-1 space-y-2 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="capitalize">
-                                {formatItemType(item.item_type)}
-                              </Badge>
-                              {formatDuration(item.duration_minutes) ? (
-                                <span className="text-xs text-muted-foreground">
-                                  {formatDuration(item.duration_minutes)}
-                                </span>
-                              ) : null}
-                            </div>
-                            <p className="font-medium truncate">
-                              {item.displayName || "Untitled stop"}
-                            </p>
-                            {item.displaySummary ? (
-                              <p className="text-sm text-muted-foreground line-clamp-3">
-                                {item.displaySummary}
-                              </p>
-                            ) : null}
-                            {item.details ? (
-                              <p className="text-sm text-muted-foreground line-clamp-3">
-                                {item.details}
-                              </p>
-                            ) : null}
-                            <div className="flex items-center gap-3 flex-wrap">
-                              {item.maps_url ? (
-                                <a
-                                  href={item.maps_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-xs underline"
-                                >
-                                  Maps link
-                                </a>
-                              ) : null}
-                              {item.opening_times_url ? (
-                                <a
-                                  href={item.opening_times_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-xs underline"
-                                >
-                                  Opening times
-                                </a>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="mt-3">
+                  <ItineraryTimeline flow={flow} optionalItems={[]} />
                 </div>
               )}
             </>

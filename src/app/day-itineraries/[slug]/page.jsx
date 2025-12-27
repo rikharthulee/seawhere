@@ -228,6 +228,17 @@ export default async function Page({ params, searchParams }) {
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           {dayItinerary ? dayItinerary.name : "Day Itinerary"}
         </h1>
+        {dayItinerary?.cover_image && (
+          <div className="relative h-72 w-full overflow-hidden rounded-xl border">
+            <SafeImage
+              src={resolveImageUrl(dayItinerary.cover_image)}
+              alt={dayItinerary.name}
+              fill
+              sizes="(min-width: 1024px) 800px, 100vw"
+              className="object-cover"
+            />
+          </div>
+        )}
         {introText ||
         (Array.isArray(dayItinerary?.tags) && dayItinerary.tags.length > 0) ||
         dayItinerary?.cost_band ||
@@ -288,18 +299,6 @@ export default async function Page({ params, searchParams }) {
           </div>
         ) : null}
       </header>
-
-      {dayItinerary?.cover_image && (
-        <div className="relative h-72 w-full overflow-hidden rounded-xl border">
-          <SafeImage
-            src={resolveImageUrl(dayItinerary.cover_image)}
-            alt={dayItinerary.name}
-            fill
-            sizes="(min-width: 1024px) 800px, 100vw"
-            className="object-cover"
-          />
-        </div>
-      )}
 
       {fullDescription ? (
         <section className="rounded-xl border bg-card/40">

@@ -38,11 +38,11 @@ export default function ItineraryRow({
   const markerClass = isOptional
     ? "border border-muted bg-background text-muted-foreground"
     : "bg-primary text-primary-foreground shadow-sm";
-  const markerSize = compact ? "h-7 w-7" : "h-9 w-9";
+  const markerSize = "h-8 w-8";
   const iconSize = compact ? "h-3.5 w-3.5" : "h-4 w-4";
 
   return (
-    <li className="relative flex gap-5">
+    <li className="relative flex items-center gap-5">
       <div className="flex w-8 justify-center">
         <span className={`flex items-center justify-center rounded-full ${markerClass} ${markerSize}`}>
           {isOptional ? (

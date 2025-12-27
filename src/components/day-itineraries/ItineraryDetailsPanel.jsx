@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SafeImage from "@/components/SafeImage";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -65,20 +66,69 @@ export default function ItineraryDetailsPanel({ entry }) {
   const itemType = String(it.item_type || "").toLowerCase();
   const hasCoords =
     Number.isFinite(it.lat) && Number.isFinite(it.lng);
+  const mapSection = hasCoords ? (
+    <div className="space-y-2">
+      <div className="overflow-hidden rounded-lg border">
+        <iframe
+          title={`Map of ${it.displayName || "stop"}`}
+          src={`https://www.google.com/maps?q=${it.lat},${it.lng}&z=14&output=embed`}
+          loading="lazy"
+          className="h-40 w-full border-0"
+        />
+      </div>
+      <a
+        href={`https://www.google.com/maps?q=${it.lat},${it.lng}`}
+        target="_blank"
+        rel="noreferrer"
+        className="text-xs underline"
+      >
+        Open in Google Maps
+      </a>
+    </div>
+  ) : null;
+  const image = it.displayImage ? (
+    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border bg-muted">
+      <SafeImage
+        src={it.displayImage}
+        alt={it.displayName || "Stop image"}
+        fill
+        className="object-cover"
+      />
+    </div>
+  ) : null;
+  const headingContent = (title, subtitle) => (
+    <div className="flex items-start gap-3">
+      {image}
+      <div className="space-y-1">
+        <h3 className="text-lg font-semibold">{title}</h3>
+        {subtitle}
+      </div>
+    </div>
+  );
+  const headingLinkClass = "transition hover:text-primary";
+  const heading = (title, subtitle) =>
+    it.href ? (
+      <Link href={it.href} className={headingLinkClass}>
+        {headingContent(title, subtitle)}
+      </Link>
+    ) : (
+      headingContent(title, subtitle)
+    );
 
   if (itemType === "meal") {
     return (
       <Card>
         <CardContent className="p-5 space-y-3">
-          <h3 className="text-lg font-semibold">
-            {formatMealType(it.meal_type)}
-          </h3>
-          {duration ? (
-            <p className="text-sm text-muted-foreground">{duration}</p>
-          ) : null}
+          {heading(
+            formatMealType(it.meal_type),
+            duration ? (
+              <p className="text-sm text-muted-foreground">{duration}</p>
+            ) : null
+          )}
           {it.details ? (
             <p className="text-sm text-muted-foreground">{it.details}</p>
           ) : null}
+          {mapSection}
         </CardContent>
       </Card>
     );
@@ -102,12 +152,10 @@ export default function ItineraryDetailsPanel({ entry }) {
   return (
     <Card>
       <CardContent className="p-5 space-y-4">
-        <div className="space-y-1">
-          <h3 className="text-lg font-semibold">{it.displayName || "Stop"}</h3>
-          {duration ? (
-            <p className="text-sm text-muted-foreground">{duration}</p>
-          ) : null}
-        </div>
+        {heading(
+          it.displayName || "Stop",
+          duration ? <p className="text-sm text-muted-foreground">{duration}</p> : null
+        )}
         {it.displaySummary ? (
           <p className="text-sm text-muted-foreground">{it.displaySummary}</p>
         ) : null}
@@ -123,31 +171,7 @@ export default function ItineraryDetailsPanel({ entry }) {
             ))}
           </div>
         ) : null}
-        {hasCoords ? (
-          <div className="space-y-2">
-            <div className="overflow-hidden rounded-lg border">
-              <iframe
-                title={`Map of ${it.displayName || "stop"}`}
-                src={`https://www.google.com/maps?q=${it.lat},${it.lng}&z=14&output=embed`}
-                loading="lazy"
-                className="h-40 w-full border-0"
-              />
-            </div>
-            <a
-              href={`https://www.google.com/maps?q=${it.lat},${it.lng}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs underline"
-            >
-              Open in Google Maps
-            </a>
-          </div>
-        ) : null}
-        {it.href ? (
-          <Link href={it.href} className="inline-flex text-sm underline">
-            View sight
-          </Link>
-        ) : null}
+        {mapSection}
       </CardContent>
     </Card>
   );
