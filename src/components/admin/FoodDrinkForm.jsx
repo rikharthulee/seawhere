@@ -34,6 +34,16 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
   );
   const [lat, setLat] = useState(initial?.lat ?? "");
   const [lng, setLng] = useState(initial?.lng ?? "");
+  const [geocodedAddress, setGeocodedAddress] = useState(
+    initial?.geocoded_address || ""
+  );
+  const [geocodePlaceId, setGeocodePlaceId] = useState(
+    initial?.geocode_place_id || ""
+  );
+  const [geocodeStatus, setGeocodeStatus] = useState(
+    initial?.geocode_status || ""
+  );
+  const [geocodedAt, setGeocodedAt] = useState(initial?.geocoded_at || "");
   const [destinationId, setDestinationId] = useState(initial?.destination_id || "");
   const [countryId, setCountryId] = useState(initial?.country_id || "");
   const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
@@ -41,6 +51,9 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
   const [destinations, setDestinations] = useState([]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [geocodeLoading, setGeocodeLoading] = useState(false);
+  const [geocodeMessage, setGeocodeMessage] = useState("");
+  const [geocodeError, setGeocodeError] = useState("");
 
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(name));
@@ -84,6 +97,10 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
     );
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
+    setGeocodedAddress(initial?.geocoded_address || "");
+    setGeocodePlaceId(initial?.geocode_place_id || "");
+    setGeocodeStatus(initial?.geocode_status || "");
+    setGeocodedAt(initial?.geocoded_at || "");
     setDestinationId(initial?.destination_id || "");
     setCountryId(initial?.country_id || "");
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
@@ -101,6 +118,69 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
     () => destinations.filter((d) => !countryId || d.country_id === countryId),
     [destinations, countryId]
   );
+
+  const geocodeQuery = useMemo(() => {
+    const parts = [];
+    if (name?.trim()) parts.push(name.trim());
+    const dest = destinations.find((d) => d.id === destinationId);
+    if (dest?.name) parts.push(dest.name);
+    const country = countries.find((c) => c.id === countryId);
+    if (country?.name) parts.push(country.name);
+    return parts.join(", ");
+  }, [name, destinations, destinationId, countries, countryId]);
+
+  async function handleResolveLocation() {
+    setGeocodeLoading(true);
+    setGeocodeMessage("");
+    setGeocodeError("");
+    try {
+      if (!isEditing || !initial?.id) {
+        throw new Error("Save the entry before resolving location.");
+      }
+      if (!geocodeQuery) {
+        throw new Error("Add a name, destination, and country first.");
+      }
+      const res = await fetch(`/api/admin/food-drink/${initial.id}/geocode`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: geocodeQuery }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error || `Geocode failed (${res.status})`);
+      }
+
+      const updated = json?.food_drink || {};
+      if (updated?.lat !== undefined && updated?.lat !== null) {
+        setLat(String(updated.lat));
+      }
+      if (updated?.lng !== undefined && updated?.lng !== null) {
+        setLng(String(updated.lng));
+      }
+      setGeocodedAddress(updated.geocoded_address || "");
+      setGeocodePlaceId(updated.geocode_place_id || "");
+      setGeocodeStatus(updated.geocode_status || json?.status || "");
+      setGeocodedAt(updated.geocoded_at || "");
+
+      if (json?.ok) {
+        setGeocodeMessage(
+          updated?.geocoded_address
+            ? `Resolved: ${updated.geocoded_address}`
+            : "Resolved location."
+        );
+      } else {
+        setGeocodeError(
+          json?.error_message
+            ? `${json.status}: ${json.error_message}`
+            : `Geocode status: ${json.status || "Unknown"}`
+        );
+      }
+    } catch (e) {
+      setGeocodeError(e?.message || "Failed to resolve location");
+    } finally {
+      setGeocodeLoading(false);
+    }
+  }
 
   async function save() {
     try {
@@ -295,6 +375,36 @@ export default function FoodDrinkForm({ initial, onSaved, onCancel }) {
               placeholder="e.g. 96.1951"
               inputMode="decimal"
             />
+          </div>
+          <div className="md:col-span-2 space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleResolveLocation}
+                disabled={geocodeLoading}
+              >
+                {geocodeLoading ? "Resolving..." : "Resolve location"}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Query: {geocodeQuery || "Add name + destination + country"}
+              </span>
+            </div>
+            {geocodeMessage ? (
+              <div className="text-xs text-emerald-600">{geocodeMessage}</div>
+            ) : null}
+            {geocodeError ? (
+              <div className="text-xs text-red-600">{geocodeError}</div>
+            ) : null}
+            {(geocodeStatus || geocodedAt || geocodePlaceId) ? (
+              <div className="text-xs text-muted-foreground space-y-1">
+                {geocodeStatus ? <div>Status: {geocodeStatus}</div> : null}
+                {geocodedAt ? <div>Last resolved: {geocodedAt}</div> : null}
+                {geocodePlaceId ? <div>Place ID: {geocodePlaceId}</div> : null}
+                {geocodedAddress ? <div>Address: {geocodedAddress}</div> : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="md:col-span-2">

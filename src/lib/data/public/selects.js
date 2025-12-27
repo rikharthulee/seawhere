@@ -17,7 +17,7 @@ export const NOTE_PUBLIC_COLUMNS = "id,title,details";
 
 // Sights
 export const SIGHT_PUBLIC_COLUMNS =
-  "id,slug,name,summary,description,body_richtext,images,destination_id,country_id,lat,lng,status,duration_minutes,provider,deeplink,gyg_id,price_amount,price_currency,tags,opening_times_url";
+  "id,slug,name,summary,description,body_richtext,images,destination_id,country_id,lat,lng,geocoded_address,status,duration_minutes,provider,deeplink,gyg_id,price_amount,price_currency,tags,opening_times_url";
 
 // Experiences
 export const EXPERIENCE_PUBLIC_COLUMNS =

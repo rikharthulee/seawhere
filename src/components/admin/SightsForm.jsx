@@ -29,6 +29,18 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
   const [status, setStatus] = useState(initial?.status || "draft");
   const [lat, setLat] = useState(initial?.lat ?? "");
   const [lng, setLng] = useState(initial?.lng ?? "");
+  const [geocodedAddress, setGeocodedAddress] = useState(
+    initial?.geocoded_address || ""
+  );
+  const [geocodePlaceId, setGeocodePlaceId] = useState(
+    initial?.geocode_place_id || ""
+  );
+  const [geocodeStatus, setGeocodeStatus] = useState(
+    initial?.geocode_status || ""
+  );
+  const [geocodedAt, setGeocodedAt] = useState(
+    initial?.geocoded_at || ""
+  );
   const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
   const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? "");
   const [provider, setProvider] = useState(initial?.provider || "internal");
@@ -44,6 +56,9 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
 
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [geocodeLoading, setGeocodeLoading] = useState(false);
+  const [geocodeMessage, setGeocodeMessage] = useState("");
+  const [geocodeError, setGeocodeError] = useState("");
   const openingTimesRef = useRef(null);
   const admissionRef = useRef(null);
 
@@ -111,6 +126,10 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
     setStatus(initial?.status || "draft");
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
+    setGeocodedAddress(initial?.geocoded_address || "");
+    setGeocodePlaceId(initial?.geocode_place_id || "");
+    setGeocodeStatus(initial?.geocode_status || "");
+    setGeocodedAt(initial?.geocoded_at || "");
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
     setDurationMinutes(initial?.duration_minutes ?? "");
     setProvider(initial?.provider || "internal");
@@ -134,6 +153,16 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
     () => destinations.filter((d) => !countryId || d.country_id === countryId),
     [destinations, countryId]
   );
+
+  const geocodeQuery = useMemo(() => {
+    const parts = [];
+    if (name?.trim()) parts.push(name.trim());
+    const dest = destinations.find((d) => d.id === destinationId);
+    if (dest?.name) parts.push(dest.name);
+    const country = countries.find((c) => c.id === countryId);
+    if (country?.name) parts.push(country.name);
+    return parts.join(", ");
+  }, [name, destinations, destinationId, countries, countryId]);
 
   const destSlugForUpload = useMemo(() => {
     const d = destinations.find((x) => x.id === destinationId);
@@ -223,6 +252,59 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
       return;
     }
     onSaved?.({ deleted: true });
+  }
+
+  async function handleResolveLocation() {
+    setGeocodeLoading(true);
+    setGeocodeMessage("");
+    setGeocodeError("");
+    try {
+      if (!isEditing || !sightId) {
+        throw new Error("Save the sight before resolving location.");
+      }
+      if (!geocodeQuery) {
+        throw new Error("Add a name, destination, and country first.");
+      }
+      const res = await fetch(`/api/admin/sights/${sightId}/geocode`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: geocodeQuery }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error || `Geocode failed (${res.status})`);
+      }
+
+      const sight = json?.sight || {};
+      if (sight?.lat !== undefined && sight?.lat !== null) {
+        setLat(String(sight.lat));
+      }
+      if (sight?.lng !== undefined && sight?.lng !== null) {
+        setLng(String(sight.lng));
+      }
+      setGeocodedAddress(sight.geocoded_address || "");
+      setGeocodePlaceId(sight.geocode_place_id || "");
+      setGeocodeStatus(sight.geocode_status || json?.status || "");
+      setGeocodedAt(sight.geocoded_at || "");
+
+      if (json?.ok) {
+        setGeocodeMessage(
+          sight?.geocoded_address
+            ? `Resolved: ${sight.geocoded_address}`
+            : "Resolved location."
+        );
+      } else {
+        setGeocodeError(
+          json?.error_message
+            ? `${json.status}: ${json.error_message}`
+            : `Geocode status: ${json.status || "Unknown"}`
+        );
+      }
+    } catch (err) {
+      setGeocodeError(err?.message || "Failed to resolve location");
+    } finally {
+      setGeocodeLoading(false);
+    }
   }
 
   return (
@@ -398,6 +480,36 @@ export default function SightsForm({ id, initial, onSaved, onCancel }) {
               value={lng}
               onChange={(e) => setLng(e.target.value)}
             />
+          </div>
+          <div className="md:col-span-2 space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleResolveLocation}
+                disabled={geocodeLoading}
+              >
+                {geocodeLoading ? "Resolving..." : "Resolve location"}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Query: {geocodeQuery || "Add name + destination + country"}
+              </span>
+            </div>
+            {geocodeMessage ? (
+              <div className="text-xs text-emerald-600">{geocodeMessage}</div>
+            ) : null}
+            {geocodeError ? (
+              <div className="text-xs text-red-600">{geocodeError}</div>
+            ) : null}
+            {(geocodeStatus || geocodedAt || geocodePlaceId) ? (
+              <div className="text-xs text-muted-foreground space-y-1">
+                {geocodeStatus ? <div>Status: {geocodeStatus}</div> : null}
+                {geocodedAt ? <div>Last resolved: {geocodedAt}</div> : null}
+                {geocodePlaceId ? <div>Place ID: {geocodePlaceId}</div> : null}
+                {geocodedAddress ? <div>Address: {geocodedAddress}</div> : null}
+              </div>
+            ) : null}
           </div>
         </div>
 

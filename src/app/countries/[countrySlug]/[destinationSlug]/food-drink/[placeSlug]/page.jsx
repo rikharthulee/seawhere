@@ -67,6 +67,19 @@ export default async function FoodDrinkDetailPage(props) {
       ? row.lng
       : Number.parseFloat(String(row?.lng ?? ""));
   const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
+  const addressValue = (() => {
+    if (row?.geocoded_address) return row.geocoded_address;
+    if (!row?.address) return "";
+    if (typeof row.address === "string") {
+      try {
+        const parsed = JSON.parse(row.address);
+        if (parsed?.formatted_address) return parsed.formatted_address;
+      } catch {}
+      return row.address;
+    }
+    if (row.address?.formatted_address) return row.address.formatted_address;
+    return JSON.stringify(row.address);
+  })();
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -193,13 +206,20 @@ export default async function FoodDrinkDetailPage(props) {
         </Card>
       </section>
 
-      {row.address || hasCoordinates ? (
+      {addressValue || hasCoordinates ? (
         <section className="mt-6 space-y-3">
           <h2 className="text-xl font-semibold">Location</h2>
-          {row.address ? (
-            <div className="rounded border bg-muted/50 p-3 text-sm text-foreground/90">
-              {row.address}
-            </div>
+          {addressValue ? (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                addressValue
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="block rounded border bg-muted/50 p-3 text-sm text-foreground/90 underline hover:bg-muted"
+            >
+              {addressValue}
+            </a>
           ) : null}
           {hasCoordinates ? (
             <div className="overflow-hidden rounded-xl border">

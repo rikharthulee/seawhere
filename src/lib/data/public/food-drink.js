@@ -32,7 +32,7 @@ export async function getFoodDrinkBySlugPublic(slug) {
   const { data, error } = await db
     .from("food_drink")
     .select(
-      "slug, name, description, images, status, type, price_band, rating, booking_url, address, lat, lng, destination_id, country_id"
+      "slug, name, description, images, status, type, price_band, rating, booking_url, address, geocoded_address, lat, lng, destination_id, country_id"
     )
     .eq("slug", normalized)
     .eq("status", "published")
@@ -56,7 +56,7 @@ export async function getFoodDrinkByDestinationSlugsPublic({
   const { data, error } = await db
     .from("food_drink")
     .select(
-      "slug, name, description, images, status, type, price_band, rating, booking_url, address, lat, lng, destination_id, country_id"
+      "slug, name, description, images, status, type, price_band, rating, booking_url, address, geocoded_address, lat, lng, destination_id, country_id"
     )
     .eq("slug", String(placeSlug || "").trim())
     .eq("destination_id", destination.id)

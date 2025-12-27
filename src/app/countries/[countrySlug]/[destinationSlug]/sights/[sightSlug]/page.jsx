@@ -71,6 +71,13 @@ export default async function SightBySlugPage(props) {
       ? sight.lng
       : Number.parseFloat(String(sight?.lng ?? ""));
   const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
+  const addressValue = sight?.geocoded_address || "";
+  const hasOpeningTimes =
+    openingTimes &&
+    ((Array.isArray(openingTimes?.hours) && openingTimes.hours.length > 0) ||
+      (Array.isArray(openingTimes?.closures) &&
+        openingTimes.closures.length > 0));
+  const hasAdmissions = Array.isArray(admissions) && admissions.length > 0;
   const gallery = imagesToGallery(sight?.images ?? []);
   const hero = gallery[0] || resolveImageUrl(firstImageFromImages(sight?.images));
 
@@ -145,15 +152,32 @@ export default async function SightBySlugPage(props) {
               {sight.body_richtext ? (
                 <RichTextReadOnly value={sight.body_richtext} />
               ) : null}
-              {hasCoordinates ? (
-                <div className="overflow-hidden rounded-xl border">
-                  <iframe
-                    title={`Map of ${sight.name}`}
-                    src={`https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
-                    loading="lazy"
-                    allowFullScreen
-                    className="h-64 w-full border-0"
-                  />
+              {addressValue || hasCoordinates ? (
+                <div className="space-y-2">
+                  <h2 className="text-lg font-semibold">Location</h2>
+                  {addressValue ? (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        addressValue
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block rounded border bg-muted/50 p-3 text-sm text-foreground/90 underline hover:bg-muted"
+                    >
+                      {addressValue}
+                    </a>
+                  ) : null}
+                  {hasCoordinates ? (
+                    <div className="overflow-hidden rounded-xl border">
+                      <iframe
+                        title={`Map of ${sight.name}`}
+                        src={`https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
+                        loading="lazy"
+                        allowFullScreen
+                        className="h-64 w-full border-0"
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -175,10 +199,16 @@ export default async function SightBySlugPage(props) {
               </div>
             ) : null}
 
-            <div className="space-y-5">
-              <OpeningTimesPublic openingTimes={openingTimes} />
-              <AdmissionPricesPublic admissions={admissions} />
-            </div>
+            {(hasOpeningTimes || hasAdmissions) ? (
+              <div className="space-y-5">
+                {hasOpeningTimes ? (
+                  <OpeningTimesPublic openingTimes={openingTimes} />
+                ) : null}
+                {hasAdmissions ? (
+                  <AdmissionPricesPublic admissions={admissions} />
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </section>
       ) : null}

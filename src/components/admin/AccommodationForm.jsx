@@ -65,11 +65,24 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
   const [affiliateUrl, setAffiliateUrl] = useState(initial?.affiliate_url || "");
   const [lat, setLat] = useState(initial?.lat ?? "");
   const [lng, setLng] = useState(initial?.lng ?? "");
+  const [geocodedAddress, setGeocodedAddress] = useState(
+    initial?.geocoded_address || ""
+  );
+  const [geocodePlaceId, setGeocodePlaceId] = useState(
+    initial?.geocode_place_id || ""
+  );
+  const [geocodeStatus, setGeocodeStatus] = useState(
+    initial?.geocode_status || ""
+  );
+  const [geocodedAt, setGeocodedAt] = useState(initial?.geocoded_at || "");
   const [addressText, setAddressText] = useState(
     typeof initial?.address === "string" ? initial.address : initial?.address ? JSON.stringify(initial.address) : ""
   );
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [geocodeLoading, setGeocodeLoading] = useState(false);
+  const [geocodeMessage, setGeocodeMessage] = useState("");
+  const [geocodeError, setGeocodeError] = useState("");
   const isEditing = !!initial?.id;
 
   const [countries, setCountries] = useState([]);
@@ -114,6 +127,10 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
     setAffiliateUrl(initial?.affiliate_url || "");
     setLat(initial?.lat ?? "");
     setLng(initial?.lng ?? "");
+    setGeocodedAddress(initial?.geocoded_address || "");
+    setGeocodePlaceId(initial?.geocode_place_id || "");
+    setGeocodeStatus(initial?.geocode_status || "");
+    setGeocodedAt(initial?.geocoded_at || "");
     setAddressText(
       typeof initial?.address === "string" ? initial.address : initial?.address ? JSON.stringify(initial.address) : ""
     );
@@ -139,6 +156,10 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(name));
   }, [name, slugTouched]);
+
+  useEffect(() => {
+    form.setValue("slug", slug || "");
+  }, [form, slug]);
 
   useEffect(() => {
     let cancelled = false;
@@ -174,11 +195,79 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
     return destinations.filter((d) => !countryId || d.country_id === countryId);
   }, [destinations, countryId]);
 
+  const geocodeQuery = useMemo(() => {
+    const parts = [];
+    if (name?.trim()) parts.push(name.trim());
+    const dest = destinations.find((d) => d.id === destinationId);
+    if (dest?.name) parts.push(dest.name);
+    const country = countries.find((c) => c.id === countryId);
+    if (country?.name) parts.push(country.name);
+    return parts.join(", ");
+  }, [name, destinations, destinationId, countries, countryId]);
+
   function onSlugInput(e) {
     const raw = e.target.value;
     const v = slugify(raw);
     setSlug(v);
     setSlugTouched(raw.length > 0);
+  }
+
+  async function handleResolveLocation() {
+    setGeocodeLoading(true);
+    setGeocodeMessage("");
+    setGeocodeError("");
+    try {
+      if (!isEditing || !initial?.id) {
+        throw new Error("Save the accommodation before resolving location.");
+      }
+      if (!geocodeQuery) {
+        throw new Error("Add a name, destination, and country first.");
+      }
+      const res = await fetch(
+        `/api/admin/accommodation/${initial.id}/geocode`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: geocodeQuery }),
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error || `Geocode failed (${res.status})`);
+      }
+
+      const updated = json?.accommodation || {};
+      if (updated?.lat !== undefined && updated?.lat !== null) {
+        setLat(String(updated.lat));
+        form.setValue("lat", String(updated.lat));
+      }
+      if (updated?.lng !== undefined && updated?.lng !== null) {
+        setLng(String(updated.lng));
+        form.setValue("lng", String(updated.lng));
+      }
+      setGeocodedAddress(updated.geocoded_address || "");
+      setGeocodePlaceId(updated.geocode_place_id || "");
+      setGeocodeStatus(updated.geocode_status || json?.status || "");
+      setGeocodedAt(updated.geocoded_at || "");
+
+      if (json?.ok) {
+        setGeocodeMessage(
+          updated?.geocoded_address
+            ? `Resolved: ${updated.geocoded_address}`
+            : "Resolved location."
+        );
+      } else {
+        setGeocodeError(
+          json?.error_message
+            ? `${json.status}: ${json.error_message}`
+            : `Geocode status: ${json.status || "Unknown"}`
+        );
+      }
+    } catch (err) {
+      setGeocodeError(err?.message || "Failed to resolve location");
+    } finally {
+      setGeocodeLoading(false);
+    }
   }
 
   async function save(values) {
@@ -266,10 +355,16 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
           <div>
             <label className="block text-sm font-medium">Name</label>
             <Input value={name} onChange={(e) => { setName(e.target.value); form.setValue("name", e.target.value); }} />
+            {errors.name ? (
+              <div className="text-xs text-red-600 mt-1">{errors.name}</div>
+            ) : null}
           </div>
           <div>
             <label className="block text-sm font-medium">Slug</label>
             <Input value={slug} onChange={(e) => { onSlugInput(e); form.setValue("slug", slugify(e.target.value)); }} />
+            {errors.slug ? (
+              <div className="text-xs text-red-600 mt-1">{errors.slug}</div>
+            ) : null}
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium">Summary</label>
@@ -342,6 +437,9 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
                 <SelectItem value="published">published</SelectItem>
               </SelectContent>
             </Select>
+            {errors.status ? (
+              <div className="text-xs text-red-600 mt-1">{errors.status}</div>
+            ) : null}
           </div>
           <div>
             <label className="block text-sm font-medium">Credit</label>
@@ -381,6 +479,36 @@ export default function AccommodationForm({ initial, onSaved, onCancel }) {
           <div>
             <label className="block text-sm font-medium">Longitude</label>
             <Input value={lng} onChange={(e) => { setLng(e.target.value); form.setValue("lng", e.target.value); }} />
+          </div>
+          <div className="md:col-span-2 space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleResolveLocation}
+                disabled={geocodeLoading}
+              >
+                {geocodeLoading ? "Resolving..." : "Resolve location"}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Query: {geocodeQuery || "Add name + destination + country"}
+              </span>
+            </div>
+            {geocodeMessage ? (
+              <div className="text-xs text-emerald-600">{geocodeMessage}</div>
+            ) : null}
+            {geocodeError ? (
+              <div className="text-xs text-red-600">{geocodeError}</div>
+            ) : null}
+            {(geocodeStatus || geocodedAt || geocodePlaceId) ? (
+              <div className="text-xs text-muted-foreground space-y-1">
+                {geocodeStatus ? <div>Status: {geocodeStatus}</div> : null}
+                {geocodedAt ? <div>Last resolved: {geocodedAt}</div> : null}
+                {geocodePlaceId ? <div>Place ID: {geocodePlaceId}</div> : null}
+                {geocodedAddress ? <div>Address: {geocodedAddress}</div> : null}
+              </div>
+            ) : null}
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium">Address</label>

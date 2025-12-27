@@ -30,7 +30,7 @@ export async function getAccommodationBySlugPublic(slug) {
   const { data, error } = await db
     .from("accommodation")
     .select(
-      "slug, name, summary, description, images, status, credit, price_band, rating, website_url, affiliate_url, lat, lng, address, destination_id, country_id"
+      "slug, name, summary, description, images, status, credit, price_band, rating, website_url, affiliate_url, lat, lng, address, geocoded_address, destination_id, country_id"
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -54,7 +54,7 @@ export async function getAccommodationByDestinationSlugsPublic({
   const { data, error } = await db
     .from("accommodation")
     .select(
-      "slug, name, summary, description, images, status, credit, price_band, rating, website_url, affiliate_url, lat, lng, address, destination_id, country_id"
+      "slug, name, summary, description, images, status, credit, price_band, rating, website_url, affiliate_url, lat, lng, address, geocoded_address, destination_id, country_id"
     )
     .eq("slug", String(placeSlug || "").trim())
     .eq("destination_id", destination.id)
