@@ -8,6 +8,7 @@ on:
 jobs:
   dump:
     runs-on: ubuntu-latest
+    environment: production
     env:
       HOST: ${{ secrets.SUPABASE_SESSION_HOST }}   # session pooler host
       PORT: ${{ secrets.SUPABASE_SESSION_PORT }}   # 5432
