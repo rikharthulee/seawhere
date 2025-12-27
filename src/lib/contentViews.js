@@ -44,7 +44,7 @@ const POPULAR_CONFIG = {
   [CONTENT_TYPES.TRIP]: {
     table: "trips",
     select:
-      "id, title, summary, visibility, country_id, destination_id, countries ( slug ), destinations ( slug )",
+      "id, slug, title, summary, visibility, country_id, destination_id, countries ( slug ), destinations ( slug )",
     applyFilters: (query) => query.eq("visibility", "public"),
   },
 };

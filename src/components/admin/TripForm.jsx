@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import SingleImageUpload from "@/components/admin/SingleImageUpload";
 
 function uniqueOptions(values) {
   return Array.from(new Set(values.filter(Boolean)));
@@ -24,11 +25,28 @@ export default function TripForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [title, setTitle] = useState(trip?.title || "");
+  const [slug, setSlug] = useState(trip?.slug || "");
+  const [slugTouched, setSlugTouched] = useState(Boolean(trip?.slug));
   const [summary, setSummary] = useState(trip?.summary || "");
   const [countryId, setCountryId] = useState(trip?.country_id || "");
   const [destinationId, setDestinationId] = useState(trip?.destination_id || "");
   const [status, setStatus] = useState(trip?.status || "draft");
   const [visibility, setVisibility] = useState(trip?.visibility || "private");
+  const [heroImage, setHeroImage] = useState(trip?.hero_image || "");
+  const [thumbnailImage, setThumbnailImage] = useState(trip?.thumbnail_image || "");
+
+  function slugify(s) {
+    return (s || "")
+      .toLowerCase()
+      .trim()
+      .replace(/['"]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  useEffect(() => {
+    if (!slugTouched) setSlug(slugify(title));
+  }, [title, slugTouched]);
 
   const destinationsForCountry = useMemo(() => {
     if (!countryId) return destinations;
@@ -64,13 +82,20 @@ export default function TripForm({
       setError("Title is required.");
       return;
     }
+    if (!slug.trim()) {
+      setError("Slug is required.");
+      return;
+    }
     const payload = {
       title,
+      slug: slugify(slug),
       summary,
       country_id: countryId || null,
       destination_id: destinationId || null,
       status,
       visibility,
+      hero_image: heroImage || null,
+      thumbnail_image: thumbnailImage || null,
     };
 
     startTransition(async () => {
@@ -101,6 +126,18 @@ export default function TripForm({
             placeholder="e.g. Laos Explorer"
           />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="trip-slug">Slug</Label>
+          <Input
+            id="trip-slug"
+            value={slug}
+            onChange={(e) => {
+              setSlug(e.target.value);
+              setSlugTouched(true);
+            }}
+            placeholder="e.g. 5-days-in-laos"
+          />
+        </div>
         <div className="space-y-2 md:col-span-2">
           <Label htmlFor="trip-summary">Summary</Label>
           <Textarea
@@ -109,6 +146,22 @@ export default function TripForm({
             onChange={(e) => setSummary(e.target.value)}
             placeholder="Short overview for the public trip page"
             rows={3}
+          />
+        </div>
+        <div className="space-y-2 md:col-span-2">
+          <SingleImageUpload
+            label="Hero image"
+            value={heroImage}
+            onChange={setHeroImage}
+            prefix="media/trips/hero"
+          />
+        </div>
+        <div className="space-y-2 md:col-span-2">
+          <SingleImageUpload
+            label="Thumbnail image"
+            value={thumbnailImage}
+            onChange={setThumbnailImage}
+            prefix="media/trips/thumbnail"
           />
         </div>
         <div className="space-y-2">

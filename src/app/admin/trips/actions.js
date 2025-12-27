@@ -5,11 +5,16 @@ import { getDB } from "@/lib/supabase/server";
 function normalizeTripPayload(input = {}) {
   return {
     title: input.title ? String(input.title).trim() : null,
+    slug: input.slug ? String(input.slug).trim() : null,
     summary: input.summary ? String(input.summary).trim() : null,
     country_id: input.country_id || null,
     destination_id: input.destination_id || null,
     status: input.status || "draft",
     visibility: input.visibility || "private",
+    hero_image: input.hero_image ? String(input.hero_image).trim() : null,
+    thumbnail_image: input.thumbnail_image
+      ? String(input.thumbnail_image).trim()
+      : null,
   };
 }
 

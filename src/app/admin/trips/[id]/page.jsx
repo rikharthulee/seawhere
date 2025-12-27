@@ -19,7 +19,7 @@ export default async function TripEditorPage(props) {
   const { data: trip, error } = await db
     .from("trips")
     .select(
-      "id, title, summary, country_id, destination_id, start_date, end_date, status, visibility"
+      "id, title, slug, summary, country_id, destination_id, start_date, end_date, status, visibility, hero_image, thumbnail_image"
     )
     .eq("id", id)
     .maybeSingle();

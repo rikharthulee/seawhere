@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getPublicDB } from "@/lib/supabase/public";
 import { Card, CardContent } from "@/components/ui/card";
+import SafeImage from "@/components/SafeImage";
+import { resolveImageUrl } from "@/lib/imageUrl";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -15,7 +17,7 @@ export default async function TripsPage() {
   const { data: trips, error } = await db
     .from("trips")
     .select(
-      "id, title, summary, status, visibility, country_id, destination_id, countries ( name ), destinations ( name )"
+      "id, slug, title, summary, status, visibility, hero_image, thumbnail_image, country_id, destination_id, countries ( name ), destinations ( name )"
     )
     .eq("visibility", "public")
     .order("created_at", { ascending: false });
@@ -54,7 +56,22 @@ export default async function TripsPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {tripRows.map((trip) => (
             <Card key={trip.id} className="overflow-hidden transition hover:shadow-md">
-              <Link href={`/trips/${trip.id}`} className="block">
+              <Link href={`/trips/${trip.slug}`} className="block">
+                {resolveImageUrl(trip.thumbnail_image) ||
+                resolveImageUrl(trip.hero_image) ? (
+                  <div className="relative h-40 w-full overflow-hidden border-b">
+                    <SafeImage
+                      src={
+                        resolveImageUrl(trip.thumbnail_image) ||
+                        resolveImageUrl(trip.hero_image)
+                      }
+                      alt={trip.title || "Trip image"}
+                      fill
+                      sizes="(min-width: 768px) 50vw, 100vw"
+                      className="object-cover"
+                    />
+                  </div>
+                ) : null}
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     <span>{trip.status || "draft"}</span>

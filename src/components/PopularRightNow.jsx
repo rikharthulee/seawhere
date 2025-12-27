@@ -95,7 +95,7 @@ export default async function PopularRightNow({
     ...popular.trips.map((p) => ({
       ...p,
       type: "Trip",
-      href: p?.id ? `/trips/${p.id}` : null,
+      href: p?.slug ? `/trips/${p.slug}` : null,
     })),
   ].slice(0, maxItems);
 

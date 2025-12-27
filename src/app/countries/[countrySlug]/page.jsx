@@ -96,7 +96,7 @@ export default async function CountryLandingPage(props) {
   const db = getPublicDB();
   const { data: trips } = await db
     .from("trips")
-    .select("id, title, summary, visibility, destination_id, destinations ( name )")
+    .select("id, slug, title, summary, visibility, destination_id, destinations ( name )")
     .eq("country_id", country.id)
     .eq("visibility", "public")
     .order("created_at", { ascending: false })
@@ -193,7 +193,7 @@ export default async function CountryLandingPage(props) {
             {trips.map((trip) => (
               <Card key={trip.id} className="overflow-hidden transition hover:shadow-md">
                 <Link
-                  href={`/trips/${trip.id}`}
+                  href={`/trips/${trip.slug}`}
                   className="block focus:outline-none focus:ring-2 focus:ring-ring/40"
                 >
                   <CardContent className="p-4 space-y-2">

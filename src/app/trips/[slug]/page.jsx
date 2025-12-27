@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getPublicDB } from "@/lib/supabase/public";
+import SafeImage from "@/components/SafeImage";
+import { resolveImageUrl } from "@/lib/imageUrl";
 import TripDaysAccordion from "@/components/trips/TripDaysAccordion";
 import ContentViewTracker from "@/components/ContentViewTracker";
 
@@ -20,27 +22,30 @@ function normalizeItemLabel(item) {
 }
 
 export default async function TripDetailPage(props) {
-  const { id } = (await props.params) || {};
-  if (!id) notFound();
+  const { slug } = (await props.params) || {};
+  if (!slug) notFound();
 
   const db = getPublicDB();
   const { data: trip, error } = await db
     .from("trips")
     .select(
-      "id, title, summary, status, visibility, countries ( name ), destinations ( name )"
+      "id, slug, title, summary, status, visibility, hero_image, thumbnail_image, countries ( name ), destinations ( name )"
     )
-    .eq("id", id)
+    .eq("slug", slug)
     .eq("visibility", "public")
     .maybeSingle();
 
   if (error || !trip) notFound();
+
+  const heroImage =
+    resolveImageUrl(trip.hero_image) || resolveImageUrl(trip.thumbnail_image);
 
   const { data: days, error: daysError } = await db
     .from("trip_days")
     .select(
       "id, day_index, destination_id, accommodation_id, day_itinerary_id, destinations!itinerary_days_destination_id_fkey ( name ), sub_destinations:destinations!itinerary_days_sub_destination_id_fkey ( name ), accommodation ( name ), day_itineraries ( id, name )"
     )
-    .eq("trip_id", id)
+    .eq("trip_id", trip.id)
     .order("day_index", { ascending: true });
   if (daysError) {
     throw new Error(daysError.message);
@@ -90,6 +95,17 @@ export default async function TripDetailPage(props) {
           All trips
         </Link>
       </div>
+      {heroImage ? (
+        <div className="relative h-72 w-full overflow-hidden rounded-xl border">
+          <SafeImage
+            src={heroImage}
+            alt={trip.title || "Trip image"}
+            fill
+            sizes="(min-width: 1024px) 800px, 100vw"
+            className="object-cover"
+          />
+        </div>
+      ) : null}
 
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Days</h2>
