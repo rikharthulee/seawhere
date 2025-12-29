@@ -27,6 +27,10 @@ const TABLE_INFO = {
     columns:
       "id,slug,name,summary,images,destination_id,status,provider,price_amount,price_currency,duration_minutes",
   },
+  destination: {
+    table: "destinations",
+    columns: "id,slug,name,summary,images,country_id,lat,lng",
+  },
   accommodation: {
     table: "accommodation",
     columns:

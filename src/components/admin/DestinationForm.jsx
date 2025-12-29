@@ -37,6 +37,12 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
     initial?.gyg_location_id || ""
   );
   const [countryId, setCountryId] = useState(initial?.country_id || "");
+  const [latitude, setLatitude] = useState(
+    typeof initial?.lat === "number" ? initial.lat : initial?.lat || ""
+  );
+  const [longitude, setLongitude] = useState(
+    typeof initial?.lng === "number" ? initial.lng : initial?.lng || ""
+  );
   const [countries, setCountries] = useState([]);
   const [destinations, setDestinations] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -58,6 +64,12 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setGygLocationId(initial?.gyg_location_id || "");
     setCountryId(initial?.country_id || "");
+    setLatitude(
+      typeof initial?.lat === "number" ? initial.lat : initial?.lat || ""
+    );
+    setLongitude(
+      typeof initial?.lng === "number" ? initial.lng : initial?.lng || ""
+    );
   }, [initial]);
 
   useEffect(() => {
@@ -118,6 +130,18 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
         credit: credit || null,
         gyg_location_id: gygLocationId === "" ? null : String(gygLocationId),
         country_id: countryId,
+        lat:
+          latitude === "" || latitude === null
+            ? null
+            : Number.isFinite(Number(latitude))
+              ? Number(latitude)
+              : null,
+        lng:
+          longitude === "" || longitude === null
+            ? null
+            : Number.isFinite(Number(longitude))
+              ? Number(longitude)
+              : null,
       };
 
       let savedSlug = payload.slug;
@@ -224,7 +248,6 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
               onValueChange={(v) => {
                 const val = v === "__EMPTY__" ? "" : v;
                 setCountryId(val);
-                setParentDestinationId("");
               }}
             >
               <SelectTrigger className="w-full">
@@ -279,6 +302,28 @@ export default function DestinationForm({ initial, onSaved, onCancel }) {
             <div className="text-xs text-black/60 mt-1">
               Used to render the GetYourGuide city widget.
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Latitude</label>
+            <input
+              className="w-full rounded border p-2"
+              type="number"
+              step="0.000001"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+              placeholder="e.g. 19.8856"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Longitude</label>
+            <input
+              className="w-full rounded border p-2"
+              type="number"
+              step="0.000001"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
+              placeholder="e.g. 102.1340"
+            />
           </div>
         </div>
 

@@ -27,13 +27,31 @@ export async function GET(request) {
       }));
     }
 
-    const [sights, experiences, tours, accommodation, foodDrink] =
+    const [sights, experiences, tours, accommodation, foodDrink, destinations] =
       await Promise.all([
         run("sight", "sights"),
         run("experience", "experiences"),
         run("tour", "tours"),
         run("accommodation", "accommodation"),
         run("food_drink", "food_drink"),
+        (async () => {
+          let qb = db
+            .from("destinations")
+            .select("id, name, lat, lng, countries ( name )")
+            .eq("status", "published")
+            .order("name", { ascending: true })
+            .limit(limit);
+          if (like) qb = qb.ilike("name", like);
+          const { data } = await qb;
+          return (data || []).map((r) => ({
+            id: r.id,
+            name: r.name,
+            kind: "destination",
+            destination: r?.countries?.name || null,
+            lat: r.lat ?? null,
+            lng: r.lng ?? null,
+          }));
+        })(),
       ]);
 
     const items = [
@@ -42,6 +60,7 @@ export async function GET(request) {
       ...tours,
       ...accommodation,
       ...foodDrink,
+      ...destinations,
     ].slice(0, limit * 5);
     return NextResponse.json({ items });
   } catch (e) {

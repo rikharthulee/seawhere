@@ -118,7 +118,8 @@ export default function SafeImage({
   const imageClassName = cn(
     "transition-opacity duration-500 ease-out",
     isLoaded ? "opacity-100" : "opacity-0",
-    className
+    className,
+    fill ? "absolute inset-0 h-full w-full object-cover" : null
   );
 
   if (allowed && !fallbackNative) {

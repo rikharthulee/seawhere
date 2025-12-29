@@ -18,6 +18,9 @@ function normalizeModeForDb(mode) {
     ship: 'FERRY',
     plane: 'FLY',
     flight: 'FLY',
+    motorbike: 'MOTORBIKE',
+    motorcycle: 'MOTORBIKE',
+    scooter: 'MOTORBIKE',
   };
   const normalized = String(mode || '').trim().toLowerCase();
   if (!normalized) return 'OTHER';
@@ -49,6 +52,9 @@ function buildStepsPayload(leg = {}) {
   const meta = {};
   if (mapsUrl) meta.maps_url = mapsUrl;
   if (details && !leg.summary) meta.details = details;
+  if (typeof leg.mode === 'string' && leg.mode.trim()) {
+    meta.mode = leg.mode.trim();
+  }
   if (steps.length === 0 && Object.keys(meta).length === 0) {
     return { steps: [] };
   }
@@ -56,8 +62,10 @@ function buildStepsPayload(leg = {}) {
 }
 
 function extractStepsMeta(rawSteps) {
-  if (!rawSteps) return { steps: [], maps_url: null, details: null };
-  if (Array.isArray(rawSteps)) return { steps: rawSteps, maps_url: null, details: null };
+  if (!rawSteps) return { steps: [], maps_url: null, details: null, mode: null };
+  if (Array.isArray(rawSteps)) {
+    return { steps: rawSteps, maps_url: null, details: null, mode: null };
+  }
   if (typeof rawSteps === 'object') {
     const steps = Array.isArray(rawSteps.steps) ? rawSteps.steps : [];
     const mapsUrl =
@@ -72,9 +80,15 @@ function extractStepsMeta(rawSteps) {
         : typeof rawSteps?.meta?.details === 'string'
           ? rawSteps.meta.details.trim()
           : null;
-    return { steps, maps_url: mapsUrl, details };
+    const mode =
+      typeof rawSteps.mode === 'string' && rawSteps.mode.trim()
+        ? rawSteps.mode.trim()
+        : typeof rawSteps?.meta?.mode === 'string'
+          ? rawSteps.meta.mode.trim()
+          : null;
+    return { steps, maps_url: mapsUrl, details, mode };
   }
-  return { steps: [], maps_url: null, details: null };
+  return { steps: [], maps_url: null, details: null, mode: null };
 }
 
 function findNeighborItems(sortedItems, sortOrder) {
@@ -166,21 +180,25 @@ export function buildTransportInsertRows({
 
 export function deserializeTransportLeg(row) {
   if (!row || typeof row !== 'object') return null;
-  const { steps, maps_url, details } = extractStepsMeta(row.steps);
+  const { steps, maps_url, details, mode } = extractStepsMeta(row.steps);
   const durationMinutes =
     typeof row.est_duration_min === 'number' ? row.est_duration_min : null;
   const distanceMeters =
     typeof row.est_distance_m === 'number' ? row.est_distance_m : null;
+
+  const normalizedMode =
+    typeof mode === 'string' && mode.trim()
+      ? mode.trim().toLowerCase()
+      : typeof row.primary_mode === 'string'
+        ? row.primary_mode.toLowerCase()
+        : 'other';
 
   return {
     id: row.id,
     item_type: 'transport',
     sort_order: typeof row.sort_order === 'number' ? row.sort_order : null,
     primary_mode: row.primary_mode || null,
-    mode:
-      typeof row.primary_mode === 'string'
-        ? row.primary_mode.toLowerCase()
-        : 'other',
+    mode: normalizedMode,
     title: row.title || '',
     summary: row.summary || null,
     details: details || row.summary || null,

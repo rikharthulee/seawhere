@@ -27,6 +27,8 @@ export interface PublicDestination {
   images: unknown;
   status: string;
   country_id: string;
+  lat?: number | null;
+  lng?: number | null;
   credit?: string | null;
   body_richtext?: unknown;
   gyg_location_id?: string | number | null;

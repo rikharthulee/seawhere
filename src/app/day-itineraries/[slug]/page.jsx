@@ -213,9 +213,11 @@ export default async function Page({ params, searchParams }) {
 
   const mainFlow = flow;
   const optionalItems = [];
-  const mapCandidates = mainFlow.filter(
-    (entry) => entry.kind === "item" && entry.it && !entry.it.isNote
-  );
+  const mapCandidates = mainFlow.filter((entry) => {
+    if (entry.kind !== "item" || !entry.it || entry.it.isNote) return false;
+    if (entry.it.item_type === "meal") return false;
+    return true;
+  });
   const pins = mapCandidates
     .filter((entry) => Number.isFinite(entry.it.lat) && Number.isFinite(entry.it.lng))
     .map((entry, idx) => ({

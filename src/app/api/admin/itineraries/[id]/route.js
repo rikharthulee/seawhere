@@ -21,6 +21,7 @@ const ENTITY_ITEM_TYPES = new Set([
   "sight",
   "experience",
   "tour",
+  "destination",
   "accommodation",
   "food_drink",
 ]);
@@ -471,6 +472,7 @@ const TABLE_BY_KIND = {
   sight: "sights",
   experience: "experiences",
   tour: "tours",
+  destination: "destinations",
   accommodation: "accommodation",
   food_drink: "food_drink",
   note: "day_itinerary_notes",
@@ -505,7 +507,9 @@ async function enrichItems(db, items) {
         .select(
           kind === "note"
             ? "id, title, details"
-            : "id, name, destinations ( name )"
+            : kind === "destination"
+              ? "id, name, lat, lng, countries ( name )"
+              : "id, name, destinations ( name )"
         )
         .in("id", ids);
       const map = new Map();
@@ -518,7 +522,14 @@ async function enrichItems(db, items) {
         } else {
           map.set(row.id, {
             name: row.name,
-            destination: row?.destinations?.name || null,
+            destination:
+              kind === "destination"
+                ? row?.countries?.name || null
+                : row?.destinations?.name || null,
+            latitude:
+              typeof row?.lat === "number" ? row.lat : row?.lat ?? null,
+            longitude:
+              typeof row?.lng === "number" ? row.lng : row?.lng ?? null,
           });
         }
       }
@@ -540,6 +551,14 @@ async function enrichItems(db, items) {
       ...item,
       name: detail?.name || null,
       destination: detail?.destination || null,
+      latitude:
+        typeof detail?.latitude === "number"
+          ? detail.latitude
+          : detail?.latitude ?? null,
+      longitude:
+        typeof detail?.longitude === "number"
+          ? detail.longitude
+          : detail?.longitude ?? null,
     };
   });
 }

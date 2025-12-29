@@ -15,6 +15,7 @@ const ENTITY_ITEM_TYPES = new Set([
   "sight",
   "experience",
   "tour",
+  "destination",
   "accommodation",
   "food_drink",
 ]);

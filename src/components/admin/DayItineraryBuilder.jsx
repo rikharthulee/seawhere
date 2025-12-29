@@ -36,6 +36,7 @@ import {
   Bus,
   Train,
   Car,
+  Bike,
   Footprints,
   Ship,
   Plane,
@@ -97,6 +98,8 @@ function modeIcon(m) {
       return <Ship className={cl} />;
     case "car":
       return <Car className={cl} />;
+    case "motorbike":
+      return <Bike className={cl} />;
     case "plane":
       return <Plane className={cl} />;
     default:
@@ -213,7 +216,14 @@ function POIPickerSheet({
       .finally(() => setLoading(false));
   }, [open, query, searchPois]);
 
-  const kinds = ["sight", "experience", "tour", "accommodation", "food_drink"];
+  const kinds = [
+    "sight",
+    "experience",
+    "tour",
+    "destination",
+    "accommodation",
+    "food_drink",
+  ];
 
   const grouped = useMemo(() => {
     const g = Object.fromEntries(kinds.map((k) => [k, []]));
@@ -235,14 +245,14 @@ function POIPickerSheet({
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               className="pl-8"
-              placeholder="Search sights, experiences, tours…"
+              placeholder="Search destinations, sights, experiences, tours…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
 
           <Tabs value={kind} onValueChange={setKind}>
-            <TabsList className="grid grid-cols-5">
+            <TabsList className="grid grid-cols-6">
               {kinds.map((k) => (
                 <TabsTrigger key={k} value={k} className="capitalize">
                   {k.replace("_", " ")}
@@ -381,6 +391,8 @@ function bgByType(t) {
       return "bg-purple-50/60 dark:bg-purple-900/20";
     case "tour":
       return "bg-cyan-50/60 dark:bg-cyan-900/20";
+    case "destination":
+      return "bg-blue-50/60 dark:bg-blue-900/20";
     case "food_drink":
       return "bg-rose-50/60 dark:bg-rose-900/20";
     case "accommodation":
@@ -537,6 +549,7 @@ export default function DayItineraryBuilder() {
       "sight",
       "experience",
       "tour",
+      "destination",
       "accommodation",
       "food_drink",
     ]);
@@ -1010,6 +1023,26 @@ export default function DayItineraryBuilder() {
         sort_order: sortOrder,
         name: it.name || "",
         destination: it.destination || null,
+        latitude:
+          typeof it.latitude === "number"
+            ? it.latitude
+            : typeof it.lat === "number"
+              ? it.lat
+              : Number.isFinite(Number(it.latitude))
+                ? Number(it.latitude)
+                : Number.isFinite(Number(it.lat))
+                  ? Number(it.lat)
+                  : null,
+        longitude:
+          typeof it.longitude === "number"
+            ? it.longitude
+            : typeof it.lng === "number"
+              ? it.lng
+              : Number.isFinite(Number(it.longitude))
+                ? Number(it.longitude)
+                : Number.isFinite(Number(it.lng))
+                  ? Number(it.lng)
+                  : null,
         duration_minutes:
           it.duration_minutes === null || it.duration_minutes === undefined
             ? null
@@ -1120,8 +1153,8 @@ export default function DayItineraryBuilder() {
 
   const resetToNewDayItinerary = useCallback(
     (options = { clearLoadError: true }) => {
-      const draft = newDayItineraryDraft();
-      setDayItinerary(draft);
+    const draft = newDayItineraryDraft();
+    setDayItinerary(draft);
       setSavedId(null);
       setSlug("");
       setSlugTouched(false);
@@ -1185,7 +1218,14 @@ export default function DayItineraryBuilder() {
   // Map plotting state and helpers
   const curatedKinds = useMemo(
     () =>
-      new Set(["sight", "experience", "tour", "accommodation", "food_drink"]),
+      new Set([
+        "sight",
+        "experience",
+        "tour",
+        "destination",
+        "accommodation",
+        "food_drink",
+      ]),
     []
   );
   const mapPoints = useMemo(() => {
@@ -1696,6 +1736,7 @@ export default function DayItineraryBuilder() {
                         }))
                       }
                       placeholder="Train: Osaka → Himeji"
+                      placeholder="e.g. Minivan: Luang Prabang → Kuang Si"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -1718,6 +1759,7 @@ export default function DayItineraryBuilder() {
                           "subway",
                           "tram",
                           "ferry",
+                          "motorbike",
                           "car",
                           "plane",
                           "other",
@@ -1952,6 +1994,7 @@ export default function DayItineraryBuilder() {
                           "sight",
                           "experience",
                           "tour",
+                          "destination",
                           "accommodation",
                           "food_drink",
                         ].includes(selectedItem.item_type) ? (
