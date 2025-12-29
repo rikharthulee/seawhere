@@ -7,15 +7,13 @@ import { cn } from "@/lib/utils";
 // Hosts allowed by next.config images.remotePatterns
 const ENV_HOSTS = [];
 const envUrls = [
-  process.env.NEXT_PUBLIC_VERCEL_BLOB_BASE_URL,
-  process.env.NEXT_PUBLIC_BLOB_BASE_URL,
   process.env.NEXT_PUBLIC_MEDIA_BASE_URL,
 ];
 for (const url of envUrls) {
   try {
     if (url) {
       const host = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname;
-      if (host && host.endsWith(".public.blob.vercel-storage.com")) {
+      if (host) {
         ENV_HOSTS.push(host);
       }
     }
@@ -29,7 +27,7 @@ const STATIC_ALLOWED_HOSTS = new Set([
   "gravatar.com",
   "secure.gravatar.com",
   "lh3.googleusercontent.com",
-  "public.blob.vercel-storage.com",
+  "media.seawhere.com",
 ]);
 
 const ALLOWED_HOSTS = new Set([...STATIC_ALLOWED_HOSTS, ...ENV_HOSTS]);
@@ -74,8 +72,7 @@ export default function SafeImage({
   const allowed =
     !external ||
     (host &&
-      (ALLOWED_HOSTS.has(host) ||
-        host.endsWith(".public.blob.vercel-storage.com")));
+      ALLOWED_HOSTS.has(host));
   const blurDataURL = resolveImageProps(resolved, { width, height })?.blurDataURL;
   // Use Next/Image optimizer for allowed hosts; do not use Supabase transforms
   const finalSrc = resolved;

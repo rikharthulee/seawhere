@@ -30,7 +30,7 @@ export default async function HomePage() {
   }
   const { data: featuredTrips } = await db
     .from("trips")
-    .select("id, title, summary, visibility, country_id, destination_id, countries ( name ), destinations ( name )")
+    .select("id, slug, title, summary, visibility, country_id, destination_id, countries ( name ), destinations ( name )")
     .eq("visibility", "public")
     .order("created_at", { ascending: false })
     .limit(3);
@@ -115,7 +115,7 @@ export default async function HomePage() {
             tripRows.map((trip) => (
               <Card key={trip.id} className="overflow-hidden transition hover:shadow-md">
                 <Link
-                  href={`/trips/${trip.id}`}
+                  href={`/trips/${trip.slug}`}
                   className="block focus:outline-none focus:ring-2 focus:ring-ring/40"
                 >
                   <CardContent className="p-4 space-y-3">

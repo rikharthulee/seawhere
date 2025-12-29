@@ -1,6 +1,5 @@
 const MEDIA_BASE = resolveMediaBase();
 const DEFAULT_MEDIA_PREFIX = "media";
-const FALLBACK_PROXY_PREFIX = "/blob-media";
 
 function buildMediaUrl(relativePath) {
   if (!relativePath) return null;
@@ -15,9 +14,8 @@ function buildMediaUrl(relativePath) {
     return `${origin}/${basePath}/${clean}`;
   }
   if (/^https?:\/\//i.test(clean)) return clean;
-  if (clean.startsWith("blob-media/")) return `/${clean}`;
-  const withMedia = clean.startsWith("media/") ? clean : `${DEFAULT_MEDIA_PREFIX}/${clean}`;
-  return `${FALLBACK_PROXY_PREFIX}/${withMedia}`;
+  if (clean.startsWith("media/")) return `/${clean}`;
+  return `/${DEFAULT_MEDIA_PREFIX}/${clean}`;
 }
 
 export function resolveImageUrl(path) {
@@ -34,25 +32,22 @@ export function resolveImageUrl(path) {
 
 function resolveMediaBase() {
   const candidates = [
-    process.env.NEXT_PUBLIC_VERCEL_BLOB_BASE_URL,
-    process.env.NEXT_PUBLIC_BLOB_BASE_URL,
     process.env.NEXT_PUBLIC_MEDIA_BASE_URL,
   ];
   for (const candidate of candidates) {
-    const parsed = parseBlobBase(candidate);
+    const parsed = parseMediaBase(candidate);
     if (parsed) return parsed;
   }
   return null;
 }
 
-function parseBlobBase(candidate) {
+function parseMediaBase(candidate) {
   if (!candidate || typeof candidate !== "string") return null;
   const trimmed = candidate.trim();
   if (!trimmed) return null;
   const value = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   try {
     const url = new URL(value);
-    if (!url.hostname.endsWith(".public.blob.vercel-storage.com")) return null;
     const basePath = url.pathname.replace(/^\/+/, "").replace(/\/+$/, "");
     return { origin: url.origin, basePath };
   } catch {

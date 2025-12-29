@@ -14,6 +14,7 @@
     "lint:public-batched": "node scripts/check-public-batched.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.958.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -39,7 +40,7 @@
     "@tiptap/extension-ordered-list": "^3.4.1",
     "@tiptap/react": "^3.4.1",
     "@tiptap/starter-kit": "^3.4.1",
-    "@vercel/blob": "^2.0.0",
+    "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

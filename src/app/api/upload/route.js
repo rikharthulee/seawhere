@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { getDB } from "@/lib/supabase/server";
+import { buildMediaUrl, putR2Object } from "@/lib/r2";
 
 export const runtime = "nodejs";
 
@@ -44,19 +44,30 @@ export async function POST(request) {
     const safeName = sanitizeFilename(file.name || "");
     const key = `${prefix}/${crypto.randomUUID()}-${safeName}`.replace(/\/{2,}/g, "/");
 
-    const blob = await put(key, file, {
-      access: "public",
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+    const ab = await file.arrayBuffer();
+    const body = Buffer.from(ab);
+    await putR2Object({
+      key,
+      body,
+      contentType: file.type || "application/octet-stream",
+      cacheControl: "public, max-age=31536000, immutable",
     });
-    const pathname = blob.pathname.replace(/^\//, "");
+    const pathname = key.replace(/^\//, "");
+    const url = buildMediaUrl(pathname);
+    if (!url) {
+      return NextResponse.json(
+        { error: "Missing NEXT_PUBLIC_MEDIA_BASE_URL for media URLs" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       {
-        url: blob.url,
-        downloadUrl: blob.downloadUrl,
+        url,
+        downloadUrl: url,
         pathname,
         key: pathname,
-        contentType: blob.contentType,
+        contentType: file.type || "application/octet-stream",
       },
       { status: 200 }
     );

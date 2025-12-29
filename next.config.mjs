@@ -1,17 +1,12 @@
 /** @type {import('next').NextConfig} */
-const blobCandidates = [
-  process.env.NEXT_PUBLIC_VERCEL_BLOB_BASE_URL,
-  process.env.NEXT_PUBLIC_BLOB_BASE_URL,
-  process.env.NEXT_PUBLIC_MEDIA_BASE_URL,
-];
+const mediaCandidates = [process.env.NEXT_PUBLIC_MEDIA_BASE_URL];
 
-const blobRemotePatterns = blobCandidates
+const mediaRemotePatterns = mediaCandidates
   .map((candidate) => {
     try {
       if (!candidate) return null;
       const value = /^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`;
       const { hostname } = new URL(value);
-      if (!hostname.endsWith(".public.blob.vercel-storage.com")) return null;
       return { protocol: "https", hostname, pathname: "/**" };
     } catch {
       return null;
@@ -22,8 +17,8 @@ const blobRemotePatterns = blobCandidates
 const nextConfig = {
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "*.public.blob.vercel-storage.com", pathname: "/**" },
-      ...blobRemotePatterns,
+      { protocol: "https", hostname: "media.seawhere.com", pathname: "/**" },
+      ...mediaRemotePatterns,
       // Allow placeholder images used in seed data
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "images.unsplash.com" },

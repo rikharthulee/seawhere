@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import FoodDrinkForm from "./FoodDrinkForm";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { destinationItemPath } from "@/lib/routes";
 
 export default function FoodDrinkManager() {
   const [items, setItems] = useState([]);
@@ -200,6 +202,30 @@ export default function FoodDrinkManager() {
                     >
                       Edit
                     </Button>
+                    {(() => {
+                      const dest = destMap[it.destination_id];
+                      const href =
+                        dest?.countries?.slug && dest?.slug && it.slug
+                          ? destinationItemPath(
+                              dest.countries.slug,
+                              dest.slug,
+                              "food-drink",
+                              it.slug
+                            )
+                          : null;
+                      return href ? (
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-20"
+                        >
+                          <Link href={href} target="_blank">
+                            View
+                          </Link>
+                        </Button>
+                      ) : null;
+                    })()}
                     <ConfirmDeleteButton
                       title="Delete this place?"
                       description="This action cannot be undone. This will permanently delete the record and attempt to revalidate related pages."

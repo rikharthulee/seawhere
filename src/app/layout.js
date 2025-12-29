@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import Footer from "@/components/Footer";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   title: "Seawhere",
@@ -33,7 +34,9 @@ export default function RootLayout({ children }) {
       </head>
       <body className="font-sans">
         <Navbar />
-        <div className="site-root antialiased bg-background text-foreground">{children}</div>
+        <div className="site-root antialiased bg-background text-foreground">
+          {children}
+        </div>
         <Footer />
         <Suspense fallback={null}>
           <GygAnalytics />

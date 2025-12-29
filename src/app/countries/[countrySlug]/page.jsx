@@ -26,6 +26,24 @@ import {
 export const revalidate = 300;
 export const runtime = "nodejs";
 
+function textFrom(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const text = textFrom(entry);
+      if (text) return text;
+    }
+    return "";
+  }
+  if (typeof value === "object") {
+    if (typeof value.en === "string") return value.en;
+    if (typeof value.text === "string") return value.text;
+    if (typeof value.summary === "string") return value.summary;
+  }
+  return "";
+}
+
 function ContentGrid({ items = [], hrefFor, titleKey = "name", summaryKey = "summary" }) {
   if (!items.length) {
     return (
@@ -39,6 +57,8 @@ function ContentGrid({ items = [], hrefFor, titleKey = "name", summaryKey = "sum
       {items.map((item) => {
         const href = hrefFor(item);
         const img = resolveImageUrl(firstImageFromImages(item?.images));
+        const title = textFrom(item?.[titleKey]) || "Untitled";
+        const summary = textFrom(item?.[summaryKey]);
         const CardTag = href ? Link : "div";
         const cardProps = href ? { href } : {};
         return (
@@ -51,7 +71,7 @@ function ContentGrid({ items = [], hrefFor, titleKey = "name", summaryKey = "sum
                 {img ? (
                   <SafeImage
                     src={img}
-                    alt={item[titleKey]}
+                    alt={title}
                     fill
                     className="object-cover"
                     sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
@@ -59,10 +79,10 @@ function ContentGrid({ items = [], hrefFor, titleKey = "name", summaryKey = "sum
                 ) : null}
               </div>
               <CardContent className="p-4 space-y-2">
-                <div className="font-semibold">{item[titleKey]}</div>
-                {item[summaryKey] ? (
+                <div className="font-semibold">{title}</div>
+                {summary ? (
                   <p className="text-sm text-muted-foreground line-clamp-3">
-                    {item[summaryKey]}
+                    {summary}
                   </p>
                 ) : null}
               </CardContent>
