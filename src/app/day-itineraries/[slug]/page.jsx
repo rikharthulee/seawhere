@@ -121,6 +121,14 @@ function normalizeItem(it) {
   };
 }
 
+function minsToLabel(mins) {
+  if (!mins || mins <= 0) return "";
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
 export default async function Page({ params, searchParams }) {
   const { slug } = await params;
   const { debug } = (await searchParams) || {};
@@ -144,12 +152,21 @@ export default async function Page({ params, searchParams }) {
       (destinations || []).map((row) => [row.id, row])
     );
   }
+  const itemRouteByType = {
+    sight: "sights",
+    experience: "experiences",
+    tour: "tours",
+    accommodation: "accommodation",
+    food_drink: "food-drink",
+  };
+
   const enrichedItems = normalizedItems.map((it) => {
     const destination = it.destination_id
       ? destinationMap.get(it.destination_id)
       : null;
+    const itemRoute = itemRouteByType[it.item_type];
     if (
-      it.item_type === "sight" &&
+      itemRoute &&
       destination?.slug &&
       destination?.countries?.slug &&
       it.slug
@@ -161,13 +178,28 @@ export default async function Page({ params, searchParams }) {
         href: destinationItemPath(
           destination.countries.slug,
           destination.slug,
-          "sights",
+          itemRoute,
           it.slug
         ),
       };
     }
     return it;
   });
+  const totalMinutes = enrichedItems.reduce((acc, it) => {
+    const n =
+      typeof it.duration_minutes === "number"
+        ? it.duration_minutes
+        : Number(it.duration_minutes) || 0;
+    return acc + (n > 0 ? n : 0);
+  }, 0);
+  const transportMinutes = (transport || []).reduce((acc, leg) => {
+    const n =
+      typeof leg?.est_duration_min === "number"
+        ? leg.est_duration_min
+        : Number(leg?.est_duration_min) || 0;
+    return acc + (n > 0 ? n : 0);
+  }, 0);
+  const totalDurationLabel = minsToLabel(totalMinutes + transportMinutes);
   const flow = [
     ...(transport || []).map((leg) => ({
       kind: "leg",
@@ -363,18 +395,27 @@ export default async function Page({ params, searchParams }) {
         </section>
       ) : null}
 
-      {importantInfo.length > 0 || dayItinerary?.notes ? (
+      {importantInfo.length > 0 ||
+      dayItinerary?.notes ||
+      totalDurationLabel ? (
         <section className="rounded-xl border bg-card/40 p-4 space-y-2">
           <h2 className="text-lg font-semibold">Important information</h2>
           {importantInfo.length > 0 ? (
             <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-5">
+              {totalDurationLabel ? (
+                <li>Total trip time: {totalDurationLabel}</li>
+              ) : null}
               {importantInfo.map((item, idx) => (
                 <li key={`${item}-${idx}`}>{item}</li>
               ))}
             </ul>
           ) : (
             <p className="text-sm text-muted-foreground whitespace-pre-line">
-              {dayItinerary?.notes}
+              {totalDurationLabel
+                ? `Total trip time: ${totalDurationLabel}${
+                    dayItinerary?.notes ? "\n\n" : ""
+                  }${dayItinerary?.notes || ""}`
+                : dayItinerary?.notes}
             </p>
           )}
         </section>

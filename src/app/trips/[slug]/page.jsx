@@ -68,7 +68,7 @@ export default async function TripDetailPage(props) {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10 space-y-6">
+    <main className="mx-auto max-w-6xl px-4 py-10 pb-24 space-y-6">
       {trip?.id ? <ContentViewTracker type="trip" id={trip.id} /> : null}
       <div className="flex items-center justify-between">
         <div>

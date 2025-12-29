@@ -2,7 +2,7 @@
 
 import { getPublicDB } from "@/lib/supabase/public";
 import { resolveImageUrl } from "@/lib/imageUrl";
-import { destinationItemPath } from "@/lib/routes";
+import { destinationItemPath, destinationPath } from "@/lib/routes";
 import { getCuratedDayItineraryByIdPublic } from "@/lib/data/public/itineraries";
 
 export async function getDayItineraryItems(dayItineraryId) {
@@ -23,12 +23,21 @@ export async function getDayItineraryItems(dayItineraryId) {
       .in("id", destinationIds);
     destinationMap = new Map((destinations || []).map((row) => [row.id, row]));
   }
+  const itemRouteByType = {
+    sight: "sights",
+    experience: "experiences",
+    tour: "tours",
+    accommodation: "accommodation",
+    food_drink: "food-drink",
+  };
+
   const enriched = normalized.map((it) => {
     const destination = it.destination_id
       ? destinationMap.get(it.destination_id)
       : null;
+    const itemRoute = itemRouteByType[it.item_type];
     if (
-      it.item_type === "sight" &&
+      itemRoute &&
       destination?.slug &&
       destination?.countries?.slug &&
       it.slug
@@ -40,9 +49,21 @@ export async function getDayItineraryItems(dayItineraryId) {
         href: destinationItemPath(
           destination.countries.slug,
           destination.slug,
-          "sights",
+          itemRoute,
           it.slug
         ),
+      };
+    }
+    if (
+      it.item_type === "destination" &&
+      destination?.slug &&
+      destination?.countries?.slug
+    ) {
+      return {
+        ...it,
+        destinationSlug: destination.slug,
+        countrySlug: destination.countries.slug,
+        href: destinationPath(destination.countries.slug, destination.slug),
       };
     }
     return it;

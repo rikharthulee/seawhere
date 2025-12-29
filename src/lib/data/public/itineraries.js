@@ -34,7 +34,7 @@ const TABLE_INFO = {
   accommodation: {
     table: "accommodation",
     columns:
-      "id,slug,name,summary,images,destination_id,price_band,rating",
+      "id,slug,name,summary,images,destination_id,price_band,rating,lat,lng",
   },
   food_drink: {
     table: "food_drink",
