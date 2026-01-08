@@ -16,12 +16,16 @@ import {
   getCountryBySlugPublic,
 } from "@/lib/data/public/geo";
 import { fetchCountryHighlights } from "@/lib/data/public/country";
+import { getCountryGuide } from "@/lib/data/public/countryGuides";
 import { getPublicDB } from "@/lib/supabase/public";
 import {
   countryPath,
   destinationItemPath,
   destinationPath,
 } from "@/lib/routes";
+import CountryGuideNav from "@/components/CountryGuideNav";
+import CountryGuideSections from "@/components/CountryGuideSections";
+import CountryGuideAccordion from "@/components/CountryGuideAccordion";
 
 export const revalidate = 300;
 export const runtime = "nodejs";
@@ -113,6 +117,7 @@ export default async function CountryLandingPage(props) {
   if (!country) notFound();
 
   const highlights = await fetchCountryHighlights(country.id);
+  const guide = await getCountryGuide(country?.slug || countrySlug);
   const db = getPublicDB();
   const { data: trips } = await db
     .from("trips")
@@ -127,6 +132,9 @@ export default async function CountryLandingPage(props) {
   );
   const heroGallery = imagesToGallery([country.hero_image].filter(Boolean));
   const heroSlides = heroGallery.length > 0 ? heroGallery : hero ? [hero] : [];
+  const hasGuideContent =
+    guide &&
+    (guide?.facts?.length || guide?.intro || (guide?.sections || []).length);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -176,6 +184,48 @@ export default async function CountryLandingPage(props) {
         </div>
       </section>
 
+      {hasGuideContent ? (
+        <section className="mt-10 space-y-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-semibold">Travel basics</h2>
+              {guide.intro ? (
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                  {guide.intro}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <div className="md:grid md:grid-cols-[240px_1fr] md:gap-8">
+            <CountryGuideNav sections={guide.sections} facts={guide.facts} />
+            <div className="hidden md:block">
+              <CountryGuideSections sections={guide.sections} />
+            </div>
+            <div className="md:hidden">
+              <CountryGuideAccordion sections={guide.sections} facts={guide.facts} />
+            </div>
+          </div>
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold text-foreground">
+                  Explore destinations in {country.name}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Jump into highlights, stays, and experiences.
+                </div>
+              </div>
+              <Link
+                href="#featured-destinations"
+                className="text-sm font-medium underline decoration-muted-foreground/50 underline-offset-4"
+              >
+                See destinations
+              </Link>
+            </CardContent>
+          </Card>
+        </section>
+      ) : null}
+
       <PopularRightNow
         heading="Popular right now"
         compact
@@ -186,7 +236,7 @@ export default async function CountryLandingPage(props) {
       />
 
       {/* Featured destinations */}
-      <section className="mt-10 space-y-4">
+      <section id="featured-destinations" className="mt-10 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold">Featured destinations</h2>
           <span className="text-sm text-muted-foreground">
