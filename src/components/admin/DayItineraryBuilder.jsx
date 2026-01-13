@@ -55,6 +55,18 @@ const COST_BAND_LABEL_BY_VALUE = new Map(
   COST_BAND_OPTIONS.map((opt) => [opt.value, opt.label])
 );
 
+const STOP_TYPE_OPTIONS = [
+  { value: "stop", label: "Stop" },
+  { value: "waterfall", label: "Waterfall" },
+  { value: "cafe", label: "Cafe" },
+  { value: "food", label: "Food" },
+  { value: "town", label: "Town" },
+  { value: "viewpoint", label: "Viewpoint" },
+  { value: "temple", label: "Temple" },
+  { value: "overnight", label: "Overnight" },
+  { value: "optional", label: "Optional" },
+];
+
 function slugify(input) {
   return (
     String(input || "")
@@ -403,6 +415,8 @@ function bgByType(t) {
       return "bg-emerald-50/60 dark:bg-emerald-900/20";
     case "meal":
       return "bg-lime-50/60 dark:bg-lime-900/20";
+    case "stop":
+      return "bg-sky-50/60 dark:bg-sky-900/20";
     default:
       return "bg-muted";
   }
@@ -465,6 +479,9 @@ export default function DayItineraryBuilder() {
   const [includesRaw, setIncludesRaw] = useState("");
   const [notSuitableRaw, setNotSuitableRaw] = useState("");
   const [importantRaw, setImportantRaw] = useState("");
+  const [stopGeocodeLoading, setStopGeocodeLoading] = useState(false);
+  const [stopGeocodeMessage, setStopGeocodeMessage] = useState("");
+  const [stopGeocodeError, setStopGeocodeError] = useState("");
 
   const [countries, setCountries] = useState([]);
   const [destinations, setDestinations] = useState([]);
@@ -529,6 +546,22 @@ export default function DayItineraryBuilder() {
     typeof dayItinerary.destination_id === "string" && dayItinerary.destination_id
       ? dayItinerary.destination_id
       : "__EMPTY__";
+
+  const stopGeocodeQuery = useMemo(() => {
+    if (!selectedItem || selectedItem.item_type !== "stop") return "";
+    const parts = [];
+    if (selectedItem.title?.trim()) parts.push(selectedItem.title.trim());
+    const dest = destinations.find((d) => d.id === dayItinerary.destination_id);
+    if (dest?.name) parts.push(dest.name);
+    const country = countries.find((c) => c.id === countryId);
+    if (country?.name) parts.push(country.name);
+    return parts.join(", ");
+  }, [selectedItem, destinations, dayItinerary.destination_id, countries, countryId]);
+
+  useEffect(() => {
+    setStopGeocodeMessage("");
+    setStopGeocodeError("");
+  }, [selectedItemId]);
 
   async function searchPoisApi(q) {
     try {
@@ -641,6 +674,38 @@ export default function DayItineraryBuilder() {
     const dbItems = [...entityItems, ...noteItems, ...mealItems].sort(
       (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
     );
+    const stops = items
+      .filter((stop) => stop.item_type === "stop")
+      .map((stop, idx) => {
+      const lat =
+        typeof stop.latitude === "number"
+          ? stop.latitude
+          : Number.parseFloat(stop.latitude);
+      const lng =
+        typeof stop.longitude === "number"
+          ? stop.longitude
+          : Number.parseFloat(stop.longitude);
+      return {
+        id: stop.id || `stop-${idx}`,
+        title: typeof stop.title === "string" ? stop.title.trim() : "",
+        description:
+          typeof stop.details === "string" && stop.details.trim().length > 0
+            ? stop.details.trim()
+            : null,
+        stop_type: stop.stop_type || "stop",
+        latitude: Number.isFinite(lat) ? lat : null,
+        longitude: Number.isFinite(lng) ? lng : null,
+        image_url:
+          typeof stop.image_url === "string" && stop.image_url.trim().length > 0
+            ? stop.image_url.trim()
+            : null,
+        order_index:
+          typeof stop.sort_order === "number"
+            ? stop.sort_order
+            : Number.parseInt(stop.sort_order, 10) || (idx + 1) * 10,
+        is_optional: Boolean(stop.is_optional),
+      };
+    });
 
     const description = {
       text: dayItinerary.description || "",
@@ -685,6 +750,7 @@ export default function DayItineraryBuilder() {
           : null,
       transport,
       items: dbItems,
+      stops,
       destination_id,
       tags,
       highlights: Array.isArray(dayItinerary.highlights)
@@ -836,6 +902,85 @@ export default function DayItineraryBuilder() {
       ...prev,
       items: sortByOrder([...prev.items, meal]),
     }));
+  }
+
+  function addStop() {
+    const maxOrder = Math.max(
+      0,
+      ...dayItinerary.items.map((i) => i.sort_order || 0)
+    );
+    const stop = {
+      id: uid(),
+      sort_order: maxOrder + 10,
+      item_type: "stop",
+      title: "Stop",
+      details: "",
+      latitude: "",
+      longitude: "",
+      image_url: "",
+      stop_type: "stop",
+      is_optional: false,
+    };
+    setDayItinerary((prev) => ({
+      ...prev,
+      items: sortByOrder([...prev.items, stop]),
+    }));
+  }
+
+  async function handleResolveStopLocation() {
+    if (!selectedItem || selectedItem.item_type !== "stop") return;
+    setStopGeocodeLoading(true);
+    setStopGeocodeMessage("");
+    setStopGeocodeError("");
+    try {
+      if (!stopGeocodeQuery) {
+        throw new Error("Add a stop title and destination first.");
+      }
+      const res = await fetch("/api/admin/geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: stopGeocodeQuery }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error || `Geocode failed (${res.status})`);
+      }
+      if (!json?.ok) {
+        throw new Error(
+          json?.error_message
+            ? `${json.status}: ${json.error_message}`
+            : `Geocode status: ${json.status || "Unknown"}`
+        );
+      }
+      setDayItinerary((prev) => ({
+        ...prev,
+        items: prev.items.map((it) =>
+          it.id === selectedItem.id
+            ? {
+                ...it,
+                title: json.place_name || it.title,
+                latitude:
+                  json.lat !== null && json.lat !== undefined
+                    ? String(json.lat)
+                    : it.latitude,
+                longitude:
+                  json.lng !== null && json.lng !== undefined
+                    ? String(json.lng)
+                    : it.longitude,
+              }
+            : it
+        ),
+      }));
+      setStopGeocodeMessage(
+        json.formatted_address
+          ? `Resolved: ${json.formatted_address}`
+          : "Resolved location."
+      );
+    } catch (err) {
+      setStopGeocodeError(err?.message || "Failed to resolve location");
+    } finally {
+      setStopGeocodeLoading(false);
+    }
   }
 
   function removeItem(id) {
@@ -1087,6 +1232,30 @@ export default function DayItineraryBuilder() {
             typeof n.details === "string" ? n.details : "",
         }));
 
+    const stopItems = Array.isArray(data?.stops)
+      ? data.stops.map((stop, idx) => ({
+          id: stop.id || `stop-${idx}-${uid()}`,
+          item_type: "stop",
+          title: stop.title || "",
+          details: stop.description || "",
+          stop_type: stop.stop_type || "stop",
+          latitude:
+            typeof stop.latitude === "number"
+              ? stop.latitude
+              : Number.parseFloat(stop.latitude),
+          longitude:
+            typeof stop.longitude === "number"
+              ? stop.longitude
+              : Number.parseFloat(stop.longitude),
+          image_url: stop.image_url || "",
+          sort_order:
+            typeof stop.order_index === "number"
+              ? stop.order_index
+              : Number.parseInt(stop.order_index, 10) || (idx + 1) * 10,
+          is_optional: Boolean(stop.is_optional),
+        }))
+      : [];
+
     setDayItinerary({
       id: data?.id,
       name: data?.name || "",
@@ -1129,6 +1298,7 @@ export default function DayItineraryBuilder() {
         ...curated,
         ...transportItems,
         ...fallbackNoteItems,
+        ...stopItems,
       ]),
     });
     setTagsRaw(
@@ -1225,11 +1395,12 @@ export default function DayItineraryBuilder() {
         "destination",
         "accommodation",
         "food_drink",
+        "stop",
       ]),
     []
   );
   const mapPoints = useMemo(() => {
-    return (dayItinerary.items || [])
+    const curatedPoints = (dayItinerary.items || [])
       .filter((it) => curatedKinds.has(it.item_type))
       .map((it) => {
         const lat =
@@ -1247,6 +1418,7 @@ export default function DayItineraryBuilder() {
         };
       })
       .filter((pt) => pt.lat !== null && pt.lng !== null);
+    return curatedPoints;
   }, [dayItinerary.items, curatedKinds]);
 
   function buildGmapsMultiUrl(points) {
@@ -1868,6 +2040,9 @@ export default function DayItineraryBuilder() {
             <Button size="sm" variant="secondary" onClick={addMeal}>
               <Plus className="h-4 w-4 mr-1" /> Add Meal
             </Button>
+            <Button size="sm" variant="secondary" onClick={addStop}>
+              <Plus className="h-4 w-4 mr-1" /> Add Stop
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -2058,6 +2233,123 @@ export default function DayItineraryBuilder() {
                             </Select>
                           </>
                         ) : null}
+                        {selectedItem.item_type === "stop" ? (
+                          <>
+                            <Label>Stop type</Label>
+                            <Select
+                              value={selectedItem.stop_type || "stop"}
+                              onValueChange={(value) => {
+                                setDayItinerary((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) =>
+                                    it.id === selectedItem.id
+                                      ? { ...it, stop_type: value }
+                                      : it
+                                  ),
+                                }));
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Stop type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STOP_TYPE_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Label>Latitude</Label>
+                            <Input
+                              value={selectedItem.latitude ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setDayItinerary((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) =>
+                                    it.id === selectedItem.id
+                                      ? { ...it, latitude: val }
+                                      : it
+                                  ),
+                                }));
+                              }}
+                            />
+                            <Label>Longitude</Label>
+                            <Input
+                              value={selectedItem.longitude ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setDayItinerary((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) =>
+                                    it.id === selectedItem.id
+                                      ? { ...it, longitude: val }
+                                      : it
+                                  ),
+                                }));
+                              }}
+                            />
+                            <div className="space-y-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleResolveStopLocation}
+                                disabled={stopGeocodeLoading}
+                              >
+                                {stopGeocodeLoading
+                                  ? "Resolving..."
+                                  : "Resolve location"}
+                              </Button>
+                              <div className="text-xs text-muted-foreground">
+                                Query:{" "}
+                                {stopGeocodeQuery ||
+                                  "Add stop title + destination + country"}
+                              </div>
+                              {stopGeocodeMessage ? (
+                                <div className="text-xs text-emerald-600">
+                                  {stopGeocodeMessage}
+                                </div>
+                              ) : null}
+                              {stopGeocodeError ? (
+                                <div className="text-xs text-red-600">
+                                  {stopGeocodeError}
+                                </div>
+                              ) : null}
+                            </div>
+                            <Label>Image URL</Label>
+                            <Input
+                              value={selectedItem.image_url || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setDayItinerary((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) =>
+                                    it.id === selectedItem.id
+                                      ? { ...it, image_url: val }
+                                      : it
+                                  ),
+                                }));
+                              }}
+                            />
+                            <SingleImageUpload
+                              label="Upload image"
+                              value={selectedItem.image_url || ""}
+                              onChange={(value) => {
+                                setDayItinerary((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) =>
+                                    it.id === selectedItem.id
+                                      ? { ...it, image_url: value }
+                                      : it
+                                  ),
+                                }));
+                              }}
+                              prefix={`media/day-itineraries/${savedId || "draft"}/stops`}
+                            />
+                          </>
+                        ) : null}
                         <Label>Details</Label>
                         <Textarea
                           rows={3}
@@ -2074,24 +2366,28 @@ export default function DayItineraryBuilder() {
                             }));
                           }}
                         />
-                        <Label>Duration (min)</Label>
-                        <Input
-                          type="number"
-                          value={selectedItem.duration_minutes || ""}
-                          onChange={(e) => {
-                            const val = e.target.value
-                              ? Number(e.target.value)
-                              : "";
-                            setDayItinerary((prev) => ({
-                              ...prev,
-                              items: prev.items.map((it) =>
-                                it.id === selectedItem.id
-                                  ? { ...it, duration_minutes: val }
-                                  : it
-                              ),
-                            }));
-                          }}
-                        />
+                        {selectedItem.item_type === "stop" ? null : (
+                          <>
+                            <Label>Duration (min)</Label>
+                            <Input
+                              type="number"
+                              value={selectedItem.duration_minutes || ""}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                  ? Number(e.target.value)
+                                  : "";
+                                setDayItinerary((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) =>
+                                    it.id === selectedItem.id
+                                      ? { ...it, duration_minutes: val }
+                                      : it
+                                  ),
+                                }));
+                              }}
+                            />
+                          </>
+                        )}
                         <div className="flex items-center gap-2 pt-2">
                           <Checkbox
                             id="day-itinerary-optional"
@@ -2134,6 +2430,7 @@ export default function DayItineraryBuilder() {
           )}
         </CardContent>
       </Card>
+
       {/* Stacked Preview below the editor to avoid clipping */}
       <Card className="shadow-sm">
         <CardHeader>

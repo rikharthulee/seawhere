@@ -7,7 +7,7 @@ import { getCuratedDayItineraryByIdPublic } from "@/lib/data/public/itineraries"
 
 export async function getDayItineraryItems(dayItineraryId) {
   if (!dayItineraryId) return { items: [] };
-  const { items, transport } = await getCuratedDayItineraryByIdPublic(
+  const { items, transport, stops } = await getCuratedDayItineraryByIdPublic(
     dayItineraryId
   );
   const normalized = (items || []).map((it) => normalizeItem(it));
@@ -68,6 +68,21 @@ export async function getDayItineraryItems(dayItineraryId) {
     }
     return it;
   });
+  const stopItems = (stops || []).map((stop) => ({
+    id: stop.id,
+    item_type: "stop",
+    displayName: stop.title || "Stop",
+    displaySummary: stop.description || "",
+    descriptionText: stop.description || "",
+    displayImage: resolveImageUrl(stop.image_url),
+    lat: stop.latitude,
+    lng: stop.longitude,
+    is_optional: Boolean(stop.is_optional),
+    is_stop: true,
+    stop_type: stop.stop_type || "stop",
+    order_index: stop.order_index,
+  }));
+
   const flow = [
     ...(transport || []).map((leg) => ({
       kind: "leg",
@@ -78,6 +93,14 @@ export async function getDayItineraryItems(dayItineraryId) {
       kind: "item",
       sort_order: Number.isFinite(it?.sort_order) ? it.sort_order : Infinity,
       isNote: it.isNote,
+      it,
+    })),
+    ...stopItems.map((it, idx) => ({
+      kind: "item",
+      sort_order: Number.isFinite(it?.order_index)
+        ? it.order_index
+        : (idx + 1) * 10,
+      isNote: false,
       it,
     })),
   ].sort((a, b) => {
@@ -91,7 +114,7 @@ export async function getDayItineraryItems(dayItineraryId) {
     };
     return priority(a) - priority(b);
   });
-  return { items: enriched, flow };
+  return { items: enriched, flow, stops: stops || [] };
 }
 
 function firstParagraph(value) {

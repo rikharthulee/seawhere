@@ -126,6 +126,25 @@ async function fetchTransportLegs(supabase, dayItineraryId) {
   return (data || []).map(mapTransportLeg).filter(Boolean);
 }
 
+async function fetchStops(supabase, dayItineraryId) {
+  const { data, error } = await supabase
+    .from("day_itinerary_stops")
+    .select(
+      "id, day_itinerary_id, title, description, stop_type, latitude, longitude, image_url, order_index, is_optional"
+    )
+    .eq("day_itinerary_id", dayItineraryId)
+    .order("order_index", { ascending: true });
+  if (error) {
+    console.error("[public:day-itineraries] stops select failed", {
+      table: "day_itinerary_stops",
+      msg: error.message,
+      dayItineraryId,
+    });
+    return [];
+  }
+  return data || [];
+}
+
 // Strict per-item hydrator. No batching, no normalization, no fallback requests.
 export async function hydrateDayItineraryItems(supabase, items = []) {
   return Promise.all(
@@ -208,7 +227,7 @@ export async function getCuratedDayItineraryBySlugPublic(slug) {
       table: "day_itineraries",
       slug: normalized,
     });
-    return { dayItinerary: null, items: [], transport: [] };
+    return { dayItinerary: null, items: [], transport: [], stops: [] };
   }
 
   const { data: rawItems, error: itemsErr } = await supabase
@@ -226,12 +245,19 @@ export async function getCuratedDayItineraryBySlugPublic(slug) {
       supabase,
       dayItinerary.id
     );
-    return { dayItinerary, items: [], transport: transportFallback };
+    const stopsFallback = await fetchStops(supabase, dayItinerary.id);
+    return {
+      dayItinerary,
+      items: [],
+      transport: transportFallback,
+      stops: stopsFallback,
+    };
   }
 
   const items = await hydrateDayItineraryItems(supabase, rawItems || []);
   const transportLegs = await fetchTransportLegs(supabase, dayItinerary.id);
-  return { dayItinerary, items, transport: transportLegs };
+  const stops = await fetchStops(supabase, dayItinerary.id);
+  return { dayItinerary, items, transport: transportLegs, stops };
 }
 
 export async function getCuratedDayItineraryByIdPublic(id) {
@@ -239,7 +265,7 @@ export async function getCuratedDayItineraryByIdPublic(id) {
   const normalized = String(id || "").trim();
   if (!isUUID(normalized)) {
     console.warn("[public:day-itineraries] invalid id", { id });
-    return { dayItinerary: null, items: [], transport: [] };
+    return { dayItinerary: null, items: [], transport: [], stops: [] };
   }
 
   const {
@@ -283,12 +309,19 @@ export async function getCuratedDayItineraryByIdPublic(id) {
       supabase,
       dayItinerary.id
     );
-    return { dayItinerary, items: [], transport: transportFallback };
+    const stopsFallback = await fetchStops(supabase, dayItinerary.id);
+    return {
+      dayItinerary,
+      items: [],
+      transport: transportFallback,
+      stops: stopsFallback,
+    };
   }
 
   const items = await hydrateDayItineraryItems(supabase, rawItems || []);
   const transportLegs = await fetchTransportLegs(supabase, dayItinerary.id);
-  return { dayItinerary, items, transport: transportLegs };
+  const stops = await fetchStops(supabase, dayItinerary.id);
+  return { dayItinerary, items, transport: transportLegs, stops };
 }
 
 // Simple public listing for the index page

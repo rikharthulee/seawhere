@@ -97,6 +97,67 @@ function normalizeSortOrder(raw, idx) {
   return (idx + 1) * 10;
 }
 
+function normalizeStopType(value) {
+  if (typeof value !== "string") return "stop";
+  const trimmed = value.trim().toLowerCase();
+  return trimmed || "stop";
+}
+
+function normalizeCoord(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number.parseFloat(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+async function insertDayItineraryStops(db, dayItineraryId, rawStops = []) {
+  if (!Array.isArray(rawStops) || rawStops.length === 0) {
+    return { data: [] };
+  }
+  const rows = rawStops
+    .map((raw, idx) => {
+      if (!raw || typeof raw !== "object") return null;
+      const title =
+        typeof raw.title === "string" && raw.title.trim().length > 0
+          ? raw.title.trim()
+          : null;
+      const latitude = normalizeCoord(raw.latitude);
+      const longitude = normalizeCoord(raw.longitude);
+      if (!title || latitude === null || longitude === null) return null;
+      const description =
+        typeof raw.description === "string" && raw.description.trim().length > 0
+          ? raw.description.trim()
+          : null;
+      const imageUrl =
+        typeof raw.image_url === "string" && raw.image_url.trim().length > 0
+          ? raw.image_url.trim()
+          : null;
+      return {
+        day_itinerary_id: dayItineraryId,
+        title,
+        description,
+        stop_type: normalizeStopType(raw.stop_type),
+        latitude,
+        longitude,
+        image_url: imageUrl,
+        order_index: normalizeSortOrder(raw.order_index, idx),
+        is_optional: Boolean(raw.is_optional),
+      };
+    })
+    .filter(Boolean);
+
+  if (rows.length === 0) {
+    return { data: [] };
+  }
+  const { data, error } = await db
+    .from("day_itinerary_stops")
+    .insert(rows)
+    .select("id, order_index");
+  if (error) {
+    return { error };
+  }
+  return { data };
+}
+
 function normalizeNoteDraft(raw = {}) {
   const title =
     typeof raw.title === "string" && raw.title.trim().length > 0
@@ -327,8 +388,15 @@ export async function GET(_req, ctx) {
       ? []
       : extractTransportLegs(transportRows);
     const transport = legsFromTable;
+    const { data: stops } = await db
+      .from("day_itinerary_stops")
+      .select(
+        "id, day_itinerary_id, title, description, stop_type, latitude, longitude, image_url, order_index, is_optional"
+      )
+      .eq("day_itinerary_id", id)
+      .order("order_index", { ascending: true });
     return NextResponse.json(
-      { ...dayItinerary, transport, items: enriched },
+      { ...dayItinerary, transport, items: enriched, stops: stops || [] },
       { status: 200 }
     );
   } catch (e) {
@@ -394,6 +462,7 @@ export async function PUT(request, ctx) {
     }
 
     await db.from("day_itinerary_items").delete().eq("day_itinerary_id", id);
+    await db.from("day_itinerary_stops").delete().eq("day_itinerary_id", id);
     const itemsResult = await insertDayItineraryItems(
       db,
       id,
@@ -423,6 +492,17 @@ export async function PUT(request, ctx) {
         );
       }
     }
+    const stopsResult = await insertDayItineraryStops(
+      db,
+      id,
+      Array.isArray(body.stops) ? body.stops : []
+    );
+    if (stopsResult.error) {
+      return NextResponse.json(
+        { error: stopsResult.error.message },
+        { status: 400 }
+      );
+    }
     return NextResponse.json({ id }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
@@ -451,6 +531,13 @@ export async function DELETE(_request, ctx) {
       .eq("day_itinerary_id", id);
     if (itemsErr) {
       return NextResponse.json({ error: itemsErr.message }, { status: 400 });
+    }
+    const { error: stopsErr } = await db
+      .from("day_itinerary_stops")
+      .delete()
+      .eq("day_itinerary_id", id);
+    if (stopsErr) {
+      return NextResponse.json({ error: stopsErr.message }, { status: 400 });
     }
     const { error } = await db
       .from("day_itineraries")

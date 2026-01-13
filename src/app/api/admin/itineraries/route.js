@@ -91,6 +91,67 @@ function normalizeSortOrder(raw, idx) {
   return (idx + 1) * 10;
 }
 
+function normalizeStopType(value) {
+  if (typeof value !== "string") return "stop";
+  const trimmed = value.trim().toLowerCase();
+  return trimmed || "stop";
+}
+
+function normalizeCoord(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number.parseFloat(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+async function insertDayItineraryStops(db, dayItineraryId, rawStops = []) {
+  if (!Array.isArray(rawStops) || rawStops.length === 0) {
+    return { data: [] };
+  }
+  const rows = rawStops
+    .map((raw, idx) => {
+      if (!raw || typeof raw !== "object") return null;
+      const title =
+        typeof raw.title === "string" && raw.title.trim().length > 0
+          ? raw.title.trim()
+          : null;
+      const latitude = normalizeCoord(raw.latitude);
+      const longitude = normalizeCoord(raw.longitude);
+      if (!title || latitude === null || longitude === null) return null;
+      const description =
+        typeof raw.description === "string" && raw.description.trim().length > 0
+          ? raw.description.trim()
+          : null;
+      const imageUrl =
+        typeof raw.image_url === "string" && raw.image_url.trim().length > 0
+          ? raw.image_url.trim()
+          : null;
+      return {
+        day_itinerary_id: dayItineraryId,
+        title,
+        description,
+        stop_type: normalizeStopType(raw.stop_type),
+        latitude,
+        longitude,
+        image_url: imageUrl,
+        order_index: normalizeSortOrder(raw.order_index, idx),
+        is_optional: Boolean(raw.is_optional),
+      };
+    })
+    .filter(Boolean);
+
+  if (rows.length === 0) {
+    return { data: [] };
+  }
+  const { data, error } = await db
+    .from("day_itinerary_stops")
+    .insert(rows)
+    .select("id, order_index");
+  if (error) {
+    return { error };
+  }
+  return { data };
+}
+
 function normalizeNoteDraft(raw = {}) {
   const title =
     typeof raw.title === "string" && raw.title.trim().length > 0
@@ -352,6 +413,18 @@ export async function POST(request) {
           { status: 400 }
         );
       }
+    }
+
+    const stopsResult = await insertDayItineraryStops(
+      db,
+      dayItineraryId,
+      Array.isArray(body.stops) ? body.stops : []
+    );
+    if (stopsResult.error) {
+      return NextResponse.json(
+        { error: stopsResult.error.message },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json({ id: dayItineraryId }, { status: 200 });

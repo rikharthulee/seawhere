@@ -132,7 +132,7 @@ function minsToLabel(mins) {
 export default async function Page({ params, searchParams }) {
   const { slug } = await params;
   const { debug } = (await searchParams) || {};
-  const { dayItinerary, items, transport } = await getCuratedDayItineraryBySlugPublic(
+  const { dayItinerary, items, transport, stops } = await getCuratedDayItineraryBySlugPublic(
     slug
   );
   if (!dayItinerary && !debug) return notFound();
@@ -200,6 +200,29 @@ export default async function Page({ params, searchParams }) {
     return acc + (n > 0 ? n : 0);
   }, 0);
   const totalDurationLabel = minsToLabel(totalMinutes + transportMinutes);
+  const stopItems = (Array.isArray(stops) ? stops : []).map((stop, idx) => ({
+    kind: "item",
+    sort_order:
+      typeof stop.order_index === "number"
+        ? stop.order_index
+        : Number.parseInt(stop.order_index, 10) || (idx + 1) * 10,
+    isNote: false,
+    isOptional: Boolean(stop.is_optional),
+    it: {
+      id: stop.id,
+      item_type: "stop",
+      displayName: stop.title || "Stop",
+      displaySummary: stop.description || "",
+      descriptionText: stop.description || "",
+      displayImage: resolveImageUrl(stop.image_url),
+      lat: stop.latitude,
+      lng: stop.longitude,
+      is_optional: Boolean(stop.is_optional),
+      is_stop: true,
+      stop_type: stop.stop_type || "stop",
+    },
+  }));
+
   const flow = [
     ...(transport || []).map((leg) => ({
       kind: "leg",
@@ -213,6 +236,7 @@ export default async function Page({ params, searchParams }) {
       isOptional: it.is_optional,
       it,
     })),
+    ...stopItems,
   ].sort((a, b) => {
     const orderA = Number.isFinite(a.sort_order) ? a.sort_order : Infinity;
     const orderB = Number.isFinite(b.sort_order) ? b.sort_order : Infinity;
@@ -259,6 +283,12 @@ export default async function Page({ params, searchParams }) {
       lng: entry.it.lng,
       order: idx + 1,
       href: entry.it.href || null,
+      kind: entry.it.is_stop ? "itinerary_stop" : "itinerary",
+      stopType: entry.it.stop_type || null,
+      description:
+        entry.it.displaySummary || entry.it.descriptionText || entry.it.details || "",
+      image: entry.it.displayImage || null,
+      isOptional: Boolean(entry.it.is_optional),
     }));
   const missingCoordsCount = mapCandidates.length - pins.length;
 

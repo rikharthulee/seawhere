@@ -23,8 +23,6 @@ import {
   destinationItemPath,
   destinationPath,
 } from "@/lib/routes";
-import CountryGuideNav from "@/components/CountryGuideNav";
-import CountryGuideSections from "@/components/CountryGuideSections";
 import CountryGuideAccordion from "@/components/CountryGuideAccordion";
 
 export const revalidate = 300;
@@ -196,14 +194,8 @@ export default async function CountryLandingPage(props) {
               ) : null}
             </div>
           </div>
-          <div className="md:grid md:grid-cols-[240px_1fr] md:gap-8">
-            <CountryGuideNav sections={guide.sections} facts={guide.facts} />
-            <div className="hidden md:block">
-              <CountryGuideSections sections={guide.sections} />
-            </div>
-            <div className="md:hidden">
-              <CountryGuideAccordion sections={guide.sections} facts={guide.facts} />
-            </div>
+          <div>
+            <CountryGuideAccordion sections={guide.sections} facts={guide.facts} />
           </div>
           <Card className="border-dashed">
             <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">

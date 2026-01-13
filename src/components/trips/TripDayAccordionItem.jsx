@@ -26,7 +26,7 @@ export default function TripDayAccordionItem({
     if (entry.it.item_type === "meal") return false;
     return true;
   });
-  const pins = mapCandidates
+  const itineraryPins = mapCandidates
     .filter(
       (entry) =>
         Number.isFinite(entry.it.lat) && Number.isFinite(entry.it.lng)
@@ -38,8 +38,17 @@ export default function TripDayAccordionItem({
       lng: entry.it.lng,
       order: idx + 1,
       href: entry.it.href || null,
+      kind: entry.it.is_stop ? "itinerary_stop" : "itinerary",
+      stopType: entry.it.stop_type || null,
+      description:
+        entry.it.displaySummary || entry.it.descriptionText || entry.it.details || "",
+      image: entry.it.displayImage || null,
+      isOptional: Boolean(entry.it.is_optional),
+      sort_order: Number.isFinite(entry.sort_order) ? entry.sort_order : idx,
     }));
-  const missingCoordsCount = mapCandidates.length - pins.length;
+  const pins = itineraryPins.map((pin, idx) => ({ ...pin, order: idx + 1 }));
+
+  const missingCoordsCount = mapCandidates.length - itineraryPins.length;
 
   useEffect(() => {
     let mounted = true;
@@ -129,33 +138,35 @@ export default function TripDayAccordionItem({
                   <ItineraryTimeline flow={flow} optionalItems={[]} />
                 </div>
               )}
-              <details className="mt-4 rounded-xl border bg-card/40 p-3">
-                <summary className="cursor-pointer text-sm font-semibold">
-                  Map
-                </summary>
-                <div className="mt-3 space-y-2">
-                  {pins.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No stops have coordinates yet.
-                    </p>
-                  ) : (
-                    <DayMap pins={pins} />
-                  )}
-                  {missingCoordsCount > 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      {missingCoordsCount} stop
-                      {missingCoordsCount === 1 ? "" : "s"} don’t have
-                      coordinates yet.
-                    </p>
-                  ) : null}
-                </div>
-              </details>
             </>
           ) : (
             <div className="text-sm text-muted-foreground">
               No itinerary assigned for this day.
             </div>
           )}
+          {pins.length > 0 || missingCoordsCount > 0 ? (
+            <details className="mt-4 rounded-xl border bg-card/40 p-3">
+              <summary className="cursor-pointer text-sm font-semibold">
+                Map
+              </summary>
+              <div className="mt-3 space-y-2">
+                {pins.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No stops have coordinates yet.
+                  </p>
+                ) : (
+                  <DayMap pins={pins} />
+                )}
+                {missingCoordsCount > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {missingCoordsCount} stop
+                    {missingCoordsCount === 1 ? "" : "s"} don’t have
+                    coordinates yet.
+                  </p>
+                ) : null}
+              </div>
+            </details>
+          ) : null}
         </div>
       </AccordionContent>
     </AccordionItem>
