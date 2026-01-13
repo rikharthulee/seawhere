@@ -34,7 +34,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-sm border-b lg:static lg:bg-transparent lg:backdrop-blur-0 lg:border-b-0">
+    <header className="sticky top-0 z-50 bg-white border-b lg:static">
       <nav className="mx-auto max-w-6xl px-4 py-2">
         <div className="flex items-center justify-between lg:hidden">
           <Link

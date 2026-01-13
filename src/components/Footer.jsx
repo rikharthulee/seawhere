@@ -35,7 +35,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="border-t py-12">
+    <footer className="border-t bg-white py-12">
       <div className="mx-auto max-w-6xl px-4 grid gap-8 md:grid-cols-4">
         <div>
           <div className="font-semibold">Seawhere</div>

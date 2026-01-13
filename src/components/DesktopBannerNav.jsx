@@ -17,7 +17,7 @@ export default function DesktopBannerNav({ navItems = [], aboutItems = [], onSea
   const pathname = usePathname();
 
   return (
-    <div className="hidden lg:block border-b bg-background">
+    <div className="hidden lg:block border-b bg-white">
       <div className="mx-auto grid max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-6 px-4 py-4">
         <Link
           href="/"
@@ -89,7 +89,7 @@ export default function DesktopBannerNav({ navItems = [], aboutItems = [], onSea
 
         <div className="flex justify-end">
           <form
-            className="flex items-center gap-2 rounded-full border bg-background px-3 py-1 shadow-sm"
+            className="flex items-center gap-2 rounded-full border bg-white px-3 py-1 shadow-sm"
             onSubmit={onSearchSubmit}
           >
             <svg

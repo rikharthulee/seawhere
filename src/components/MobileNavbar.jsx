@@ -27,7 +27,7 @@ export default function MobileNavbar({
           : "max-h-0 opacity-0 overflow-hidden"
       }`}
     >
-      <div className="px-4 pb-4 bg-background text-foreground">
+      <div className="px-4 pb-4 bg-white text-foreground">
         <ul className="flex flex-col gap-2">
           {navItems.map((l) => (
             <li key={l.href}>
