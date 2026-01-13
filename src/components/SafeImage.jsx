@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { resolveImageUrl, resolveImageProps } from "@/lib/imageUrl";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +65,7 @@ export default function SafeImage({
 }) {
   const [fallbackNative, setFallbackNative] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const imageRef = useRef(null);
   const s = String(src || "");
   const resolved = resolveImageUrl(s) || s;
   const external = isExternal(resolved);
@@ -80,6 +81,11 @@ export default function SafeImage({
   useEffect(() => {
     setFallbackNative(false);
     setIsLoaded(false);
+  }, [finalSrc]);
+  useEffect(() => {
+    if (imageRef.current?.complete) {
+      setIsLoaded(true);
+    }
   }, [finalSrc]);
 
   const notifyComplete = (maybeTarget, event) => {
@@ -128,6 +134,7 @@ export default function SafeImage({
         src={finalSrc}
         alt={alt}
         className={imageClassName}
+        ref={imageRef}
         {...(fill ? { fill: true } : { width, height })}
         sizes={sizes}
         priority={priority}
@@ -148,6 +155,7 @@ export default function SafeImage({
       src={resolved}
       alt={alt}
       className={imageClassName}
+      ref={imageRef}
       {...(!fill ? { width, height } : {})}
       sizes={sizes}
       loading={loadingProp ?? (priority ? "eager" : "lazy")}
