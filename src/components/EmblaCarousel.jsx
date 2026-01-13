@@ -7,8 +7,6 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel";
 
 /**
@@ -60,7 +58,7 @@ export default function EmblaCarousel({
       } else {
         api.scrollTo(0);
       }
-    }, 4000);
+    }, 5500);
     return () => clearInterval(timer);
   }, [api, images.length]);
 
@@ -88,15 +86,7 @@ export default function EmblaCarousel({
           ))}
         </CarouselContent>
 
-        {/* Prev/Next with your preferred look (override shadcn defaults) */}
-        <CarouselPrevious
-          className="absolute left-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-card/80 backdrop-blur px-3 py-2 ring-1 ring-border hover:bg-card"
-          aria-label="Previous slide"
-        />
-        <CarouselNext
-          className="absolute right-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-card/80 backdrop-blur px-3 py-2 ring-1 ring-border hover:bg-card"
-          aria-label="Next slide"
-        />
+        {/* Prev/Next controls removed per request */}
       </Carousel>
 
       {/* dots */}

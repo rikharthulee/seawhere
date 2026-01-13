@@ -24,7 +24,7 @@ export default function DesktopBannerNav({ navItems = [], aboutItems = [], onSea
           className="flex items-center gap-3 text-3xl font-semibold tracking-tight text-foreground"
         >
           <Image
-            src="/logo.png"
+            src="/logo.svg"
             alt="Seawhere logo"
             width={56}
             height={56}

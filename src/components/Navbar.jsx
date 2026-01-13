@@ -43,7 +43,7 @@ export default function Navbar() {
             aria-label="Seawhere home"
           >
             <Image
-              src="/logo.png"
+              src="/logo.svg"
               alt="Seawhere logo"
               width={40}
               height={40}
